@@ -130,11 +130,13 @@ SigManager::SigManager(PrincipalId myId,
           metrics_component_.RegisterAtomicCounter("peer_replicas_signature_verification_failed"),
           metrics_component_.RegisterAtomicCounter("peer_replicas_signatures_verified"),
           metrics_component_.RegisterAtomicCounter("signature_verification_failed_on_unrecognized_participant_id")} {
-  map<KeyIndex, std::shared_ptr<concord::util::crypto::IVerifier>> publicKeyIndexToVerifier;
+  map<KeyIndex, std::shared_ptr<concord::util::cryptointerface::IVerifier>> publicKeyIndexToVerifier;
   size_t numPublickeys = publickeys.size();
 
   ConcordAssert(publicKeysMapping.size() >= numPublickeys);
   mySigner_.reset(new concord::util::crypto::RSASigner(mySigPrivateKey.first.c_str(), mySigPrivateKey.second));
+  // mySigner_.reset(new concord::util::crypto::ECDSASigner(mySigPrivateKey.first.c_str(), mySigPrivateKey.second));
+  LOG_INFO(KEY_EX_LOG, __LINE__ << " PKT: RSASigner created.");
   for (const auto& p : publicKeysMapping) {
     ConcordAssert(verifiers_.count(p.first) == 0);
     ConcordAssert(p.second < numPublickeys);
@@ -143,6 +145,8 @@ SigManager::SigManager(PrincipalId myId,
     const auto& [key, format] = publickeys[p.second];
     if (iter == publicKeyIndexToVerifier.end()) {
       verifiers_[p.first] = std::make_shared<concord::util::crypto::RSAVerifier>(key.c_str(), format);
+      // verifiers_[p.first] = std::make_shared<concord::util::crypto::ECDSASigner>(key.c_str(), format);
+      LOG_INFO(KEY_EX_LOG, __LINE__ << " PKT: RSAVerifier created.");
       publicKeyIndexToVerifier[p.second] = verifiers_[p.first];
     } else {
       verifiers_[p.first] = iter->second;

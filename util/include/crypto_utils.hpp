@@ -21,6 +21,7 @@
 #include <openssl/pem.h>
 #include <openssl/x509.h>
 #include <openssl/evp.h>
+#include "crypto_interface.hpp"
 
 namespace concord::util::crypto {
 enum class KeyFormat : std::uint16_t { HexaDecimalStrippedFormat, PemFormat };
@@ -37,23 +38,8 @@ class CertificateUtils {
                                 uint32_t& remote_peer_id,
                                 std::string& conn_type);
 };
-class IVerifier {
- public:
-  virtual bool verify(const std::string& data, const std::string& sig) const = 0;
-  virtual uint32_t signatureLength() const = 0;
-  virtual ~IVerifier() = default;
-  virtual std::string getPubKey() const = 0;
-};
 
-class ISigner {
- public:
-  virtual std::string sign(const std::string& data) = 0;
-  virtual uint32_t signatureLength() const = 0;
-  virtual ~ISigner() = default;
-  virtual std::string getPrivKey() const = 0;
-};
-
-class ECDSAVerifier : public IVerifier {
+class ECDSAVerifier : public concord::util::cryptointerface::IVerifier {
  public:
   ECDSAVerifier(const std::string& str_pub_key, KeyFormat fmt);
   bool verify(const std::string& data, const std::string& sig) const override;
@@ -67,7 +53,7 @@ class ECDSAVerifier : public IVerifier {
   std::string key_str_;
 };
 
-class ECDSASigner : public ISigner {
+class ECDSASigner : public concord::util::cryptointerface::ISigner {
  public:
   ECDSASigner(const std::string& str_priv_key, KeyFormat fmt);
   std::string sign(const std::string& data) override;
@@ -80,7 +66,7 @@ class ECDSASigner : public ISigner {
   std::unique_ptr<Impl> impl_;
   std::string key_str_;
 };
-class RSAVerifier : public IVerifier {
+class RSAVerifier : public concord::util::cryptointerface::IVerifier {
  public:
   RSAVerifier(const std::string& str_pub_key, KeyFormat fmt);
   bool verify(const std::string& data, const std::string& sig) const override;
@@ -94,7 +80,7 @@ class RSAVerifier : public IVerifier {
   std::string key_str_;
 };
 
-class RSASigner : public ISigner {
+class RSASigner : public concord::util::cryptointerface::ISigner {
  public:
   RSASigner(const std::string& str_priv_key, KeyFormat fmt);
   std::string sign(const std::string& data) override;

@@ -146,7 +146,7 @@ class ClientApiTestParametrizedFixture : public ClientApiTestFixture,
     out = GetSecretData();  // return secret data
   }
 
-  unique_ptr<concord::util::crypto::IVerifier> transaction_verifier_;
+  unique_ptr<concord::util::cryptointerface::IVerifier> transaction_verifier_;
   bool corrupt_request_ = false;
 };
 

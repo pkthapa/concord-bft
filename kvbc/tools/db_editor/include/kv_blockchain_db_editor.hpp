@@ -1025,7 +1025,7 @@ struct VerifyDbCheckpoint {
   using BlockDigest = std::array<std::uint8_t, BLOCK_DIGEST_SIZE>;
   using CheckpointDesc = bftEngine::bcst::impl::DataStore::CheckpointDesc;
   using BlockHashData = std::tuple<uint64_t, BlockDigest, BlockDigest>;  //<blockId, parentHash, blockHash>
-  using IVerifier = concord::util::crypto::IVerifier;
+  using IVerifier = concord::util::cryptointerface::IVerifier;
   using RSAVerifier = concord::util::crypto::RSAVerifier;
   using KeyFormat = concord::util::crypto::KeyFormat;
   using ReplicaId = uint16_t;
