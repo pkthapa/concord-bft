@@ -23,7 +23,6 @@
 #include "kvstream.h"
 #include "Digest.hpp"
 
-using concord::util::digest::Digest;
 using concord::util::digest::BlockDigest;
 
 namespace concord {
@@ -48,7 +47,7 @@ namespace bcst {
 // blocks.
 // Blocks are numbered. The first block should be block number 1.
 
-// represnts a digest
+// represents a digest
 #pragma pack(push, 1)
 struct StateTransferDigest {
   char content[DIGEST_SIZE];

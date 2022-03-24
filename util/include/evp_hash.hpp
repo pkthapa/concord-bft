@@ -20,10 +20,9 @@
 #include <openssl/evp.h>
 
 #include "assertUtils.hpp"
+#include "hex_tools.h"
 
-namespace concord {
-namespace util {
-namespace detail {
+namespace concord::util::detail {
 
 // A simple wrapper class around OpenSSL versions > 1.1.1 that implements EVP hash functions.
 template <const EVP_MD* (*EVPMethod)(), size_t DIGEST_SIZE_IN_BYTES>
@@ -98,11 +97,10 @@ class EVPHash {
     updating_ = false;
     return digest;
   }
+
   static std::string toHexString(const Digest& digest) {
-    std::ostringstream oss;
-    for (size_t i = 0; i < SIZE_IN_BYTES; ++i)
-      oss << std::setfill('0') << std::setw(2) << std::hex << std::uppercase << (0xff & (unsigned int)digest[i]);
-    return oss.str();
+    auto strDigest = std::string(digest.begin(), digest.end());
+    return concordUtils::bufferToHex(strDigest.c_str(), SIZE_IN_BYTES, false);
   }
 
  private:
@@ -110,6 +108,4 @@ class EVPHash {
   bool updating_ = false;
 };
 
-}  // namespace detail
-}  // namespace util
-}  // namespace concord
+}  // namespace concord::util::detail

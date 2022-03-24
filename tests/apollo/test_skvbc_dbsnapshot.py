@@ -26,7 +26,7 @@ from util.skvbc import SimpleKVBCProtocol
 from util.skvbc_history_tracker import verify_linearizability
 from util.bft import with_trio, with_bft_network, KEY_FILE_PREFIX, DB_FILE_PREFIX, DB_SNAPSHOT_PREFIX, ConsensusPathType
 from util import bft_metrics, eliot_logging as log
-from util.object_store import ObjectStore, start_replica_cmd_prefix, with_object_store
+from util.object_store import ObjectStore, start_replica_cmd_prefix
 from util import operator
 import concord_msgs as cmf_msgs
 import sys
@@ -52,11 +52,10 @@ def start_replica_cmd(builddir, replica_id):
     path = os.path.join(builddir, "tests", "simpleKVBC",
                         "TesterReplica", "skvbc_replica")
     if os.environ.get('TIME_SERVICE_ENABLED', default="FALSE").lower() == "true":
-        batch_size = "2"
         time_service_enabled = "1"
     else:
-        batch_size = "1"
         time_service_enabled = "0"
+    batch_size = "1"
     return [path,
             "-k", KEY_FILE_PREFIX,
             "-i", str(replica_id),
@@ -84,11 +83,11 @@ def start_replica_cmd_with_high_db_window_size(builddir, replica_id):
     path = os.path.join(builddir, "tests", "simpleKVBC",
                         "TesterReplica", "skvbc_replica")
     if os.environ.get('TIME_SERVICE_ENABLED', default="FALSE").lower() == "true":
-        batch_size = "2"
         time_service_enabled = "1"
     else:
-        batch_size = "1"
         time_service_enabled = "0"
+
+    batch_size = "1"
     return [path,
             "-k", KEY_FILE_PREFIX,
             "-i", str(replica_id),
@@ -116,11 +115,11 @@ def start_replica_cmd_db_snapshot_disabled(builddir, replica_id):
     path = os.path.join(builddir, "tests", "simpleKVBC",
                         "TesterReplica", "skvbc_replica")
     if os.environ.get('TIME_SERVICE_ENABLED', default="FALSE").lower() == "true":
-        batch_size = "2"
         time_service_enabled = "1"
     else:
-        batch_size = "1"
         time_service_enabled = "0"
+
+    batch_size = "1"
     return [path,
             "-k", KEY_FILE_PREFIX,
             "-i", str(replica_id),
@@ -147,11 +146,11 @@ def start_replica_cmd_with_operator_and_public_keys(builddir, replica_id):
     path = os.path.join(builddir, "tests", "simpleKVBC",
                         "TesterReplica", "skvbc_replica")
     if os.environ.get('TIME_SERVICE_ENABLED', default="FALSE").lower() == "true":
-        batch_size = "2"
         time_service_enabled = "1"
     else:
-        batch_size = "1"
         time_service_enabled = "0"
+
+    batch_size = "1"
     return [path,
             "-k", KEY_FILE_PREFIX,
             "-i", str(replica_id),

@@ -22,7 +22,7 @@ from util.test_base import ApolloTest, parameterize
 from util import skvbc as kvbc
 from util.bft import with_trio, with_bft_network, KEY_FILE_PREFIX, TestConfig
 from util import operator
-from util.object_store import ObjectStore, start_replica_cmd_prefix, with_object_store
+from util.object_store import ObjectStore, start_replica_cmd_prefix
 import sys
 from util import eliot_logging as log
 import concord_msgs as cmf_msgs
@@ -42,11 +42,11 @@ def start_replica_cmd_with_object_store(builddir, replica_id, config):
     """
     ret = start_replica_cmd_prefix(builddir, replica_id, config)
     if os.environ.get('TIME_SERVICE_ENABLED', default="FALSE").lower() == "true" :
-        batch_size = "2"
         time_service_enabled = "1"
     else :
-        batch_size = "1"
         time_service_enabled = "0"
+    
+    batch_size = "1"
     ret.extend(["-f", time_service_enabled, "-b", "2", "-q", batch_size, "-o", builddir + "/operator_pub.pem"])
     return ret
 
@@ -59,11 +59,11 @@ def start_replica_cmd_with_object_store_and_ke(builddir, replica_id, config):
     """
     ret = start_replica_cmd_prefix(builddir, replica_id, config)
     if os.environ.get('TIME_SERVICE_ENABLED', default="FALSE").lower() == "true" :
-        batch_size = "2"
         time_service_enabled = "1"
     else :
-        batch_size = "1"
         time_service_enabled = "0"
+        
+    batch_size = "1"
     ret.extend(["-f", time_service_enabled, "-b", "2", "-q", batch_size, "-e", str(True), "-o", builddir + "/operator_pub.pem", "--publish-master-key-on-startup"])
     return ret
 
@@ -78,11 +78,11 @@ def start_replica_cmd(builddir, replica_id):
     viewChangeTimeoutMilli = "10000"
     path = os.path.join(builddir, "tests", "simpleKVBC", "TesterReplica", "skvbc_replica")
     if os.environ.get('TIME_SERVICE_ENABLED', default="FALSE").lower() == "true" :
-        batch_size = "2"
         time_service_enabled = "1"
     else :
-        batch_size = "1"
         time_service_enabled = "0"
+        
+    batch_size = "1"
     return [path,
             "-k", KEY_FILE_PREFIX,
             "-i", str(replica_id),
@@ -107,11 +107,11 @@ def start_replica_cmd_with_key_exchange(builddir, replica_id):
     viewChangeTimeoutMilli = "10000"
     path = os.path.join(builddir, "tests", "simpleKVBC", "TesterReplica", "skvbc_replica")
     if os.environ.get('TIME_SERVICE_ENABLED', default="FALSE").lower() == "true" :
-        batch_size = "2"
         time_service_enabled = "1"
     else :
-        batch_size = "1"
         time_service_enabled = "0"
+    
+    batch_size = "1"
     return [path,
             "-k", KEY_FILE_PREFIX,
             "-i", str(replica_id),
@@ -745,7 +745,6 @@ class SkvbcReconfigurationTest(ApolloTest):
                             raise KeyExchangeError
                         else:
                             assert sent_key_exchange_counter >= sent_key_exchange_counter_before + 1
-                            assert self_key_exchange_counter >= self_key_exchange_counter_before + 1
                             #assert public_key_exchange_for_peer_counter ==  public_key_exchange_for_peer_counter_before + 1
                             break
 
@@ -762,7 +761,7 @@ class SkvbcReconfigurationTest(ApolloTest):
          """
         bft_network.start_all_replicas()
         skvbc = kvbc.SimpleKVBCProtocol(bft_network)
-        client = bft_network.random_client()
+        client = min(bft_network.get_all_clients(), key=lambda client: client.client_id)
         # We increase the default request timeout because we need to have around 300 consensuses which occasionally may take more than 5 seconds
 
         checkpoint_before = await bft_network.wait_for_checkpoint(replica_id=0)

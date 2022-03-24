@@ -84,11 +84,6 @@ class RequestProcessingState {
   const bftEngine::OperationResult getAgreedPreProcessResult() const { return agreedPreProcessResult_; }
 
   static void init(uint16_t numOfRequiredReplies, preprocessor::PreProcessorRecorder* histograms);
-  static concord::util::SHA3_256::Digest createPreProcessResultHash(const char* preProcessResultData,
-                                                                    uint32_t preProcessResultLen,
-                                                                    bftEngine::OperationResult preProcessResult,
-                                                                    uint16_t clientId,
-                                                                    ReqId reqSeqNum);
   uint16_t getNumOfReceivedReplicas() { return numOfReceivedReplies_; };
 
  private:
@@ -125,7 +120,7 @@ class RequestProcessingState {
   const std::string batchCid_;
   const uint16_t clientId_;
   const uint16_t reqOffsetInBatch_;
-  const std::string cid_;
+  const std::string reqCid_;
   const ReqId reqSeqNum_;
   const uint64_t entryTime_;
   const std::string clientRequestSignature_;
