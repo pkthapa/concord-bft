@@ -2,23 +2,20 @@
 find_package(Threads REQUIRED)
 
 set(util_source_files
-        src/Metrics.cpp
-        src/MetricsServer.cpp
-        src/SimpleThreadPool.cpp
-        src/histogram.cpp
-        src/status.cpp
-        src/sliver.cpp
-        src/hex_tools.cpp
-        src/OpenTracing.cpp
-        src/throughput.cpp
-        src/crypto_utils.cpp
-        src/RawMemoryPool.cpp
-        src/config_file_parser.cpp
-        src/Digest.cpp
-        )
-
-
-add_library(util STATIC ${util_source_files})
+    src/Metrics.cpp
+    src/MetricsServer.cpp
+    src/SimpleThreadPool.cpp
+    src/histogram.cpp
+    src/status.cpp
+    src/sliver.cpp
+    src/hex_tools.cpp
+    src/OpenTracing.cpp
+    src/throughput.cpp
+    src/crypto_utils.cpp
+    src/RawMemoryPool.cpp
+    src/config_file_parser.cpp
+    src/cryptopp_digest_creator.cpp)
+add_library(util        STATIC ${util_source_files})
 add_library(util_shared SHARED ${util_source_files})
 
 if(USE_OPENSSL)
@@ -67,16 +64,16 @@ if(BUILD_TESTING)
 endif()
 
 set(util_header_files
-        include/histogram.hpp
-        include/Metrics.hpp
-        include/OpenTracing.hpp
-        include/SimpleThreadPool.hpp
-        include/sliver.hpp
-        include/status.hpp
-        include/string.hpp
-        include/openssl_crypto.hpp
-        include/Digest.hpp
-        include/DigestType.hpp)
+    include/histogram.hpp
+    include/Metrics.hpp
+    include/OpenTracing.hpp
+    include/SimpleThreadPool.hpp
+    include/sliver.hpp
+    include/status.hpp
+    include/string.hpp
+    include/openssl_crypto.hpp
+    include/digest.hpp
+    include/digest_type.hpp)
 install(FILES ${util_header_files} DESTINATION include/util)
 
 set_property(DIRECTORY .. APPEND PROPERTY INCLUDE_DIRECTORIES

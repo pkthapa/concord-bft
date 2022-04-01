@@ -1415,8 +1415,8 @@ void ReplicaImp::sendCommitPartial(const SeqNum s) {
 
   LOG_INFO(CNSUS, "Sending CommitPartialMsg, sequence number:" << pp->seqNumber());
 
-  Digest d;
-  Digest::digestOfDigest(pp->digestOfRequests(), d);
+  Digest digest, digestHelper;
+  digestHelper.digestOfDigest(pp->digestOfRequests(), digest);
 
   auto prepareFullMsg = seqNumInfo.getValidPrepareFullMsg();
 
@@ -1424,10 +1424,10 @@ void ReplicaImp::sendCommitPartial(const SeqNum s) {
       CommitPartialMsg::create(getCurrentView(),
                                s,
                                config_.getreplicaId(),
-                               d,
+                               digest,
                                CryptoManager::instance().thresholdSignerForSlowPathCommit(s),
                                prepareFullMsg->spanContext<std::remove_pointer<decltype(prepareFullMsg)>::type>());
-  seqNumInfo.addSelfCommitPartialMsgAndDigest(c, d);
+  seqNumInfo.addSelfCommitPartialMsgAndDigest(c, digest);
 
   if (!isCurrentPrimary()) sendRetransmittableMsgToReplica(c, currentPrimary(), s);
 }
@@ -4148,15 +4148,15 @@ ReplicaImp::ReplicaImp(const LoadedReplicaData &ld,
           throw;
         }
 
-        Digest d;
-        Digest::digestOfDigest(e.getPrePrepareMsg()->digestOfRequests(), d);
+        Digest digest, digestHelper;
+        digestHelper.digestOfDigest(e.getPrePrepareMsg()->digestOfRequests(), digest);
         CommitPartialMsg *c = CommitPartialMsg::create(getCurrentView(),
                                                        s,
                                                        config_.getreplicaId(),
-                                                       d,
+                                                       digest,
                                                        CryptoManager::instance().thresholdSignerForSlowPathCommit(s));
 
-        ConcordAssert(seqNumInfo.addSelfCommitPartialMsgAndDigest(c, d, true));
+        ConcordAssert(seqNumInfo.addSelfCommitPartialMsgAndDigest(c, digest, true));
       }
 
       if (e.isCommitFullMsgSet()) {
