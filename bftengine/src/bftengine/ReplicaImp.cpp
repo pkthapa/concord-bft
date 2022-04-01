@@ -4155,6 +4155,7 @@ ReplicaImp::ReplicaImp(const LoadedReplicaData &ld,
 
         Digest digest;
         e.getPrePrepareMsg()->digestOfRequests().digestOfDigest(digest);
+
         CommitPartialMsg *c = CommitPartialMsg::create(getCurrentView(),
                                                        s,
                                                        config_.getreplicaId(),
