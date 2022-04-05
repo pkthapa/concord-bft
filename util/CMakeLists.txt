@@ -76,6 +76,7 @@ set(util_header_files
     include/Digest.hpp
     include/DigestType.hpp
     include/DigestImpl.ipp)
+
 install(FILES ${util_header_files} DESTINATION include/util)
 
 set_property(DIRECTORY .. APPEND PROPERTY INCLUDE_DIRECTORIES
