@@ -28,6 +28,10 @@ class DigestCreator {
 
   virtual void init() = 0;
   virtual void update(const char* data, size_t len) = 0;
+  virtual bool compute(const char* input,
+                       size_t inputLength,
+                       char* outBufferForDigest,
+                       size_t lengthOfBufferForDigest) = 0;
   virtual void finish(char* outDigest) = 0;
 };
 
@@ -36,7 +40,10 @@ class CryptoppDigestCreator : public DigestCreator {
  public:
   CryptoppDigestCreator();
   size_t digestLength();
-  bool compute(const char* input, size_t inputLength, char* outBufferForDigest, size_t lengthOfBufferForDigest);
+  bool compute(const char* input,
+               size_t inputLength,
+               char* outBufferForDigest,
+               size_t lengthOfBufferForDigest) override;
   void init() override {}
   void update(const char* data, size_t len) override;
   void finish(char* outDigest) override {}
@@ -55,7 +62,10 @@ class OpenSSLDigestCreator : public DigestCreator {
  public:
   virtual ~OpenSSLDigestCreator() = default;
   void init() override {}
-  static bool compute(const char* input, size_t inputLength, char* outBufferForDigest, size_t lengthOfBufferForDigest) {
+  bool compute(const char* input,
+               size_t inputLength,
+               char* outBufferForDigest,
+               size_t lengthOfBufferForDigest) override {
     return true;
   }
   void update(const char* data, size_t len) override {}
