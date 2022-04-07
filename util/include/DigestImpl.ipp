@@ -56,6 +56,7 @@ class OpenSSLDigestCreator : public DigestCreator {
   virtual ~OpenSSLDigestCreator() = default;
   void init() override {}
   static bool compute(const char* input, size_t inputLength, char* outBufferForDigest, size_t lengthOfBufferForDigest) {
+    return true;
   }
   void update(const char* data, size_t len) override {}
   void finish(char* outDigest) override {}
