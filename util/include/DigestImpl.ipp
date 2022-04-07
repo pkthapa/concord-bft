@@ -35,8 +35,8 @@ class DigestCreator {
 class CryptoppDigestCreator : public DigestCreator {
  public:
   CryptoppDigestCreator();
-  static size_t digestLength();
-  static bool compute(const char* input, size_t inputLength, char* outBufferForDigest, size_t lengthOfBufferForDigest);
+  size_t digestLength();
+  bool compute(const char* input, size_t inputLength, char* outBufferForDigest, size_t lengthOfBufferForDigest);
   void init() override {}
   void update(const char* data, size_t len) override;
   void finish(char* outDigest) override {}
@@ -44,7 +44,7 @@ class CryptoppDigestCreator : public DigestCreator {
   virtual ~CryptoppDigestCreator();
 
  private:
-  void* internalState;
+  void* internalState_;
 };
 
 // Implements digest creator using OpenSSL library.
@@ -71,7 +71,10 @@ class DigestHolder {
   DigestHolder() { std::memset(d, 0, DIGEST_SIZE); }
   DigestHolder(unsigned char initVal) { std::memset(d, initVal, DIGEST_SIZE); }
   DigestHolder(const char* other) { std::memcpy(d, other, DIGEST_SIZE); }
-  DigestHolder(char* buf, size_t len) { CREATOR::compute(buf, len, (char*)d, DIGEST_SIZE); }
+  DigestHolder(char* buf, size_t len) {
+    CREATOR digestCreator;
+    digestCreator.compute(buf, len, (char*)d, DIGEST_SIZE);
+  }
   DigestHolder(const DigestHolder& other) { std::memcpy(d, other.d, DIGEST_SIZE); }
 
   char* content() const { return (char*)d; }  // Can be replaced by getForUpdate().
@@ -113,7 +116,8 @@ class DigestHolder {
   }
 
   static void digestOfDigest(const DigestHolder& inDigest, DigestHolder& outDigest) {
-    CREATOR::compute(inDigest.d, sizeof(DigestHolder), outDigest.d, sizeof(DigestHolder));
+    CREATOR digestCreator;
+    digestCreator.compute(inDigest.d, sizeof(DigestHolder), outDigest.d, sizeof(DigestHolder));
   }
 
   static void calcCombination(const DigestHolder& inDigest, int64_t inDataA, int64_t inDataB, DigestHolder& outDigest) {

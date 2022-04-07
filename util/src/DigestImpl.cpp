@@ -43,7 +43,7 @@ namespace concord::util::digest {
 ////////////////////////////////////////////
 CryptoppDigestCreator::CryptoppDigestCreator() {
   DigestType* p = new DigestType();
-  internalState = p;
+  internalState_ = p;
 }
 
 size_t CryptoppDigestCreator::digestLength() { return DigestType::DIGESTSIZE; }
@@ -72,31 +72,33 @@ bool CryptoppDigestCreator::compute(const char* input,
 }
 
 void CryptoppDigestCreator::update(const char* data, size_t len) {
-  ConcordAssert(nullptr != internalState);
+  ConcordAssert(nullptr != internalState_);
 
-  DigestType* p = (DigestType*)internalState;
+  DigestType* p = (DigestType*)internalState_;
   p->Update((CryptoPP::byte*)data, len);
 }
 
 void CryptoppDigestCreator::writeDigest(char* outDigest) {
-  ConcordAssert(nullptr != internalState);
+  ConcordAssert(nullptr != internalState_);
 
-  DigestType* p = (DigestType*)internalState;
-  SecByteBlock digest(DigestUtil::digestLength());
+  DigestType* p = (DigestType*)internalState_;
+
+  DigestGenerator digestGenerator;
+  SecByteBlock digest(digestGenerator.digestLength());
   p->Final(digest);
 
   const CryptoPP::byte* h = digest;
-  memcpy(outDigest, h, DigestUtil::digestLength());
+  memcpy(outDigest, h, digestGenerator.digestLength());
 
   delete p;
-  internalState = nullptr;
+  internalState_ = nullptr;
 }
 
 CryptoppDigestCreator::~CryptoppDigestCreator() {
-  if (nullptr != internalState) {
-    DigestType* p = (DigestType*)internalState;
+  if (nullptr != internalState_) {
+    DigestType* p = (DigestType*)internalState_;
     delete p;
-    internalState = nullptr;
+    internalState_ = nullptr;
   }
 }
 }  // namespace concord::util::digest
