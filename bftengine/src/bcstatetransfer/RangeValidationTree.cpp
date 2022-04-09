@@ -15,7 +15,7 @@
 #include <algorithm>
 
 #include "RangeValidationTree.hpp"
-#include "Digest.hpp"
+#include "digest.hpp"
 #include "type_traits"
 #include "throughput.hpp"
 
@@ -148,13 +148,13 @@ uint64_t NodeInfo::prevRvbIndex(uint64_t rvb_index, uint8_t level) {
 // This requires us to write our own DigestContext
 const shared_ptr<char[]> RVBNode::computeNodeInitialValue(NodeInfo& node_info, const char* data, size_t data_size) {
   ConcordAssertGT(node_info.id(), 0);
-  DigestGenerator digestGenerator;
+  DigestGenerator digest_generator;
 
-  digestGenerator.update(reinterpret_cast<const char*>(&node_info.id_data_), sizeof(node_info.id_data_));
-  digestGenerator.update(data, data_size);
+  digest_generator.update(reinterpret_cast<const char*>(&node_info.id_data_), sizeof(node_info.id_data_));
+  digest_generator.update(data, data_size);
   // TODO - Use default_delete in case memleak is reported by ASAN
   static std::shared_ptr<char[]> out_digest_buff(new char[NodeVal::kDigestContextOutputSize]);
-  digestGenerator.writeDigest(out_digest_buff.get());
+  digest_generator.writeDigest(out_digest_buff.get());
   return out_digest_buff;
 }
 

@@ -22,25 +22,13 @@
 #include <cryptopp/ida.h>
 #include <cryptopp/eccrypto.h>
 
-#include "Digest.hpp"
-#include "DigestImpl.ipp"
-
-#if defined MD5_DIGEST
-#include <cryptopp/md5.h>
-#define DigestType Weak1::MD5
-#elif defined SHA256_DIGEST
-#define DigestType SHA256
-#elif defined SHA512_DIGEST
-#define DigestType SHA512
-#endif
-
-using namespace CryptoPP;
+#include "cryptopp_digest_creator.hpp"
+#include "digest.hpp"
 
 namespace concord::util::digest {
 
-////////////////////////////////////////////
-// CryptoppDigestCreator implementations.
-////////////////////////////////////////////
+using CryptoPP::SecByteBlock;
+
 CryptoppDigestCreator::CryptoppDigestCreator() {
   DigestType* p = new DigestType();
   internalState_ = p;

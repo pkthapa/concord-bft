@@ -16,7 +16,7 @@
 #include "bftengine/ClientMsgs.hpp"
 #include "messages/PrePrepareMsg.hpp"
 #include "messages/PreProcessResultMsg.hpp"
-#include "Digest.hpp"
+#include "digest.hpp"
 namespace concord::kvbc::strategy {
 
 using bftEngine::impl::MessageBase;

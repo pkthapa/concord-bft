@@ -11,7 +11,7 @@
 
 #include "NullStateTransfer.hpp"
 #include "assertUtils.hpp"
-#include "Digest.hpp"
+#include "digest.hpp"
 #include "Logger.hpp"
 
 using concord::util::digest::Digest;

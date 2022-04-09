@@ -18,7 +18,7 @@
 #include "messages/PrePrepareMsg.hpp"
 #include "messages/ClientRequestMsg.hpp"
 
-#include "Digest.hpp"
+#include "digest.hpp"
 
 using concord::util::digest::DigestGenerator;
 namespace concord::kvbc::strategy {
