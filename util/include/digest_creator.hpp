@@ -13,6 +13,7 @@
 
 namespace concord::util::digest {
 
+// It is responsible for generating the digest.
 class DigestCreator {
  public:
   virtual ~DigestCreator() = default;

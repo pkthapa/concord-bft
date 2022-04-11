@@ -10,7 +10,6 @@
 // file.
 
 #include <string.h>
-#include <iomanip>
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpedantic"
 #include <cryptopp/dll.h>
