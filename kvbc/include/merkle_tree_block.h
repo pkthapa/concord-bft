@@ -4,13 +4,13 @@
 
 #include "kv_types.hpp"
 #include "sparse_merkle/base_types.h"
-#include "digest.hpp"
+#include "direct_kv_block.h"
 
 #include <cstdint>
 #include <iterator>
 #include <unordered_map>
 
-using concord::util::digest::BlockDigest;
+using concord::kvbc::v1DirectKeyValue::block::detail::BlockDigest;
 
 namespace concord::kvbc::v2MerkleTree::block::detail {
 

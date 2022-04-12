@@ -15,19 +15,19 @@
 
 #include "kv_types.hpp"
 #include "sliver.hpp"
-#include "digest.hpp"
+#include "digest_type.hpp"
 
 #include <cstddef>
 #include <cstdint>
 #include <utility>
-
-using concord::util::digest::BlockDigest;
 
 namespace concord {
 namespace kvbc {
 namespace v1DirectKeyValue {
 namespace block {
 namespace detail {
+using BlockDigest = std::array<std::uint8_t, DIGEST_SIZE>;
+
 // Creates a block with the user data appended at the end of the returned Sliver. The passed parentDigest buffer must be
 // of size DIGEST_SIZE bytes.
 concordUtils::Sliver create(const concord::kvbc::SetOfKeyValuePairs &updates,
