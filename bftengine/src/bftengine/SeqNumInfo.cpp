@@ -104,7 +104,6 @@ bool SeqNumInfo::addMsg(PrePrepareMsg* m, bool directAdd, bool isTimeCorrect) {
   // set expected
   Digest tmpDigest;
   m->digestOfRequests().calcCombination(m->viewNumber(), m->seqNumber(), tmpDigest);
-
   if (!directAdd)
     prepareSigCollector->setExpected(m->seqNumber(), m->viewNumber(), tmpDigest);
   else

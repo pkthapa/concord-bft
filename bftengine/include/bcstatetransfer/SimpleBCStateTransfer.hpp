@@ -21,10 +21,9 @@
 #include "bftengine/IStateTransfer.hpp"
 #include "Metrics.hpp"
 #include "kvstream.h"
-#include "digest.hpp"
+#include "direct_kv_block.h"
 
-using concord::util::digest::Digest;
-using concord::util::digest::BlockDigest;
+using concord::kvbc::v1DirectKeyValue::block::detail::BlockDigest;
 
 namespace concord {
 namespace storage {
@@ -48,7 +47,7 @@ namespace bcst {
 // blocks.
 // Blocks are numbered. The first block should be block number 1.
 
-// represnts a digest
+// represents a digest
 #pragma pack(push, 1)
 struct StateTransferDigest {
   char content[DIGEST_SIZE];

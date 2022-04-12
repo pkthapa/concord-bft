@@ -18,9 +18,7 @@
 
 namespace concord::util::digest {
 
-using BlockDigest = std::array<std::uint8_t, DIGEST_SIZE>;
-
-#if defined USE_CRYPTOPP_HASH
+#if defined USE_CRYPTOPP_SHA_256
 using Digest = DigestHolder<CryptoppDigestCreator>;
 using DigestGenerator = CryptoppDigestCreator;
 #elif defined USE_OPENSSL_SHA_256

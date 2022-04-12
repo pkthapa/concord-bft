@@ -23,7 +23,6 @@
 #include "assertUtils.hpp"
 #include "hex_tools.h"
 #include "BCStateTran.hpp"
-#include "digest.hpp"
 #include "InMemoryDataStore.hpp"
 #include "json_output.hpp"
 #include "ReservedPagesClient.hpp"
