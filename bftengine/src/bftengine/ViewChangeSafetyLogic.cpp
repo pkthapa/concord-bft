@@ -277,6 +277,7 @@ bool ViewChangeSafetyLogic::computeRestrictionsForSeqNum(SeqNum s,
 
   for (SlowElem slow : slowPathCertificates) {
     ConcordAssert(s == slow.seqNum());
+
     Digest d;
     slow.prePrepreDigest().calcCombination(slow.certificateView(), slow.seqNum(), d);
 
