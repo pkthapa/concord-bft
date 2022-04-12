@@ -46,7 +46,6 @@ bool CryptoppDigestCreator::compute(const char* input,
   if (lengthOfBufferForDigest < size) {
     return false;
   }
-
   SecByteBlock digest(size);
 
   dig.Update((CryptoPP::byte*)input, inputLength);
