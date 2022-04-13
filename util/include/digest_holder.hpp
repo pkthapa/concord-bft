@@ -29,7 +29,7 @@ class DigestHolder {
   DigestHolder(const char* other) { std::memcpy(d, other, DIGEST_SIZE); }
   DigestHolder(char* buf, size_t len) {
     CREATOR digestCreator;
-    digestCreator.computeDigest(buf, len, (char*)d, DIGEST_SIZE);
+    digestCreator.compute(buf, len, (char*)d, DIGEST_SIZE);
   }
   DigestHolder(const DigestHolder& other) { std::memcpy(d, other.d, DIGEST_SIZE); }
   DigestHolder& operator=(const DigestHolder& other) {
