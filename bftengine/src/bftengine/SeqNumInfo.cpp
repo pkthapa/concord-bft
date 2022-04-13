@@ -131,7 +131,6 @@ bool SeqNumInfo::addSelfMsg(PrePrepareMsg* m, bool directAdd) {
   // set expected
   Digest tmpDigest;
   m->digestOfRequests().calcCombination(m->viewNumber(), m->seqNumber(), tmpDigest);
-
   if (!directAdd)
     prepareSigCollector->setExpected(m->seqNumber(), m->viewNumber(), tmpDigest);
   else
@@ -198,7 +197,6 @@ bool SeqNumInfo::addSelfCommitPartialMsgAndDigest(CommitPartialMsg* m, Digest& c
 
   Digest tmpDigest;
   commitDigest.calcCombination(m->viewNumber(), m->seqNumber(), tmpDigest);
-
   bool r;
   if (!directAdd) {
     commitMsgsCollector->setExpected(m->seqNumber(), m->viewNumber(), tmpDigest);
