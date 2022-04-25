@@ -24,7 +24,8 @@
 #include "TlsWriteQueue.h"
 #include "secrets_manager_enc.h"
 #include "secrets_manager_plain.h"
-#include "crypto_utils.hpp"
+#include "cryptopp_utils.hpp"
+#include "openssl_utils.hpp"
 #include "communication/StateControl.hpp"
 #include "hex_tools.h"
 
@@ -438,13 +439,14 @@ std::pair<bool, NodeNum> AsyncTlsConnection::checkCertificate(X509* received_cer
            "public key");
   std::string pem_pub_key = StateControl::instance().getPeerPubKey(peerId);
   if (pem_pub_key.empty()) return std::make_pair(false, peerId);
-  if (concord::util::crypto::Crypto::instance().getFormat(pem_pub_key) != concord::util::crypto::KeyFormat::PemFormat) {
-    pem_pub_key = concord::util::crypto::Crypto::instance()
+  if (concord::util::cryptopp_utils::Crypto::instance().getFormat(pem_pub_key) !=
+      concord::util::crypto::KeyFormat::PemFormat) {
+    pem_pub_key = concord::util::cryptopp_utils::Crypto::instance()
                       .RsaHexToPem(std::make_pair("", StateControl::instance().getPeerPubKey(peerId)))
                       .second;
   }
   // (2) Try to validate the certificate against the peer's public key
-  res = concord::util::crypto::CertificateUtils::verifyCertificate(received_cert, pem_pub_key);
+  res = concord::util::openssl_utils::CertificateUtils::verifyCertificate(received_cert, pem_pub_key);
   if (!res) return std::make_pair(false, peerId);
 
   // (3) If valid, exchange the stored certificate

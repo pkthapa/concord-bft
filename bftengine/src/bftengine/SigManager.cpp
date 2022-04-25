@@ -130,7 +130,7 @@ SigManager::SigManager(PrincipalId myId,
           metrics_component_.RegisterAtomicCounter("peer_replicas_signature_verification_failed"),
           metrics_component_.RegisterAtomicCounter("peer_replicas_signatures_verified"),
           metrics_component_.RegisterAtomicCounter("signature_verification_failed_on_unrecognized_participant_id")} {
-  map<KeyIndex, std::shared_ptr<concord::util::crypto::IVerifier>> publicKeyIndexToVerifier;
+  map<KeyIndex, std::shared_ptr<concord::util::cryptointerface::IVerifier>> publicKeyIndexToVerifier;
   size_t numPublickeys = publickeys.size();
 
   ConcordAssert(publicKeysMapping.size() >= numPublickeys);
@@ -143,7 +143,7 @@ SigManager::SigManager(PrincipalId myId,
     auto iter = publicKeyIndexToVerifier.find(p.second);
     const auto& [key, format] = publickeys[p.second];
     if (iter == publicKeyIndexToVerifier.end()) {
-      verifiers_[p.first] = std::make_shared<concord::util::crypto::RSAVerifier>(key.c_str(), format);
+      verifiers_[p.first] = std::make_shared<concord::util::cryptopp_utils::RSAVerifier>(key.c_str(), format);
       publicKeyIndexToVerifier[p.second] = verifiers_[p.first];
     } else {
       verifiers_[p.first] = iter->second;
@@ -252,7 +252,8 @@ void SigManager::setClientPublicKey(const std::string& key, PrincipalId id, conc
   if (replicasInfo_.isIdOfExternalClient(id) || replicasInfo_.isIdOfClientService(id)) {
     try {
       std::unique_lock lock(mutex_);
-      verifiers_.insert_or_assign(id, std::make_shared<concord::util::crypto::RSAVerifier>(key.c_str(), format));
+      verifiers_.insert_or_assign(id,
+                                  std::make_shared<concord::util::cryptopp_utils::RSAVerifier>(key.c_str(), format));
     } catch (const std::exception& e) {
       LOG_ERROR(KEY_EX_LOG, "failed to add a key for client: " << id << " reason: " << e.what());
       throw;

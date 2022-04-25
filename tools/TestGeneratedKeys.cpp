@@ -21,7 +21,7 @@
 #include "threshsign/IThresholdSigner.h"
 #include "threshsign/IThresholdVerifier.h"
 #include "KeyfileIOUtils.hpp"
-#include "crypto_utils.hpp"
+#include "cryptopp_utils.hpp"
 
 // How often to output status when testing cryptosystems, measured as an
 // interval measured in tested signaturs.
@@ -130,22 +130,22 @@ static bool testRSAKeyPair(const std::string& privateKey, const std::string& pub
   // limiting their scope to those statements; declaring them by value is not
   // possible in this case becuause they lack paramter-less default
   // constructors.
-  std::unique_ptr<concord::util::crypto::RSASigner> signer;
-  std::unique_ptr<concord::util::crypto::RSAVerifier> verifier;
+  std::unique_ptr<concord::util::cryptopp_utils::RSASigner> signer;
+  std::unique_ptr<concord::util::cryptopp_utils::RSAVerifier> verifier;
 
   std::string invalidPrivateKey = "FAILURE: Invalid RSA private key for replica " + std::to_string(replicaID) + ".\n";
   std::string invalidPublicKey = "FAILURE: Invalid RSA public key for replica " + std::to_string(replicaID) + ".\n";
 
   try {
-    signer.reset(
-        new concord::util::crypto::RSASigner(privateKey, concord::util::crypto::KeyFormat::HexaDecimalStrippedFormat));
+    signer.reset(new concord::util::cryptopp_utils::RSASigner(
+        privateKey, concord::util::crypto::KeyFormat::HexaDecimalStrippedFormat));
   } catch (std::exception& e) {
     std::cout << invalidPrivateKey;
     return false;
   }
   try {
-    verifier.reset(
-        new concord::util::crypto::RSAVerifier(publicKey, concord::util::crypto::KeyFormat::HexaDecimalStrippedFormat));
+    verifier.reset(new concord::util::cryptopp_utils::RSAVerifier(
+        publicKey, concord::util::crypto::KeyFormat::HexaDecimalStrippedFormat));
   } catch (std::exception& e) {
     std::cout << invalidPublicKey;
     return false;

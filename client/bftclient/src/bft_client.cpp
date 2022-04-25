@@ -56,7 +56,7 @@ Client::Client(SharedCommPtr comm, const ClientConfig& config, std::shared_ptr<c
 
     key_plaintext = secretsManager->decryptFile(file_path);
     if (!key_plaintext) throw InvalidPrivateKeyException(file_path, config.secrets_manager_config != std::nullopt);
-    transaction_signer_ = std::make_unique<concord::util::crypto::RSASigner>(
+    transaction_signer_ = std::make_unique<concord::util::cryptopp_utils::RSASigner>(
         key_plaintext.value().c_str(), concord::util::crypto::KeyFormat::PemFormat);
   }
   communication_->setReceiver(config_.id.val, &receiver_);

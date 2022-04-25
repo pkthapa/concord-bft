@@ -17,7 +17,7 @@
 #include "concord.cmf.hpp"
 #include "db_interfaces.h"
 #include "reconfiguration/ireconfiguration.hpp"
-#include "crypto_utils.hpp"
+#include "cryptopp_utils.hpp"
 #include "block_metadata.hpp"
 #include "kvbc_key_types.hpp"
 #include <future>
@@ -43,7 +43,7 @@ class RSAPruningSigner {
   void sign(concord::messages::LatestPrunableBlock &);
 
  private:
-  std::unique_ptr<concord::util::crypto::ISigner> signer_;
+  std::unique_ptr<concord::util::cryptointerface::ISigner> signer_;
 };
 
 // This class verifies pruning messages that were signed by serializing message
@@ -72,7 +72,7 @@ class RSAPruningVerifier {
  private:
   struct Replica {
     std::uint64_t principal_id{0};
-    std::unique_ptr<concord::util::crypto::IVerifier> verifier;
+    std::unique_ptr<concord::util::cryptointerface::IVerifier> verifier;
   };
 
   bool verify(std::uint64_t sender, const std::string &ser, const std::string &signature) const;
