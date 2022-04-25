@@ -146,7 +146,7 @@ class ClientApiTestParametrizedFixture : public ClientApiTestFixture,
     out = GetSecretData();  // return secret data
   }
 
-  unique_ptr<concord::util::crypto::IVerifier> transaction_verifier_;
+  unique_ptr<concord::util::cryptointerface::IVerifier> transaction_verifier_;
   bool corrupt_request_ = false;
 };
 
@@ -182,7 +182,7 @@ TEST_P(ClientApiTestParametrizedFixture, print_received_messages_and_timeout) {
     stream << file.rdbuf();
     auto pub_key_str = stream.str();
     transaction_verifier_.reset(
-        new concord::util::crypto::RSAVerifier(pub_key_str, concord::util::crypto::KeyFormat::PemFormat));
+        new concord::util::cryptopp_utils::RSAVerifier(pub_key_str, concord::util::crypto::KeyFormat::PemFormat));
   }
   unique_ptr<FakeCommunication> comm;
   if (sign_transaction) {

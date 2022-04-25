@@ -1254,7 +1254,7 @@ bool InternalPostKvReconfigurationHandler::handle(const concord::messages::Clien
   }
   std::string path = bftEngine::ReplicaConfig::instance().clientsKeysPrefix + "/" + std::to_string(group_id) +
                      "/transaction_signing_pub.pem";
-  auto pem_key = concord::util::crypto::Crypto::instance().RsaHexToPem(std::make_pair("", command.pub_key));
+  auto pem_key = concord::util::cryptopp_utils::Crypto::instance().RsaHexToPem(std::make_pair("", command.pub_key));
   concord::secretsmanager::SecretsManagerPlain sm;
   sm.encryptFile(path, pem_key.second);
   LOG_INFO(getLogger(), KVLOG(path, pem_key.second, sender_id));

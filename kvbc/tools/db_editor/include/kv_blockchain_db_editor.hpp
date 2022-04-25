@@ -30,7 +30,7 @@
 #include "bcstatetransfer/SimpleBCStateTransfer.hpp"
 #include "bftengine/PersistentStorageImp.hpp"
 #include "bftengine/DbMetadataStorage.hpp"
-#include "crypto_utils.hpp"
+#include "cryptopp_utils.hpp"
 #include "json_output.hpp"
 #include "bftengine/ReplicaSpecificInfoManager.hpp"
 
@@ -353,7 +353,7 @@ struct VerifyBlockRequests {
       out << "\t\t\"signature_digest\": \"" << hex_digest << "\",\n";
       out << "\t\t\"persistency_type\": \"" << persistencyType(req.requestPersistencyType) << "\",\n";
       std::string verification_result;
-      auto verifier = std::make_unique<concord::util::crypto::RSAVerifier>(
+      auto verifier = std::make_unique<concord::util::cryptopp_utils::RSAVerifier>(
           client_keys.ids_to_keys[req.clientId].key,
           (concord::util::crypto::KeyFormat)client_keys.ids_to_keys[req.clientId].format);
 
@@ -1035,8 +1035,8 @@ struct VerifyDbCheckpoint {
   using CheckPointMsgStatus = std::vector<std::pair<const CheckpointMsg &, bool>>;
   using CheckpointDesc = bftEngine::bcst::impl::DataStore::CheckpointDesc;
   using BlockHashData = std::tuple<uint64_t, BlockDigest, BlockDigest>;  //<blockId, parentHash, blockHash>
-  using IVerifier = concord::util::crypto::IVerifier;
-  using RSAVerifier = concord::util::crypto::RSAVerifier;
+  using IVerifier = concord::util::cryptointerface::IVerifier;
+  using RSAVerifier = concord::util::cryptopp_utils::RSAVerifier;
   using KeyFormat = concord::util::crypto::KeyFormat;
   using ReplicaId = uint16_t;
   const bool read_only = true;

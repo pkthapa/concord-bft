@@ -11,7 +11,8 @@ set(util_source_files
     src/hex_tools.cpp
     src/OpenTracing.cpp
     src/throughput.cpp
-    src/crypto_utils.cpp
+    src/cryptopp_utils.cpp
+    src/openssl_utils.cpp
     src/RawMemoryPool.cpp
     src/config_file_parser.cpp
     src/cryptopp_digest_creator.cpp)
