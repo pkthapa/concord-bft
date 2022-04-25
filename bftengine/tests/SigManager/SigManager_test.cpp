@@ -84,10 +84,10 @@ TEST(RsaSignerAndRsaVerifierTest, LoadSignVerifyFromPemfiles) {
   generateRandomData(data, RANDOM_DATA_SIZE);
   readFile(privateKeyFullPath, privKey);
   readFile(publicKeyFullPath, pubkey);
-  auto verifier_ = unique_ptr<concord::util::crypto::RSAVerifier>(
-      new concord::util::crypto::RSAVerifier(pubkey, concord::util::crypto::KeyFormat::PemFormat));
-  auto signer_ = unique_ptr<concord::util::crypto::RSASigner>(
-      new concord::util::crypto::RSASigner(privKey, concord::util::crypto::KeyFormat::PemFormat));
+  auto verifier_ = unique_ptr<concord::util::cryptopp_utils::RSAVerifier>(
+      new concord::util::cryptopp_utils::RSAVerifier(pubkey, concord::util::crypto::KeyFormat::PemFormat));
+  auto signer_ = unique_ptr<concord::util::cryptopp_utils::RSASigner>(
+      new concord::util::cryptopp_utils::RSASigner(privKey, concord::util::crypto::KeyFormat::PemFormat));
 
   // sign with RSASigner
   size_t expectedSignerSigLen = signer_->signatureLength();
@@ -118,7 +118,7 @@ TEST(SigManagerTest, ReplicasOnlyCheckVerify) {
   constexpr size_t numReplicas{4};
   constexpr PrincipalId myId{0};
   string myPrivKey;
-  unique_ptr<concord::util::crypto::RSASigner> signers[numReplicas];
+  unique_ptr<concord::util::cryptopp_utils::RSASigner> signers[numReplicas];
   set<pair<PrincipalId, const string>> publicKeysOfReplicas;
 
   generateKeyPairs(numReplicas);
@@ -135,7 +135,8 @@ TEST(SigManagerTest, ReplicasOnlyCheckVerify) {
       continue;
     }
 
-    signers[pid].reset(new concord::util::crypto::RSASigner(privKey, concord::util::crypto::KeyFormat::PemFormat));
+    signers[pid].reset(
+        new concord::util::cryptopp_utils::RSASigner(privKey, concord::util::crypto::KeyFormat::PemFormat));
     string pubKeyFullPath({string(KEYS_BASE_PATH) + string("/") + to_string(i) + string("/") + PUB_KEY_NAME});
     readFile(pubKeyFullPath, pubKey);
     publicKeysOfReplicas.insert(make_pair(pid, pubKey));
@@ -188,7 +189,7 @@ TEST(SigManagerTest, ReplicasOnlyCheckSign) {
   constexpr size_t numReplicas{4};
   constexpr PrincipalId myId{0};
   string myPrivKey, privKey, pubKey, sig;
-  unique_ptr<concord::util::crypto::RSAVerifier> verifier;
+  unique_ptr<concord::util::cryptopp_utils::RSAVerifier> verifier;
   set<pair<PrincipalId, const string>> publicKeysOfReplicas;
   char data[RANDOM_DATA_SIZE]{0};
   size_t expectedSignerSigLen;
@@ -202,7 +203,7 @@ TEST(SigManagerTest, ReplicasOnlyCheckSign) {
   // Load single other replica's verifier (mock)
   string pubKeyFullPath({string(KEYS_BASE_PATH) + string("/") + to_string(1) + string("/") + PUB_KEY_NAME});
   readFile(pubKeyFullPath, pubKey);
-  verifier.reset(new concord::util::crypto::RSAVerifier(pubKey, concord::util::crypto::KeyFormat::PemFormat));
+  verifier.reset(new concord::util::cryptopp_utils::RSAVerifier(pubKey, concord::util::crypto::KeyFormat::PemFormat));
 
   // load public key of other replicas, must be done for SigManager ctor
   for (size_t i{2}; i <= numReplicas; ++i) {
@@ -253,7 +254,7 @@ TEST(SigManagerTest, ReplicasAndClientsCheckVerify) {
   constexpr PrincipalId myId{0};
   string myPrivKey;
   size_t i, signerIndex{0};
-  unique_ptr<concord::util::crypto::RSASigner>
+  unique_ptr<concord::util::cryptopp_utils::RSASigner>
       signers[numReplicas + numParticipantNodes];  // only external clients and consensus replicas sign
   set<pair<PrincipalId, const string>> publicKeysOfReplicas;
   set<pair<const string, set<uint16_t>>> publicKeysOfClients;
@@ -273,7 +274,7 @@ TEST(SigManagerTest, ReplicasAndClientsCheckVerify) {
       continue;
     }
     signers[signerIndex].reset(
-        new concord::util::crypto::RSASigner(privKey, concord::util::crypto::KeyFormat::PemFormat));
+        new concord::util::cryptopp_utils::RSASigner(privKey, concord::util::crypto::KeyFormat::PemFormat));
     string pubKeyFullPath({string(KEYS_BASE_PATH) + string("/") + to_string(i) + string("/") + PUB_KEY_NAME});
     readFile(pubKeyFullPath, pubKey);
     publicKeysOfReplicas.insert(make_pair(currPrincipalId, pubKey));
@@ -289,7 +290,7 @@ TEST(SigManagerTest, ReplicasAndClientsCheckVerify) {
     readFile(privateKeyFullPath, privKey);
 
     signers[signerIndex].reset(
-        new concord::util::crypto::RSASigner(privKey, concord::util::crypto::KeyFormat::PemFormat));
+        new concord::util::cryptopp_utils::RSASigner(privKey, concord::util::crypto::KeyFormat::PemFormat));
 
     string pubKeyFullPath({string(KEYS_BASE_PATH) + string("/") + to_string(i) + string("/") + PUB_KEY_NAME});
     set<PrincipalId> principalIds;
