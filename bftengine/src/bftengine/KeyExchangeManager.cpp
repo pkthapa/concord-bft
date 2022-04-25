@@ -20,6 +20,7 @@
 #include "bftengine/EpochManager.hpp"
 #include "concord.cmf.hpp"
 #include "communication/StateControl.hpp"
+#include "openssl_utils.hpp"
 
 namespace bftEngine::impl {
 
@@ -146,7 +147,7 @@ void KeyExchangeManager::loadClientPublicKeys() {
 }
 
 void KeyExchangeManager::exchangeTlsKeys(const std::string& type, const SeqNum& bft_sn) {
-  auto keys = concord::util::crypto::Crypto::instance().generateECDSAKeyPair(
+  auto keys = concord::util::cryptopp_utils::Crypto::instance().generateECDSAKeyPair(
       concord::util::crypto::KeyFormat::PemFormat, concord::util::crypto::CurveType::secp384r1);
   bool use_unified_certs = bftEngine::ReplicaConfig::instance().useUnifiedCertificates;
   const std::string base_path =
@@ -157,7 +158,8 @@ void KeyExchangeManager::exchangeTlsKeys(const std::string& type, const SeqNum& 
   std::string prev_key_pem = concord::util::crypto::Crypto::instance()
                                  .RsaHexToPem(std::make_pair(SigManager::instance()->getSelfPrivKey(), ""))
                                  .first;
-  auto cert = concord::util::crypto::CertificateUtils::generateSelfSignedCert(cert_path, keys.second, prev_key_pem);
+  auto cert =
+      concord::util::openssl_utils::CertificateUtils::generateSelfSignedCert(cert_path, keys.second, prev_key_pem);
   // Now that we have generated new key pair and certificate, lets do the actual exchange on this replica
   std::string pk_path = root_path + "/pk.pem";
   std::fstream nec_f(pk_path);

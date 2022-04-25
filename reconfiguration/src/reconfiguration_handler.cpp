@@ -329,7 +329,8 @@ BftReconfigurationHandler::BftReconfigurationHandler() {
     key_str.append(buf, 0, key_content.gcount());
   }
   key_str.append(buf, 0, key_content.gcount());
-  verifier_.reset(new concord::util::crypto::ECDSAVerifier(key_str, concord::util::crypto::KeyFormat::PemFormat));
+  verifier_.reset(
+      new concord::util::cryptopp_utils::ECDSAVerifier(key_str, concord::util::crypto::KeyFormat::PemFormat));
 }
 bool BftReconfigurationHandler::verifySignature(uint32_t sender_id,
                                                 const std::string& data,
