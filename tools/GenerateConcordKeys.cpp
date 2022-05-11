@@ -23,6 +23,12 @@
 #include "threshsign/ThresholdSignaturesTypes.h"
 #include "KeyfileIOUtils.hpp"
 #include "util/filesystem.hpp"
+#include "openssl_utils.hpp"
+
+using concord::util::openssl_utils::Crypto;
+
+#define RSA_Algo false
+
 // Helper functions and static state to this executable's main function.
 
 static bool containsHelpOption(int argc, char** argv) {
@@ -34,6 +40,7 @@ static bool containsHelpOption(int argc, char** argv) {
   return false;
 }
 
+#if RSA_Algo
 static CryptoPP::RandomPool sGlobalRandGen;
 const unsigned int rsaKeyLength = 2048;
 
@@ -54,6 +61,7 @@ static std::pair<std::string, std::string> generateRsaKey() {
 
   return keyPair;
 }
+#endif
 
 /**
  * Main function for the GenerateConcordKeys executable. Pseudorandomly
@@ -201,10 +209,20 @@ int main(int argc, char** argv) {
 
     config.cVal = (n - (3 * config.fVal) - 1) / 2;
 
+#if RSA_Algo
     std::vector<std::pair<std::string, std::string>> rsaKeys;
+#else
+    std::vector<std::pair<std::string, std::string>> eddsaKeys;
+#endif
+
     for (uint16_t i = 0; i < n + ro; ++i) {
+#if RSA_Algo
       rsaKeys.push_back(generateRsaKey());
       config.publicKeysOfReplicas.insert(std::pair<uint16_t, std::string>(i, rsaKeys[i].second));
+#else
+      eddsaKeys.push_back(Crypto::instance().generateEdDSAKeyPair());
+      config.publicKeysOfReplicas.insert(std::pair<uint16_t, std::string>(i, eddsaKeys[i].second));
+#endif
     }
 
     // We want to generate public key for n-out-of-n case
@@ -216,14 +234,22 @@ int main(int argc, char** argv) {
     // Output the generated keys.
     for (uint16_t i = 0; i < n; ++i) {
       config.replicaId = i;
+#if RSA_Algo
       config.replicaPrivateKey = rsaKeys[i].first;
+#else
+      config.replicaPrivateKey = eddsaKeys[i].first;
+#endif
       outputReplicaKeyfile(n, ro, config, outputPrefix + std::to_string(i), &cryptoSys);
     }
 
     for (uint16_t i = n; i < n + ro; ++i) {
       config.isReadOnly = true;
       config.replicaId = i;
+#if RSA_Algo
       config.replicaPrivateKey = rsaKeys[i].first;
+#else
+      config.replicaPrivateKey = eddsaKeys[i].first;
+#endif
       outputReplicaKeyfile(n, ro, config, outputPrefix + std::to_string(i));
     }
   } catch (std::exception& e) {

@@ -22,9 +22,18 @@
 #include <cryptopp/modes.h>
 #include <cryptopp/aes.h>
 
+#include <openssl/ec.h>
+#include <openssl/evp.h>
+#include <openssl/pem.h>
+#include <openssl/aes.h>
+
 #include "key_params.h"
 
 namespace concord::secretsmanager {
+
+using std::string;
+using std::vector;
+using std::unique_ptr;
 
 class AES_CBC {
   CryptoPP::AES::Encryption aesEncryption;
@@ -32,11 +41,14 @@ class AES_CBC {
   CryptoPP::CBC_Mode_ExternalCipher::Encryption enc;
   CryptoPP::CBC_Mode_ExternalCipher::Decryption dec;
 
+  vector<uint8_t> key;
+  vector<uint8_t> iv;
+
  public:
   static size_t getBlockSize() { return CryptoPP::AES::BLOCKSIZE; }
-  AES_CBC(KeyParams& params);
-  std::vector<uint8_t> encrypt(const std::string& input);
-  std::string decrypt(const std::vector<uint8_t>& cipher);
+  AES_CBC(const KeyParams& params);
+  vector<uint8_t> encrypt(const string& input) const;
+  string decrypt(const vector<uint8_t>& cipher) const;
 };
 
 }  // namespace concord::secretsmanager

@@ -21,10 +21,21 @@
 #include "communication/StateControl.hpp"
 #include "secrets_manager_plain.h"
 #include "bftengine/DbCheckpointManager.hpp"
+#include "openssl_utils.hpp"
 
 #include <fstream>
 
+#define ECDSA_Algo true
+
 using namespace concord::messages;
+using concord::util::crypto::KeyFormat;
+
+#if ECDSA_Algo
+using concord::util::cryptopp_utils::ECDSAVerifier;
+#else
+using concord::util::openssl_utils::EdDSA_Verifier;
+#endif
+
 namespace concord::reconfiguration {
 
 bool ReconfigurationHandler::handle(const WedgeCommand& cmd,
@@ -329,8 +340,11 @@ BftReconfigurationHandler::BftReconfigurationHandler() {
     key_str.append(buf, 0, key_content.gcount());
   }
   key_str.append(buf, 0, key_content.gcount());
-  verifier_.reset(
-      new concord::util::cryptopp_utils::ECDSAVerifier(key_str, concord::util::crypto::KeyFormat::PemFormat));
+#if ECDSA_Algo
+  verifier_.reset(new ECDSAVerifier(key_str, KeyFormat::PemFormat));
+#else
+  verifier_.reset(new EdDSA_Verifier(key_str, KeyFormat::PemFormat));
+#endif
 }
 bool BftReconfigurationHandler::verifySignature(uint32_t sender_id,
                                                 const std::string& data,
@@ -364,7 +378,7 @@ bool ClientReconfigurationHandler::handle(const concord::messages::ClientExchang
   // assuming we always send hex DER over the wire
   for (const auto& clientId : affected_clients)
     bftEngine::impl::KeyExchangeManager::instance().onClientPublicKeyExchange(
-        msg.pub_key, concord::util::crypto::KeyFormat::HexaDecimalStrippedFormat, clientId);
+        msg.pub_key, KeyFormat::HexaDecimalStrippedFormat, clientId);
   return true;
 }
 }  // namespace concord::reconfiguration

@@ -107,11 +107,20 @@ parser $@
 
 mkdir -p ${output_path}
 
+#for ((i=1; i<=${num_participants}; i++)); do
+#    current_path=${output_path}/${i}
+#    mkdir ${current_path}
+#    openssl genrsa -out ${current_path}/${private_key_name} 2048 > /dev/null
+#    openssl rsa -in ${current_path}/${private_key_name} \
+#                -pubout \
+#                -out ${current_path}/${public_key_name} > /dev/null
+#done
+
 for ((i=1; i<=${num_participants}; i++)); do
     current_path=${output_path}/${i}
     mkdir ${current_path}
-    openssl genrsa -out ${current_path}/${private_key_name} 2048 > /dev/null
-    openssl rsa -in ${current_path}/${private_key_name} \
+    openssl genpkey -algorithm ed25519 -outform PEM -out ${current_path}/${private_key_name} > /dev/null
+    openssl pkey -in ${current_path}/${private_key_name} \
                 -pubout \
                 -out ${current_path}/${public_key_name} > /dev/null
 done
