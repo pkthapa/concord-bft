@@ -46,6 +46,7 @@ class ECDSAVerifier::Impl {
 };
 bool ECDSAVerifier::verify(const std::string& data, const std::string& sig) const { return impl_->verify(data, sig); }
 ECDSAVerifier::ECDSAVerifier(const std::string& str_pub_key, KeyFormat fmt) : key_str_{str_pub_key} {
+  LOG_INFO(OPENSSL_LOG, "str_pub_key: " << str_pub_key << "str_pub_key.size:" << str_pub_key.size());
   ECDSA<ECP, CryptoPP::SHA256>::PublicKey publicKey;
   if (fmt == KeyFormat::PemFormat) {
     StringSource s(str_pub_key, true);
@@ -80,6 +81,7 @@ class ECDSASigner::Impl {
 };
 
 std::string ECDSASigner::sign(const std::string& data) { return impl_->sign(data); }
+
 ECDSASigner::ECDSASigner(const std::string& str_priv_key, KeyFormat fmt) : key_str_{str_priv_key} {
   ECDSA<ECP, CryptoPP::SHA256>::PrivateKey privateKey;
   if (fmt == KeyFormat::PemFormat) {
@@ -91,7 +93,9 @@ ECDSASigner::ECDSASigner(const std::string& str_priv_key, KeyFormat fmt) : key_s
   }
   impl_.reset(new Impl(privateKey));
 }
+
 uint32_t ECDSASigner::signatureLength() const { return impl_->signatureLength(); }
+
 ECDSASigner::~ECDSASigner() = default;
 
 class RSAVerifier::Impl {
@@ -224,6 +228,7 @@ class Crypto::Impl {
     }
     return keyPair;
   }
+
   std::pair<std::string, std::string> generateECDSAKeyPair(const KeyFormat fmt, CurveType curve_types) {
     AutoSeededRandomPool prng;
     ECDSA<ECP, CryptoPP::SHA256>::PrivateKey privateKey;

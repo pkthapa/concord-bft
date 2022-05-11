@@ -16,6 +16,7 @@
 #include "gtest/gtest.h"
 #include "messages/ClientReplyMsg.hpp"
 #include "ReservedPagesMock.hpp"
+#include "openssl_utils.hpp"
 
 using bftEngine::impl::ClientsManager;
 using bftEngine::impl::NodeIdType;
@@ -24,9 +25,7 @@ using bftEngine::impl::SigManager;
 using bftEngine::ReplicaConfig;
 using bftEngine::ReservedPagesClientBase;
 using bftEngine::test::ReservedPagesMock;
-using concord::util::cryptopp_utils::Crypto;
 using concord::util::crypto::KeyFormat;
-using concord::util::cryptopp_utils::RSASigner;
 using concord::secretsmanager::ISecretsManagerImpl;
 using concordUtil::Timers;
 using std::chrono::milliseconds;
@@ -43,13 +42,24 @@ using std::this_thread::sleep_for;
 using std::unique_ptr;
 using std::vector;
 
+#define RSA_Algo false
+
+#if RSA_Algo
+using concord::util::cryptopp_utils::RSASigner;
+using concord::util::cryptopp_utils::Crypto;
+#else
+using concord::util::openssl_utils::EdDSA_Signer;
+using concord::util::openssl_utils::Crypto;
+#endif
+
 // Testing values to be used for certain Concord-BFT configuration that ClientsManager and/or its dependencies may
 // reference.
 const ReplicaId kReplicaIdForTesting = 0;
-const uint32_t kRSASigLengthForTesting = 2048;
+// const uint32_t kRSASigLengthForTesting = 2048;
 const KeyFormat kKeyFormatForTesting = KeyFormat::HexaDecimalStrippedFormat;
 const SigManager::Key kReplicaPrivateKeyForTesting(
-    Crypto::instance().generateRsaKeyPair(kRSASigLengthForTesting, kKeyFormatForTesting).first);
+    /*Crypto::instance().generateRsaKeyPair(kRSASigLengthForTesting, kKeyFormatForTesting).first*/
+    Crypto::instance().generateEdDSAKeyPair().first);
 const set<pair<PrincipalId, const string>> kPublicKeysOfReplicasForTesting{};
 const set<pair<const string, set<uint16_t>>> kInitialPublicKeysOfClientsForTesting;
 unique_ptr<ReplicasInfo> sigManagerReplicasInfoForTesting;
@@ -224,7 +234,12 @@ static bool verifyClientPublicKeyLoadedToKEM(NodeIdType client_id, const pair<st
   if (!(SigManager::instance()->hasVerifier(client_id))) {
     return false;
   }
+
+#if RSA_Algo
   RSASigner signer(expected_key.first, kKeyFormatForTesting);
+#else
+  EdDSA_Signer signer(expected_key.first, kKeyFormatForTesting);
+#endif
   string signature = signer.sign(kArbitraryMessageForTestingKeyAgreement);
   return SigManager::instance()->verifySig(client_id,
                                            kArbitraryMessageForTestingKeyAgreement.data(),
@@ -310,7 +325,9 @@ TEST(ClientsManager, loadInfoFromReservedPagesLoadsCorrectInfo) {
   set<NodeIdType> internal_client_ids{};
 
   map<NodeIdType, pair<string, string>> client_keys;
-  client_keys[2] = Crypto::instance().generateRsaKeyPair(kRSASigLengthForTesting, kKeyFormatForTesting);
+  client_keys[2] =
+      Crypto::instance().generateEdDSAKeyPair(); /*Crypto::instance().generateRsaKeyPair(kRSASigLengthForTesting,
+                                                   kKeyFormatForTesting)*/
 
   map<NodeIdType, pair<ReqId, string>> client_replies;
   client_replies[2] = {9, "reply 9 to client 2"};
@@ -429,7 +446,8 @@ TEST(ClientsManager, loadInfoFromReservedPagesHandlesNoInfoAvailable) {
 
 TEST(ClientsManager, loadInfoFromReservedPagesHandlesSingleClientClientsManager) {
   pair<string, string> client_key_pair =
-      Crypto::instance().generateRsaKeyPair(kRSASigLengthForTesting, kKeyFormatForTesting);
+      Crypto::instance().generateEdDSAKeyPair(); /*Crypto::instance().generateRsaKeyPair(kRSASigLengthForTesting,
+                                                   kKeyFormatForTesting)*/
   string reply_message = "reply 1 to client 2";
 
   resetMockReservedPages();
@@ -1305,10 +1323,12 @@ TEST(ClientsManager, isInternal) {
 TEST(ClientsManager, setClientPublicKey) {
   resetMockReservedPages();
   map<NodeIdType, pair<string, string>> client_keys;
-  pair<string, string> client_2_key =
+  /*pair<string, string> client_2_key =
       Crypto::instance().generateRsaKeyPair(kRSASigLengthForTesting, kKeyFormatForTesting);
   pair<string, string> client_7_key =
-      Crypto::instance().generateRsaKeyPair(kRSASigLengthForTesting, kKeyFormatForTesting);
+      Crypto::instance().generateRsaKeyPair(kRSASigLengthForTesting, kKeyFormatForTesting);*/
+  pair<string, string> client_2_key = Crypto::instance().generateEdDSAKeyPair();
+  pair<string, string> client_7_key = Crypto::instance().generateEdDSAKeyPair();
 
   unique_ptr<ClientsManager> cm(new ClientsManager({}, {4, 5, 7}, {}, {}, metrics));
   cm->setClientPublicKey(7, client_7_key.second, kKeyFormatForTesting);

@@ -32,15 +32,20 @@
 #include "bftclient/bft_client.h"
 #include "bftclient/fake_comm.h"
 #include "msg_receiver.h"
+#include "openssl_utils.hpp"
+#include "Logger.hpp"
 
 using namespace std;
 using namespace bft::client;
 using namespace bft::communication;
-using namespace CryptoPP;
+// using namespace CryptoPP;
 using namespace bftEngine::impl;
 using namespace bftEngine;
 using namespace placeholders;
 using namespace concord::secretsmanager;
+using concord::util::crypto::KeyFormat;
+// using concord::util::cryptopp_utils::RSAVerifier;
+using concord::util::openssl_utils::EdDSA_Verifier;
 using ReplicaId_t = bft::client::ReplicaId;
 
 constexpr char KEYS_BASE_PARENT_PATH[] = "/tmp/";
@@ -52,6 +57,8 @@ constexpr char ENC_SYMM_KEY[] = "15ec11a047f630ca00f65c25f0b3bfd89a7054a5b9e2e3c
 constexpr char ENC_IV[] = "38106509f6528ff859c366747aa04f21";
 constexpr char KEYS_GEN_SCRIPT_PATH[] =
     "/concord-bft//scripts/linux/create_concord_clients_transaction_signing_keys.sh";
+
+#define RSA_Algo false
 
 class ClientApiTestFixture : public ::testing::Test {
  public:
@@ -175,27 +182,31 @@ TEST_P(ClientApiTestParametrizedFixture, print_received_messages_and_timeout) {
       test_config_.secrets_manager_config = sd;
     }
 
-    // initialize the test's RSAVerifier
+    // initialize the test's RSAVerifier/EdDSA_Verifier
     string public_key_full_path({keypair_path + PUB_KEY_NAME});
     std::ifstream file(public_key_full_path);
     std::stringstream stream;
     stream << file.rdbuf();
     auto pub_key_str = stream.str();
-    transaction_verifier_.reset(
-        new concord::util::cryptopp_utils::RSAVerifier(pub_key_str, concord::util::crypto::KeyFormat::PemFormat));
+#if RSA_Algo
+    transaction_verifier_.reset(new RSAVerifier(pub_key_str, KeyFormat::PemFormat));
+#else
+    transaction_verifier_.reset(new EdDSA_Verifier(pub_key_str, KeyFormat::PemFormat));
+#endif
   }
   unique_ptr<FakeCommunication> comm;
   if (sign_transaction) {
-    if (scenario == "happy_flow")
+    if (scenario == "happy_flow") {
       comm = make_unique<FakeCommunication>(
           bind(&ClientApiTestParametrizedFixture::PrintAndVerifySignatureBehavior, this, _1, _2));
-    else if (scenario == "corrupt_in_dest") {
+    } else if (scenario == "corrupt_in_dest") {
       comm = make_unique<FakeCommunication>(
           bind(&ClientApiTestParametrizedFixture::PrintAndFailVerifySignatureBehavior, this, _1, _2));
       corrupt_request_ = true;
     }
-  } else
+  } else {
     comm = make_unique<FakeCommunication>(bind(&ClientApiTestParametrizedFixture::PrintBehavior, this, _1, _2));
+  }
 
   ASSERT_TRUE(comm);
   Client client(move(comm), test_config_);
@@ -213,9 +224,9 @@ TEST_P(ClientApiTestParametrizedFixture, print_received_messages_and_timeout) {
 typedef tuple<bool, bool, string> ClientApiTestParametrizedFixtureInput;
 INSTANTIATE_TEST_CASE_P(ClientApiTest,
                         ClientApiTestParametrizedFixture,
-                        ::testing::Values(ClientApiTestParametrizedFixtureInput(false, false, "happy_flow"),
+                        ::testing::Values(ClientApiTestParametrizedFixtureInput(true, true, "happy_flow"),
+                                          ClientApiTestParametrizedFixtureInput(false, false, "happy_flow"),
                                           ClientApiTestParametrizedFixtureInput(true, false, "happy_flow"),
-                                          ClientApiTestParametrizedFixtureInput(true, true, "happy_flow"),
                                           ClientApiTestParametrizedFixtureInput(true, false, "corrupt_in_dest")), );
 
 Msg replyFromRequest(const MsgFromClient& request) {

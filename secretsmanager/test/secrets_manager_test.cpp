@@ -4,8 +4,12 @@
 #include "aes.h"
 #include "secrets_manager_enc.h"
 #include "secrets_manager_plain.h"
+#include "Logger.hpp"
+#include "kvstream.h"
 
 using namespace concord::secretsmanager;
+
+#define RSA_Algo false
 
 const std::string long_input{R"L0R3M(
 
@@ -60,6 +64,9 @@ TEST(SecretsManager, StringToHex) {
   EXPECT_THAT(key_params.iv, testing::ContainerEq(expected_iv));
 }
 
+// The encrypted strings are generated using URLs:
+// 1. https://cryptii.com/pipes/aes-encryption and
+// 2. https://onlinehextools.com/convert-hex-to-ascii
 TEST(SecretsManager, Internals) {
   const std::string input{"This is a sample text"};
   const std::string encrypted{"eIetIYAvY5EHsb2F7bDcHH8labEq5jrmyvW7DC2N904=\n"};
@@ -93,6 +100,14 @@ TEST(SecretsManager, Base64) {
   ASSERT_EQ(r, cipher_text);
 }
 
+TEST(SecretsManager, EmptyFileTest) {
+  std::string filename;
+  auto sm = getSecretsManager();
+
+  ASSERT_FALSE(sm.encryptFile(filename, long_input));
+  ASSERT_TRUE(std::optional<std::string>{} == sm.decryptFile(filename));
+}
+
 TEST(SecretsManager, FileTest) {
   std::string filename{"/tmp/secrets_manager_unit_test"};
   auto sm = getSecretsManager();
@@ -103,7 +118,13 @@ TEST(SecretsManager, FileTest) {
   ASSERT_EQ(long_input, output);
 }
 
-TEST(SecretsManager, EmptyInput) {
+TEST(SecretsManager, EncryptEmptyInput) {
+  auto sm = getSecretsManager();
+  auto res = sm.encryptString("");
+  ASSERT_FALSE(res.has_value());
+}
+
+TEST(SecretsManager, DecryptEmptyInput) {
   auto sm = getSecretsManager();
   auto res = sm.decryptString("");
   ASSERT_FALSE(res.has_value());

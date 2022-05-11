@@ -32,6 +32,7 @@ uint64_t getSeq();
 extern logging::Logger GL;
 extern logging::Logger CNSUS;
 extern logging::Logger THRESHSIGN_LOG;
+extern logging::Logger OPENSSL_LOG;
 extern logging::Logger BLS_LOG;
 extern logging::Logger EDDSA_MULTISIG_LOG;
 extern logging::Logger KEY_EX_LOG;

@@ -12,15 +12,27 @@
 #include "SigManager.hpp"
 #include "assertUtils.hpp"
 #include "ReplicasInfo.hpp"
+#include "openssl_utils.hpp"
 
 #include <algorithm>
 #include "keys_and_signatures.cmf.hpp"
 #include "ReplicaConfig.hpp"
+#include "hex_tools.h"
 
 using namespace std;
 
 namespace bftEngine {
 namespace impl {
+
+#define RSA_Algo false
+
+#if RSA_Algo
+using concord::util::cryptopp_utils::RSASigner;
+using concord::util::cryptopp_utils::RSAVerifier;
+#else
+using concord::util::openssl_utils::EdDSA_Signer;
+using concord::util::openssl_utils::EdDSA_Verifier;
+#endif
 
 concord::messages::keys_and_signatures::ClientsPublicKeys clientsPublicKeys_;
 
@@ -134,8 +146,13 @@ SigManager::SigManager(PrincipalId myId,
   size_t numPublickeys = publickeys.size();
 
   ConcordAssert(publicKeysMapping.size() >= numPublickeys);
-  if (!mySigPrivateKey.first.empty())
-    mySigner_.reset(new concord::util::crypto::RSASigner(mySigPrivateKey.first.c_str(), mySigPrivateKey.second));
+  if (!mySigPrivateKey.first.empty()) {
+#if RSA_Algo
+    mySigner_.reset(new RSASigner(mySigPrivateKey.first.c_str(), mySigPrivateKey.second));
+#else
+    mySigner_.reset(new EdDSA_Signer(mySigPrivateKey.first, mySigPrivateKey.second));
+#endif
+  }
   for (const auto& p : publicKeysMapping) {
     ConcordAssert(verifiers_.count(p.first) == 0);
     ConcordAssert(p.second < numPublickeys);
@@ -143,7 +160,11 @@ SigManager::SigManager(PrincipalId myId,
     auto iter = publicKeyIndexToVerifier.find(p.second);
     const auto& [key, format] = publickeys[p.second];
     if (iter == publicKeyIndexToVerifier.end()) {
-      verifiers_[p.first] = std::make_shared<concord::util::cryptopp_utils::RSAVerifier>(key.c_str(), format);
+#if RSA_Algo
+      verifiers_[p.first] = std::make_shared<RSAVerifier>(key.c_str(), format);
+#else
+      verifiers_[p.first] = std::make_shared<EdDSA_Verifier>(key, format);
+#endif
       publicKeyIndexToVerifier[p.second] = verifiers_[p.first];
     } else {
       verifiers_[p.first] = iter->second;
@@ -239,8 +260,7 @@ bool SigManager::verifySig(
 
 void SigManager::sign(const char* data, size_t dataLength, char* outSig, uint16_t outSigLength) const {
   std::string str_data(data, dataLength);
-  std::string sig;
-  sig = mySigner_->sign(str_data);
+  std::string sig = mySigner_->sign(str_data);
   outSigLength = sig.size();
   std::memcpy(outSig, sig.c_str(), outSigLength);
 }
@@ -252,8 +272,11 @@ void SigManager::setClientPublicKey(const std::string& key, PrincipalId id, conc
   if (replicasInfo_.isIdOfExternalClient(id) || replicasInfo_.isIdOfClientService(id)) {
     try {
       std::unique_lock lock(mutex_);
-      verifiers_.insert_or_assign(id,
-                                  std::make_shared<concord::util::cryptopp_utils::RSAVerifier>(key.c_str(), format));
+#if RSA_Algo
+      verifiers_.insert_or_assign(id, std::make_shared<RSAVerifier>(key.c_str(), format));
+#else
+      verifiers_.insert_or_assign(id, std::make_shared<EdDSA_Verifier>(key, format));
+#endif
     } catch (const std::exception& e) {
       LOG_ERROR(KEY_EX_LOG, "failed to add a key for client: " << id << " reason: " << e.what());
       throw;
