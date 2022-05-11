@@ -430,7 +430,7 @@ std::pair<bool, NodeNum> AsyncTlsConnection::checkCertificate(X509* received_cer
   uint32_t peerId = UINT32_MAX;
   std::string conn_type;
   // (1) First, try to verify the certificate against the latest saved certificate
-  bool res = concord::util::crypto::CertificateUtils::verifyCertificate(
+  bool res = concord::util::openssl_utils::CertificateUtils::verifyCertificate(
       received_cert, config_.certificatesRootPath_, peerId, conn_type, config_.useUnifiedCertificates_);
   if (expected_peer_id.has_value() && peerId != expected_peer_id.value()) return std::make_pair(false, peerId);
   if (res) return std::make_pair(res, peerId);

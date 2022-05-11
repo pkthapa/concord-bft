@@ -65,4 +65,29 @@ std::string sliverToHex(const Sliver &sliver) { return bufferToHex(sliver.data()
 
 std::string vectorToHex(const std::vector<std::uint8_t> &data) { return bufferToHex(data.data(), data.size()); }
 
+std::string hexToASCII(const std::string &hex) {
+  if (hex.empty()) {
+    return std::string{};
+  } else if (hex.size() % 2) {
+    throw std::invalid_argument{"Invalid hex string: " + hex};
+  }
+
+  const auto valid_chars = "0123456789abcdefABCDEF";
+  auto start = std::string::size_type{0};
+  if (hex.find("0x") == 0 || hex.find("0X") == 0) {
+    start += 2;
+    if (hex.size() > 2 && hex.find_first_not_of(valid_chars, 2) != std::string::npos) {
+      throw std::invalid_argument{"Invalid hex string: " + hex};
+    }
+  } else if (hex.find_first_not_of(valid_chars) != std::string::npos) {
+    throw std::invalid_argument{"Invalid hex string: " + hex};
+  }
+
+  std::string ascii;
+  for (size_t i = start; i < hex.length(); i += 2) {
+    char ch = static_cast<char>(stoul(hex.substr(i, 2), nullptr, 16));
+    ascii += ch;
+  }
+  return ascii;
+}
 }  // namespace concordUtils

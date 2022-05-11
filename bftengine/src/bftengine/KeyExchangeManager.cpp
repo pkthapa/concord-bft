@@ -24,6 +24,8 @@
 
 namespace bftEngine::impl {
 
+using concord::util::crypto::KeyFormat;
+
 KeyExchangeManager::KeyExchangeManager(InitData* id)
     : repID_{ReplicaConfig::instance().getreplicaId()},
       clusterSize_{ReplicaConfig::instance().getnumReplicas()},
@@ -153,9 +155,8 @@ void KeyExchangeManager::exchangeTlsKeys(const std::string& type, const SeqNum& 
   const std::string base_path =
       bftEngine::ReplicaConfig::instance().certificatesRootPath + "/" + std::to_string(repID_);
   std::string root_path = (use_unified_certs) ? base_path : base_path + "/" + type;
-
   std::string cert_path = (use_unified_certs) ? root_path + "/node.cert" : root_path + "/" + type + ".cert";
-  std::string prev_key_pem = concord::util::crypto::Crypto::instance()
+  std::string prev_key_pem = concord::util::cryptopp_utils::Crypto::instance()
                                  .RsaHexToPem(std::make_pair(SigManager::instance()->getSelfPrivKey(), ""))
                                  .first;
   auto cert =
@@ -296,9 +297,7 @@ void KeyExchangeManager::onPublishClientsKeys(const std::string& keys, std::opti
   if (save) saveClientsPublicKeys(keys);
 }
 
-void KeyExchangeManager::onClientPublicKeyExchange(const std::string& key,
-                                                   concord::util::crypto::KeyFormat fmt,
-                                                   NodeIdType clientId) {
+void KeyExchangeManager::onClientPublicKeyExchange(const std::string& key, KeyFormat fmt, NodeIdType clientId) {
   LOG_INFO(KEY_EX_LOG, "key: " << key << " fmt: " << (uint16_t)fmt << " client: " << clientId);
   // persist a new key
   clientPublicKeyStore_->setClientPublicKey(clientId, key, fmt);
@@ -307,7 +306,7 @@ void KeyExchangeManager::onClientPublicKeyExchange(const std::string& key,
 }
 
 void KeyExchangeManager::loadClientPublicKey(const std::string& key,
-                                             concord::util::crypto::KeyFormat fmt,
+                                             KeyFormat fmt,
                                              NodeIdType clientId,
                                              bool saveToReservedPages) {
   LOG_INFO(KEY_EX_LOG, "key: " << key << " fmt: " << (uint16_t)fmt << " client: " << clientId);

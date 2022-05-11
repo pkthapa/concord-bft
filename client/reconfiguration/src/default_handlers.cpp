@@ -12,8 +12,9 @@
 #include "client/reconfiguration/default_handlers.hpp"
 #include "bftclient/StateControl.hpp"
 #include "concord.cmf.hpp"
-#include "crypto_utils.hpp"
-#include "kvstream.h"
+#include "cryptopp_utils.hpp"
+#include "openssl_utils.hpp"
+#include "ReplicaConfig.hpp"
 
 #include <variant>
 #include <experimental/filesystem>
@@ -70,8 +71,8 @@ void ClientTlsKeyExchangeHandler::exchangeTlsKeys(const std::string& pkey_path,
   std::string master_key = sm_->decryptFile(master_key_path_).value_or(std::string());
   if (master_key.empty()) master_key = psm_.decryptFile(master_key_path_).value_or(std::string());
   if (master_key.empty()) LOG_FATAL(getLogger(), "unable to read the node master key");
-  auto cert =
-      concord::util::crypto::CertificateUtils::generateSelfSignedCert(cert_path, new_cert_keys.second, master_key);
+  auto cert = concord::util::openssl_utils::CertificateUtils::generateSelfSignedCert(
+      cert_path, new_cert_keys.second, master_key);
 
   sm_->encryptFile(pkey_path, new_cert_keys.first);
   psm_.encryptFile(cert_path, cert);
