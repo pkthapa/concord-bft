@@ -14,6 +14,7 @@
 
 #include <string>
 #include <memory>
+#include <fstream>
 
 #include <openssl/bio.h>
 #include <openssl/ec.h>
@@ -24,13 +25,34 @@
 #include "crypto_interface.hpp"
 #include "crypto_utils.hpp"
 
+using std::pair;
+using std::make_pair;
 using std::string;
 using std::unique_ptr;
+using std::ofstream;
 using concord::util::crypto::KeyFormat;
 using concord::util::cryptointerface::ISigner;
 using concord::util::cryptointerface::IVerifier;
 
 namespace concord::util::openssl_utils {
+
+constexpr static size_t SIG_LENGTH{64};
+
+// Deleter classes.
+class EVP_PKEY_Deleter {
+ public:
+  void operator()(EVP_PKEY* p) const { EVP_PKEY_free(p); }
+};
+
+class EVP_MD_CTX_Deleter {
+ public:
+  void operator()(EVP_MD_CTX* p) const { EVP_MD_CTX_free(p); }
+};
+
+class EVP_PKEY_CTX_Deleter {
+ public:
+  void operator()(EVP_PKEY_CTX* p) const { EVP_PKEY_CTX_free(p); }
+};
 
 class CertificateUtils {
  public:
@@ -48,33 +70,88 @@ class CertificateUtils {
 // This class implements OpenSSL's EdDSA signer.
 class EdDSA_Signer : public ISigner {
  public:
-  EdDSA_Signer(const string& str_priv_key, KeyFormat fmt);
-  string sign(const string& data) override;
+  /*
+   * Constructor to initialize a signer.
+   * @param strPrivKey Private key.
+   * @param fmt Format of the private key (HexaDecimalStrippedFormat & PemFormat).
+   */
+  EdDSA_Signer(const string& strPrivKey, KeyFormat fmt);
+
+  /*
+   * Signs and returns the signature.
+   * @param dataToSign Data to sign.
+   * @return Generated signature in string format.
+   */
+  string sign(const string& dataToSign) override;
+
+  /*
+   * Gets the signature length.
+   * @return Length of the signature.
+   */
   uint32_t signatureLength() const override;
-  string getPrivKey() const override { return key_str_; }
-  ~EdDSA_Signer() = default;
+
+  /*
+   * Gets the private key in string format.
+   * @return Private key in string format.
+   */
+  string getPrivKey() const override;
 
  private:
-  class Impl;
-  unique_ptr<Impl> impl_;
-  string key_str_;
+  unique_ptr<EVP_PKEY, EVP_PKEY_Deleter> edPkey_;
+  size_t sigLen_{SIG_LENGTH};
+  string keyStr_;
 };
 
 // This class implements OpenSSL's EdDSA verifier.
 class EdDSA_Verifier : public IVerifier {
  public:
-  EdDSA_Verifier(const string& str_pub_key, KeyFormat fmt);
-  bool verify(const string& data, const string& sig) const override;
+  /*
+   * Constructor to initialize a verifier.
+   * @param strPubKey Public key.
+   * @param fmt Format of the public key (HexaDecimalStrippedFormat & PemFormat).
+   */
+  EdDSA_Verifier(const string& strPubKey, KeyFormat fmt);
+
+  /*
+   * Verifies the signature.
+   * @param dataToVerify Data to verify with 'sigToVerify'.
+   * @param sigToVerify Generated signature to verify with 'dataToVerify'.
+   * @return Verification result.
+   */
+  bool verify(const string& dataToVerify, const string& sigToVerify) const override;
+
+  /*
+   * Gets the signature length.
+   * @return Length of the signature.
+   */
   uint32_t signatureLength() const override;
-  string getPubKey() const override {
-    return "";
-    // return key_str_;
-  }
-  ~EdDSA_Verifier() = default;
+
+  /*
+   * Gets the public key in string format.
+   * @return Public key in string format.
+   */
+  string getPubKey() const override;
 
  private:
-  class Impl;
-  unique_ptr<Impl> impl_;
-  string key_str_;
+  unique_ptr<EVP_PKEY, EVP_PKEY_Deleter> edPkey_;
+  mutable size_t sigLen_{SIG_LENGTH};
+  string keyStr_;
+};
+
+class Crypto {
+ public:
+  static Crypto& instance() {
+    static Crypto crypto;
+    return crypto;
+  }
+
+  Crypto() = default;
+  ~Crypto() = default;
+
+  /*
+   * Generates an EdDSA asymmetric key pair (private-public key pair).
+   * @return Private-Public key pair.
+   */
+  pair<string, string> generateEdDSAKeyPair() const;
 };
 }  // namespace concord::util::openssl_utils

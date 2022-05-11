@@ -24,7 +24,6 @@ import bft_client
 from ecdsa import SigningKey
 from ecdsa import SECP256k1
 import hashlib
-from Crypto.PublicKey import RSA
 
 import util.eliot_logging as log
 
