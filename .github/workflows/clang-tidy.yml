@@ -37,10 +37,12 @@ jobs:
                             -DUSE_S3_OBJECT_STORE=TRUE \
                             -DUSE_OPENTRACING=ON \
                             -DOMIT_TEST_OUTPUT=OFF\
-                            -DUSE_CRYPTOPP_HASH=TRUE\
-                            -DUSE_OPENSSL_SHA_256=FALSE\
-                            -DUSE_OPENSSL_SHA3_256=FALSE\
+                            -DUSE_OPENSSL_SHA3_256=TRUE\
                             -DUSE_FAKE_CLOCK_IN_TIME_SERVICE=TRUE\" "\
+        # Use below macros if CryptoPP SHA_256 and OpenSSL SHA_256 hashing are required.
+        # -DUSE_CRYPTOPP_SHA_256=FALSE
+        # -DUSE_OPENSSL_SHA_256=FALSE
+
         - name: Print failure info
           if: failure()
           run: |

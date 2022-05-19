@@ -11,7 +11,6 @@
 
 #pragma once
 
-#include "digest_creator.hpp"
 #include "digest_type.hpp"
 
 #if defined MD5_DIGEST
@@ -25,8 +24,8 @@
 
 namespace concord::util::digest {
 
-// Implements digest creator using Crypto++ library.
-class CryptoppDigestCreator : public DigestCreator {
+// A class that generates SHA digest using CryptoPP library.
+class CryptoppDigestCreator {
  public:
   CryptoppDigestCreator();
   virtual ~CryptoppDigestCreator();
@@ -35,13 +34,10 @@ class CryptoppDigestCreator : public DigestCreator {
   CryptoppDigestCreator(const CryptoppDigestCreator&) = delete;
   CryptoppDigestCreator& operator=(const CryptoppDigestCreator&) = delete;
 
-  void update(const char* data, size_t len) override;
-  void writeDigest(char* outDigest) override;
-  size_t digestLength() const override;
-  bool compute(const char* input,
-               size_t inputLength,
-               char* outBufferForDigest,
-               size_t lengthOfBufferForDigest) override;
+  void update(const char* data, size_t len);
+  void writeDigest(char* outDigest);
+  size_t digestLength() const;
+  bool compute(const char* input, size_t inputLength, char* outBufferForDigest, size_t lengthOfBufferForDigest);
 
  private:
   void* internalState_;

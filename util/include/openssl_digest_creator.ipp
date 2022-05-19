@@ -12,19 +12,18 @@
 #pragma once
 
 #include <type_traits>
-#include <openssl/evp.h>
 #include <cstdint>
 #include <memory>
 
-#include "digest_creator.hpp"
 #include "sha_hash.hpp"
 
 namespace concord::util::digest {
 
+// A class that generates SHA digest using OpenSSL library.
 template <typename SHACTX,
           typename = std::enable_if_t<std::is_same_v<SHACTX, concord::util::SHA2_256> ||
                                       std::is_same_v<SHACTX, concord::util::SHA3_256>>>
-class OpenSSLDigestCreator : public DigestCreator {
+class OpenSSLDigestCreator {
  public:
   OpenSSLDigestCreator() = default;
 
