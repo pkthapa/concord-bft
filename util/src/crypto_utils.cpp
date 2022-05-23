@@ -138,7 +138,7 @@ class RSASigner::Impl {
 
 RSASigner::RSASigner(const std::string& str_priv_key, KeyFormat fmt) : key_str_{str_priv_key} {
   CryptoPP::RSA::PrivateKey private_key;
-  if (fmt == KeyFormat::PemFormat) {
+  if (KeyFormat::PemFormat == fmt) {
     StringSource s(str_priv_key, true);
     PEM_Load(s, private_key);
   } else {
@@ -154,7 +154,7 @@ RSASigner::~RSASigner() = default;
 
 RSAVerifier::RSAVerifier(const std::string& str_pub_key, KeyFormat fmt) : key_str_{str_pub_key} {
   CryptoPP::RSA::PublicKey public_key;
-  if (fmt == KeyFormat::PemFormat) {
+  if (KeyFormat::PemFormat == fmt) {
     StringSource s(str_pub_key, true);
     PEM_Load(s, public_key);
   } else {
