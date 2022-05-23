@@ -60,13 +60,8 @@ jobs:
                               -DUSE_OPENTRACING=ON \
                               -DOMIT_TEST_OUTPUT=OFF\
                               -DKEEP_APOLLO_LOGS=TRUE\
-                              -DUSE_OPENSSL_SHA3_256=TRUE\
                               -DUSE_FAKE_CLOCK_IN_TIME_SERVICE=TRUE\" "\
               && script -q -e -c "make test"
-        # Use below macros if CryptoPP SHA_256 and OpenSSL SHA_256 hashing are required.
-        # -DUSE_CRYPTOPP_SHA_256=FALSE
-        # -DUSE_OPENSSL_SHA_256=FALSE
-
         - name: Prepare artifacts
           if: failure()
           run: |
