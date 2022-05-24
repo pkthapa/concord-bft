@@ -497,7 +497,8 @@ class BftTestNetwork:
         if self.config.num_ro_replicas > 0:
             args.extend(["-r", str(self.config.num_ro_replicas)])
         args.extend(["-o", self.config.key_file_prefix])
-        subprocess.run(args, check=True)
+        with log.start_action(action_type="Key Generation", cmdline=' '.join(args)):
+            subprocess.run(args, check=True)
 
     def _generate_operator_keys(self):
         if self.builddir is None:
@@ -799,7 +800,7 @@ class BftTestNetwork:
         digest = self.binary_digest(replica_binary_path) if Path(replica_binary_path).exists() else 'Unknown'
 
         with log.start_action(action_type="start_replica_process", replica=replica_id, is_external=is_external,
-                              binary_path=replica_binary_path, binary_digest=digest):
+                              binary_path=replica_binary_path, binary_digest=digest, cmd=' '.join(start_cmd)):
             if is_external:
                 self.procs[replica_id] = subprocess.run(
                     start_cmd,
