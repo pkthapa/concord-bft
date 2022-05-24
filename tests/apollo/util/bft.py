@@ -800,9 +800,13 @@ class BftTestNetwork:
         digest = self.binary_digest(replica_binary_path) if Path(replica_binary_path).exists() else 'Unknown'
 
         with log.start_action(action_type="start_replica_process", replica=replica_id, is_external=is_external,
+<<<<<<< HEAD
                               binary_path=replica_binary_path, binary_digest=digest):
             my_env = os.environ.copy()
             my_env["RID"] = str(replica_id)
+=======
+                              binary_path=replica_binary_path, binary_digest=digest, cmd=' '.join(start_cmd)):
+>>>>>>> Add log messages to apollo
             if is_external:
                 self.procs[replica_id] = subprocess.run(
                     start_cmd,
