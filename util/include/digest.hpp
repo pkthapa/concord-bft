@@ -14,7 +14,7 @@
 #include "digest_type.hpp"
 #include "digest_holder.hpp"
 #include "cryptopp_digest_creator.hpp"
-#include "openssl_digest_creator.ipp"
+#include "openssl_digest_creator.hpp"
 
 namespace concord::util::digest {
 
