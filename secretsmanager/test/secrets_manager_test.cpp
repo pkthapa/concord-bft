@@ -9,8 +9,6 @@
 
 using namespace concord::secretsmanager;
 
-#define RSA_Algo false
-
 const std::string long_input{R"L0R3M(
 
 Lorem ipsum dolor sit amet, consectetur adipiscing elit. Maecenas ut ultrices nisi. Sed eu venenatis tellus. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Sed ante tellus, auctor non feugiat et, feugiat vitae ante. Pellentesque volutpat tincidunt orci non efficitur. Vestibulum eu sagittis nisi, et faucibus neque. Nullam eu ultrices dolor. Nulla facilisi. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur luctus lectus non neque sollicitudin facilisis. Curabitur dapibus, lorem eget lacinia luctus, eros velit interdum odio, non efficitur massa ipsum id orci. Morbi sagittis enim neque, et blandit arcu vehicula eget. Aliquam lacinia lacus at metus elementum pretium. Aenean efficitur nisl ut arcu sodales gravida. Cras malesuada magna ac eros pharetra feugiat.
