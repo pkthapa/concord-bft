@@ -24,12 +24,10 @@ using namespace std;
 namespace bftEngine {
 namespace impl {
 
-#define RSA_Algo false
-
-#if RSA_Algo
+#ifdef USE_CRYPTOPP
 using concord::util::cryptopp_utils::RSASigner;
 using concord::util::cryptopp_utils::RSAVerifier;
-#else
+#elif USE_EDDSA_OPENSSL
 using concord::util::openssl_utils::EdDSA_Signer;
 using concord::util::openssl_utils::EdDSA_Verifier;
 #endif
@@ -147,9 +145,9 @@ SigManager::SigManager(PrincipalId myId,
 
   ConcordAssert(publicKeysMapping.size() >= numPublickeys);
   if (!mySigPrivateKey.first.empty()) {
-#if RSA_Algo
+#ifdef USE_CRYPTOPP
     mySigner_.reset(new RSASigner(mySigPrivateKey.first.c_str(), mySigPrivateKey.second));
-#else
+#elif USE_EDDSA_OPENSSL
     mySigner_.reset(new EdDSA_Signer(mySigPrivateKey.first, mySigPrivateKey.second));
 #endif
   }
@@ -160,9 +158,9 @@ SigManager::SigManager(PrincipalId myId,
     auto iter = publicKeyIndexToVerifier.find(p.second);
     const auto& [key, format] = publickeys[p.second];
     if (iter == publicKeyIndexToVerifier.end()) {
-#if RSA_Algo
+#ifdef USE_CRYPTOPP
       verifiers_[p.first] = std::make_shared<RSAVerifier>(key.c_str(), format);
-#else
+#elif USE_EDDSA_OPENSSL
       verifiers_[p.first] = std::make_shared<EdDSA_Verifier>(key, format);
 #endif
       publicKeyIndexToVerifier[p.second] = verifiers_[p.first];
@@ -272,9 +270,9 @@ void SigManager::setClientPublicKey(const std::string& key, PrincipalId id, conc
   if (replicasInfo_.isIdOfExternalClient(id) || replicasInfo_.isIdOfClientService(id)) {
     try {
       std::unique_lock lock(mutex_);
-#if RSA_Algo
+#ifdef USE_CRYPTOPP
       verifiers_.insert_or_assign(id, std::make_shared<RSAVerifier>(key.c_str(), format));
-#else
+#elif USE_EDDSA_OPENSSL
       verifiers_.insert_or_assign(id, std::make_shared<EdDSA_Verifier>(key, format));
 #endif
     } catch (const std::exception& e) {

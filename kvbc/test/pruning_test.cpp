@@ -38,13 +38,12 @@ using namespace concord::kvbc::categorization;
 using namespace concord::kvbc::pruning;
 
 namespace {
-#define RSA_Algo false
 const NodeIdType replica_0 = 0;
 const NodeIdType replica_1 = 1;
 const NodeIdType replica_2 = 2;
 const NodeIdType replica_3 = 3;
 
-#if RSA_Algo
+#ifdef USE_CRYPTOPP
 std::string privateKey_0 =
     "308204BA020100300D06092A864886F70D0101010500048204A4308204A00201000282010100C55B8F7979BF24B335017082BF33EE2960E3"
     "A0"
@@ -325,7 +324,7 @@ std::string publicKey_4 =
     "BF2EA16F58773514249B03A4775C6A10561AFC8CF54B551A43FD014F3C5FE12D96AC5F117645E26D125DC7430114FA60577BF7C9AA1224D1"
     "90"
     "B2D8A83B020111";
-#else
+#elif USE_EDDSA_OPENSSL
 const std::string privateKey_0 = "61498efe1764b89357a02e2887d224154006ceacf26269f8695a4af561453eef";
 const std::string privateKey_1 = "247a74ab3620ec6b9f5feab9ee1f86521da3fa2804ad45bb5bf2c5b21ef105bc";
 const std::string privateKey_2 = "fb539bc3d66deda55524d903da26dbec1f4b6abf41ec5db521e617c64eb2c341";

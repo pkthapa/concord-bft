@@ -28,6 +28,18 @@ target_include_directories(secretsmanager PRIVATE src)
 target_link_libraries(secretsmanager_shared PUBLIC util_shared ${CRYPTOPP_LIBRARIES})
 target_include_directories(secretsmanager_shared PUBLIC include ${CRYPTOPP_INCLUDE_DIRS})
 
+if (USE_CRYPTOPP)
+    message(STATUS "Using Crypto++ RSA/ECDSA signature/verification")
+    target_compile_definitions(secretsmanager PUBLIC USE_CRYPTOPP)
+    target_compile_definitions(secretsmanager_shared PUBLIC USE_CRYPTOPP)
+endif()
+
+if (USE_EDDSA_OPENSSL)
+    message(STATUS "Using OpenSSL EdDSA signature/verification")
+    target_compile_definitions(secretsmanager PUBLIC USE_EDDSA_OPENSSL)
+    target_compile_definitions(secretsmanager_shared PUBLIC USE_EDDSA_OPENSSL)
+endif()
+
 if (USE_JSON AND USE_HTTPLIB)
     add_subdirectory(secretretriever)
 else ()

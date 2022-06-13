@@ -31,28 +31,26 @@ class BIO_Deleter {
   void operator()(BIO* p) { BIO_free_all(p); }
 };
 
-#define RSA_Algo false
-
 AES_CBC::AES_CBC(const KeyParams& params) {
-#if RSA_Algo
+#ifdef USE_CRYPTOPP
   ConcordAssertEQ(params.key.size(), 256 / 8);
   aesEncryption = CryptoPP::AES::Encryption(params.key.data(), params.key.size());
   aesDecryption = CryptoPP::AES::Decryption(params.key.data(), params.key.size());
   enc = CryptoPP::CBC_Mode_ExternalCipher::Encryption(aesEncryption, params.iv.data());
   dec = CryptoPP::CBC_Mode_ExternalCipher::Decryption(aesDecryption, params.iv.data());
-#else
+#elif USE_EDDSA_OPENSSL
   key = params.key;
   iv = params.iv;
 #endif
 }
 
 vector<uint8_t> AES_CBC::encrypt(const string& input) const {
-#if RSA_Algo
+#ifdef USE_CRYPTOPP
   vector<uint8_t> cipher;
   CryptoPP::StringSource ss(
       input, true, new CryptoPP::StreamTransformationFilter(enc, new CryptoPP::VectorSink(cipher)));
   return cipher;
-#else
+#elif USE_EDDSA_OPENSSL
   if (input.empty()) {
     return {};
   }
@@ -89,11 +87,11 @@ vector<uint8_t> AES_CBC::encrypt(const string& input) const {
 }
 
 string AES_CBC::decrypt(const vector<uint8_t>& cipher) const {
-#if RSA_Algo
+#ifdef USE_CRYPTOPP
   string pt;
   CryptoPP::VectorSource ss(cipher, true, new CryptoPP::StreamTransformationFilter(dec, new CryptoPP::StringSink(pt)));
   return pt;
-#else
+#elif USE_EDDSA_OPENSSL
   if (cipher.capacity() == 0) {
     return {};
   }

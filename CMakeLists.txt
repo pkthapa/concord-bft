@@ -24,6 +24,8 @@ if(NOT DEFINED USE_LOG4CPP)
 endif()
 
 option(USE_RELIC "Enable usage of Relic library for BLS threshold signature generation/verification" OFF)
+option(USE_CRYPTOPP "Enable usage of Crypto++ library for RSA/ECDSA signature generation/verification" OFF)
+option(USE_EDDSA_OPENSSL "Enable usage of OpenSSL library for EdDSA signature generation/verification" ON)
 option(RUN_APOLLO_TESTS "Enable Apollo tests run" ON)
 option(KEEP_APOLLO_LOGS "Retains logs from replicas in separate folder for each test in build/tests/apollo/logs" ON)
 option(TXN_SIGNING_ENABLED "Enable External concord client transcattion signing" ON)

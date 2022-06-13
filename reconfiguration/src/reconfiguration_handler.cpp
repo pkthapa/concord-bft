@@ -21,18 +21,17 @@
 #include "communication/StateControl.hpp"
 #include "secrets_manager_plain.h"
 #include "bftengine/DbCheckpointManager.hpp"
-#include "openssl_utils.hpp"
 
 #include <fstream>
-
-#define ECDSA_Algo true
 
 using namespace concord::messages;
 using concord::util::crypto::KeyFormat;
 
-#if ECDSA_Algo
+#if USE_CRYPTOPP
 using concord::util::cryptopp_utils::ECDSAVerifier;
 #else
+#include "openssl_utils.hpp"
+
 using concord::util::openssl_utils::EdDSA_Verifier;
 #endif
 
@@ -340,7 +339,7 @@ BftReconfigurationHandler::BftReconfigurationHandler() {
     key_str.append(buf, 0, key_content.gcount());
   }
   key_str.append(buf, 0, key_content.gcount());
-#if ECDSA_Algo
+#ifdef USE_CRYPTOPP
   verifier_.reset(new ECDSAVerifier(key_str, KeyFormat::PemFormat));
 #else
   verifier_.reset(new EdDSA_Verifier(key_str, KeyFormat::PemFormat));
