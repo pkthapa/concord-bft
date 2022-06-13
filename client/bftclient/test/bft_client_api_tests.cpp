@@ -38,14 +38,19 @@
 using namespace std;
 using namespace bft::client;
 using namespace bft::communication;
-// using namespace CryptoPP;
 using namespace bftEngine::impl;
 using namespace bftEngine;
 using namespace placeholders;
 using namespace concord::secretsmanager;
 using concord::util::crypto::KeyFormat;
-// using concord::util::cryptopp_utils::RSAVerifier;
+
+#ifdef USE_CRYPTOPP
+using namespace CryptoPP;
+using concord::util::cryptopp_utils::RSAVerifier;
+#elif USE_EDDSA_OPENSSL
 using concord::util::openssl_utils::EdDSA_Verifier;
+#endif
+
 using ReplicaId_t = bft::client::ReplicaId;
 
 constexpr char KEYS_BASE_PARENT_PATH[] = "/tmp/";
@@ -57,8 +62,6 @@ constexpr char ENC_SYMM_KEY[] = "15ec11a047f630ca00f65c25f0b3bfd89a7054a5b9e2e3c
 constexpr char ENC_IV[] = "38106509f6528ff859c366747aa04f21";
 constexpr char KEYS_GEN_SCRIPT_PATH[] =
     "/concord-bft//scripts/linux/create_concord_clients_transaction_signing_keys.sh";
-
-#define RSA_Algo false
 
 class ClientApiTestFixture : public ::testing::Test {
  public:
@@ -188,9 +191,9 @@ TEST_P(ClientApiTestParametrizedFixture, print_received_messages_and_timeout) {
     std::stringstream stream;
     stream << file.rdbuf();
     auto pub_key_str = stream.str();
-#if RSA_Algo
+#ifdef USE_CRYPTOPP
     transaction_verifier_.reset(new RSAVerifier(pub_key_str, KeyFormat::PemFormat));
-#else
+#elif USE_EDDSA_OPENSSL
     transaction_verifier_.reset(new EdDSA_Verifier(pub_key_str, KeyFormat::PemFormat));
 #endif
   }

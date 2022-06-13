@@ -24,11 +24,9 @@ using namespace bftEngine;
 using namespace bftEngine::impl;
 using concord::util::crypto::KeyFormat;
 
-#define RSA_Algo false
-
-#if RSA_Algo
+#ifdef USE_CRYPTOPP
 using concord::util::cryptopp_utils::RSASigner;
-#else
+#elif USE_EDDSA_OPENSSL
 using concord::util::openssl_utils::EdDSA_Signer;
 #endif
 
@@ -66,9 +64,9 @@ Client::Client(SharedCommPtr comm, const ClientConfig& config, std::shared_ptr<c
 
     key_plaintext = secretsManager->decryptFile(file_path);
     if (!key_plaintext) throw InvalidPrivateKeyException(file_path, config.secrets_manager_config != std::nullopt);
-#if RSA_Algo
+#ifdef USE_CRYPTOPP
     transaction_signer_ = std::make_unique<RSASigner>(key_plaintext.value().c_str(), KeyFormat::PemFormat);
-#else
+#elif USE_EDDSA_OPENSSL
     transaction_signer_ = std::make_unique<EdDSA_Signer>(key_plaintext.value(), KeyFormat::PemFormat);
 #endif
   }

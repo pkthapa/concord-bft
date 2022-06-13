@@ -24,6 +24,8 @@ if(NOT DEFINED USE_LOG4CPP)
 endif()
 
 option(USE_RELIC "Enable usage of Relic library for BLS threshold signature generation/verification" OFF)
+option(USE_CRYPTOPP "Enable usage of Crypto++ library for RSA/ECDSA signature generation/verification" OFF)
+option(USE_EDDSA_OPENSSL "Enable usage of OpenSSL library for EdDSA signature generation/verification" ON)
 option(RUN_APOLLO_TESTS "Enable Apollo tests run" ON)
 option(KEEP_APOLLO_LOGS "Retains logs from replicas in separate folder for each test in build/tests/apollo/logs" ON)
 option(TXN_SIGNING_ENABLED "Enable External concord client transcattion signing" ON)
@@ -51,6 +53,11 @@ option(ENABLE_RESTART_RECOVERY_TESTS "Enable tests for restart recovery" OFF)
 if(NOT (USE_EDDSA_OPENSSL OR USE_RELIC))
     message(FATAL_ERROR "At least one threshold/multisig implementation needs to be chosen, "
             "Define at least one of the following cmake options: [USE_EDDSA_OPENSSL, USE_RELIC]")
+endif()
+
+if ((NOT USE_CRYPTOPP) AND (NOT USE_EDDSA_OPENSSL))
+    message(FATAL_ERROR "At least one signature/verification algorithm implementation must be chosen. "
+            "Choose at least one of the following cmake options: [USE_EDDSA_OPENSSL, USE_CRYPTOPP]")
 endif()
 
 if((USE_OPENSSL OR USE_EDDSA_OPENSSL) AND NOT BUILD_THIRDPARTY)

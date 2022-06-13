@@ -20,13 +20,11 @@
 
 namespace concord::kvbc::pruning {
 
-#define RSA_Algo false
-
 using concord::util::crypto::KeyFormat;
-#if RSA_Algo
+#ifdef USE_CRYPTOPP
 using concord::util::cryptopp_utils::RSASigner;
 using concord::util::cryptopp_utils::RSAVerifier;
-#else
+#elif USE_EDDSA_OPENSSL
 using concord::util::openssl_utils::EdDSA_Signer;
 using concord::util::openssl_utils::EdDSA_Verifier;
 #endif
@@ -42,11 +40,11 @@ void PruningSigner::sign(concord::messages::LatestPrunableBlock& block) {
 
 PruningSigner::PruningSigner(const std::string& key)
     :
-#if RSA_Algo
+#ifdef USE_CRYPTOPP
       signer_ {
   std::make_unique<RSASigner>(key, KeyFormat::HexaDecimalStrippedFormat)
 }
-#else
+#elif USE_EDDSA_OPENSSL
       signer_ {
   std::make_unique<EdDSA_Signer>(key, KeyFormat::HexaDecimalStrippedFormat)
 }
@@ -56,9 +54,9 @@ PruningSigner::PruningSigner(const std::string& key)
 PruningVerifier::PruningVerifier(const std::set<std::pair<uint16_t, const std::string>>& replicasPublicKeys) {
   auto i = 0u;
   for (auto& [idx, pkey] : replicasPublicKeys) {
-#if RSA_Algo
+#ifdef USE_CRYPTOPP
     replicas_.push_back(Replica{idx, std::make_unique<RSAVerifier>(pkey, KeyFormat::HexaDecimalStrippedFormat)});
-#else
+#elif USE_EDDSA_OPENSSL
     replicas_.push_back(Replica{idx, std::make_unique<EdDSA_Verifier>(pkey, KeyFormat::HexaDecimalStrippedFormat)});
 #endif
     const auto ins_res = replica_ids_.insert(replicas_.back().principal_id);
