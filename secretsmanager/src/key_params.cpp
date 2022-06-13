@@ -1,22 +1,21 @@
 #include "key_params.h"
 #include <cstring>
 
-#define RSA_Algo false
-#if RSA_Algo
+#ifdef USE_CRYPTOPP
 #include <cryptopp/cryptlib.h>
 #include <cryptopp/filters.h>
 #include <cryptopp/hex.h>
-#else
+#elif USE_EDDSA_OPENSSL
 #include "hex_tools.h"
 #endif
 
 namespace concord::secretsmanager {
 
 KeyParams::KeyParams(const std::string& pkey, const std::string& piv) {
-#if RSA_Algo
+#ifdef USE_CRYPTOPP
   CryptoPP::StringSource sskey(pkey, true, new CryptoPP::HexDecoder(new CryptoPP::VectorSink(key)));
   CryptoPP::StringSource ssiv(piv, true, new CryptoPP::HexDecoder(new CryptoPP::VectorSink(iv)));
-#else
+#elif USE_EDDSA_OPENSSL
   const auto keyInAsciiStr = concordUtils::hexToASCII(pkey);
   const auto ivInAsciiStr = concordUtils::hexToASCII(piv);
 

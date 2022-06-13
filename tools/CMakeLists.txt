@@ -59,6 +59,18 @@ if (BUILD_TESTING)
 			.)
 endif()
 
+if (USE_CRYPTOPP)
+    message(STATUS "Using Crypto++ RSA/ECDSA signature/verification")
+    target_compile_definitions(GenerateConcordKeys PUBLIC USE_CRYPTOPP)
+    target_compile_definitions(TestGeneratedKeys PUBLIC USE_CRYPTOPP)
+endif()
+
+if (USE_EDDSA_OPENSSL)
+    message(STATUS "Using OpenSSL EdDSA signature/verification")
+    target_compile_definitions(GenerateConcordKeys PUBLIC USE_EDDSA_OPENSSL)
+    target_compile_definitions(TestGeneratedKeys PUBLIC USE_EDDSA_OPENSSL)
+endif()
+
 if (BUILD_ROCKSDB_STORAGE)
     add_executable(skvb_db_editor DBEditor.cpp )
     target_include_directories(skvb_db_editor PUBLIC

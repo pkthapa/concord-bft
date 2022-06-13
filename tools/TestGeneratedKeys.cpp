@@ -24,12 +24,10 @@
 #include "cryptopp_utils.hpp"
 #include "openssl_utils.hpp"
 
-#define RSA_Algo false
-
-#if RSA_Algo
+#ifdef USE_CRYPTOPP
 using concord::util::cryptopp_utils::RSASigner;
 using concord::util::cryptopp_utils::RSAVerifier;
-#else
+#elif USE_EDDSA_OPENSSL
 using concord::util::openssl_utils::EdDSA_Signer;
 using concord::util::openssl_utils::EdDSA_Verifier;
 #endif
@@ -134,7 +132,7 @@ static bool validateFundamentalFields(const std::vector<TestReplicaConfig>& conf
   return true;
 }
 
-#if RSA_Algo
+#ifdef USE_CRYPTOPP
 // Helper function to test RSA keys to test the compatibility of a single key
 // pair.
 static bool testRSAKeyPair(const std::string& privateKey, const std::string& publicKey, uint16_t replicaID) {
@@ -257,8 +255,7 @@ static bool testRSAKeys(const std::vector<TestReplicaConfig>& configs) {
 
   return true;
 }
-
-#else
+#elif USE_EDDSA_OPENSSL
 // Helper function to test EdDSA keys to test the compatibility of a single key pair.
 static bool testEdDSAKeyPair(const std::string& privateKey, const std::string& publicKey, uint16_t replicaID) {
   // The signer and verifier are stored with unique pointers rather than by
@@ -858,9 +855,9 @@ int main(int argc, char** argv) {
     std::cout << "Cryptographic configurations read appear to be sane.\n";
     std::cout << "Testing key functionality and agreement...\n";
 
-#if RSA_Algo
+#ifdef USE_CRYPTOPP
     if (!testRSAKeys(configs))
-#else
+#elif USE_EDDSA_OPENSSL
     if (!testEdDSAKeys(configs))
 #endif
     {

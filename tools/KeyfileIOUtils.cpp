@@ -21,8 +21,6 @@
 #include "KeyfileIOUtils.hpp"
 #include "yaml_utils.hpp"
 
-#define RSA_Algo false
-
 void outputReplicaKeyfile(uint16_t numReplicas,
                           uint16_t numRoReplicas,
                           bftEngine::ReplicaConfig& config,
@@ -41,10 +39,10 @@ void outputReplicaKeyfile(uint16_t numReplicas,
          << "c_val: " << config.cVal << "\n"
          << "replica_id: " << config.replicaId << "\n"
          << "read-only: " << config.isReadOnly << "\n\n"
-#if RSA_Algo
+#ifdef USE_CRYPTOPP
          << "# RSA non-threshold replica public keys\n"
          << "rsa_public_keys:\n";
-#else
+#elif USE_EDDSA_OPENSSL
          << "# EdDSA non-threshold replica public keys\n"
          << "eddsa_public_keys:\n";
 #endif
@@ -52,16 +50,16 @@ void outputReplicaKeyfile(uint16_t numReplicas,
   for (auto& v : config.publicKeysOfReplicas) output << "  - " << v.second << "\n";
   output << "\n";
 
-#if RSA_Algo
+#ifdef USE_CRYPTOPP
   output << "rsa_private_key: " << config.replicaPrivateKey << "\n";
-#else
+#elif USE_EDDSA_OPENSSL
   output << "eddsa_private_key: " << config.replicaPrivateKey << "\n";
 #endif
 
   if (commonSys) commonSys->writeConfiguration(output, "common", config.replicaId);
 }
 
-#if RSA_Algo
+#ifdef USE_CRYPTOPP
 static void validateRSAPublicKey(const std::string& key) {
   const size_t rsaPublicKeyHexadecimalLength = 584;
   if (!(key.length() == rsaPublicKeyHexadecimalLength) && (std::regex_match(key, std::regex("[0-9A-Fa-f]+"))))
@@ -75,7 +73,7 @@ static void validateRSAPrivateKey(const std::string& key) {
 
   if (!std::regex_match(key, std::regex("[0-9A-Fa-f]+"))) throw std::runtime_error("Invalid RSA private key: " + key);
 }
-#else
+#elif USE_EDDSA_OPENSSL
 static void validateEdDSAPublicKey(const std::string& key) {
   const size_t eddsaPublicKeyHexadecimalLength{64UL};
   if (!(key.length() == eddsaPublicKeyHexadecimalLength) && (std::regex_match(key, std::regex("[0-9A-Fa-f]+")))) {
@@ -113,12 +111,12 @@ Cryptosystem* inputReplicaKeyfileMultisig(const std::string& filename, bftEngine
   if (config.replicaId >= config.numReplicas + config.numRoReplicas)
     throw std::runtime_error("replica IDs must be in the range [0, num_replicas + num_ro_replicas]");
 
-#if RSA_Algo
+#ifdef USE_CRYPTOPP
   std::vector<std::string> rsaPublicKeys = yaml::readCollection<std::string>(input, "rsa_public_keys");
 
   if (rsaPublicKeys.size() != config.numReplicas + config.numRoReplicas)
     throw std::runtime_error("number of public RSA keys must match num_replicas");
-#else
+#elif USE_EDDSA_OPENSSL
   std::vector<std::string> eddsaPublicKeys = yaml::readCollection<std::string>(input, "eddsa_public_keys");
 
   if (eddsaPublicKeys.size() != config.numReplicas + config.numRoReplicas)
@@ -127,19 +125,19 @@ Cryptosystem* inputReplicaKeyfileMultisig(const std::string& filename, bftEngine
 
   config.publicKeysOfReplicas.clear();
   for (size_t i = 0; i < config.numReplicas + config.numRoReplicas; ++i) {
-#if RSA_Algo
+#ifdef USE_CRYPTOPP
     validateRSAPublicKey(rsaPublicKeys[i]);
     config.publicKeysOfReplicas.insert(std::pair<uint16_t, std::string>(i, rsaPublicKeys[i]));
-#else
+#elif USE_EDDSA_OPENSSL
     validateEdDSAPublicKey(eddsaPublicKeys[i]);
     config.publicKeysOfReplicas.insert(std::pair<uint16_t, std::string>(i, eddsaPublicKeys[i]));
 #endif
   }
 
-#if RSA_Algo
+#ifdef USE_CRYPTOPP
   config.replicaPrivateKey = yaml::readValue<std::string>(input, "rsa_private_key");
   validateRSAPrivateKey(config.replicaPrivateKey);
-#else
+#elif USE_EDDSA_OPENSSL
   config.replicaPrivateKey = yaml::readValue<std::string>(input, "eddsa_private_key");
   validateEdDSAPrivateKey(config.replicaPrivateKey);
 #endif
