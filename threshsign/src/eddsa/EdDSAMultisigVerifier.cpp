@@ -87,6 +87,7 @@ bool EdDSAMultisigVerifier::verifySingleSignature(const uint8_t *msg,
 
 bool EdDSAMultisigVerifier::verify(const char *msg, int msgLen, const char *sig, int sigLen) const {
   LOG_DEBUG(EDDSA_MULTISIG_LOG, KVLOG(this, signersCount_, threshold_, sigLen));
+
   auto msgLenUnsigned = static_cast<size_t>(msgLen);
   auto sigLenUnsigned = static_cast<unsigned long>(sigLen);
   ConcordAssert(sigLenUnsigned % sizeof(SingleEdDSASignature) == 0);
