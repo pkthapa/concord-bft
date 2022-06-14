@@ -18,19 +18,15 @@
 #include "keys_and_signatures.cmf.hpp"
 #include "ReplicaConfig.hpp"
 #include "hex_tools.h"
+#include "sign_verify_utils.hpp"
 
 using namespace std;
 
 namespace bftEngine {
 namespace impl {
 
-#ifdef USE_CRYPTOPP
-using concord::util::cryptopp_utils::RSASigner;
-using concord::util::cryptopp_utils::RSAVerifier;
-#elif USE_EDDSA_OPENSSL
-using concord::util::openssl_utils::EdDSA_Signer;
-using concord::util::openssl_utils::EdDSA_Verifier;
-#endif
+using concord::util::signerverifier::TransactionSigner;
+using concord::util::signerverifier::TransactionVerifier;
 
 concord::messages::keys_and_signatures::ClientsPublicKeys clientsPublicKeys_;
 
@@ -145,11 +141,7 @@ SigManager::SigManager(PrincipalId myId,
 
   ConcordAssert(publicKeysMapping.size() >= numPublickeys);
   if (!mySigPrivateKey.first.empty()) {
-#ifdef USE_CRYPTOPP
-    mySigner_.reset(new RSASigner(mySigPrivateKey.first.c_str(), mySigPrivateKey.second));
-#elif USE_EDDSA_OPENSSL
-    mySigner_.reset(new EdDSA_Signer(mySigPrivateKey.first, mySigPrivateKey.second));
-#endif
+    mySigner_.reset(new TransactionSigner(mySigPrivateKey.first.c_str(), mySigPrivateKey.second));
   }
   for (const auto& p : publicKeysMapping) {
     ConcordAssert(verifiers_.count(p.first) == 0);
@@ -158,11 +150,7 @@ SigManager::SigManager(PrincipalId myId,
     auto iter = publicKeyIndexToVerifier.find(p.second);
     const auto& [key, format] = publickeys[p.second];
     if (iter == publicKeyIndexToVerifier.end()) {
-#ifdef USE_CRYPTOPP
-      verifiers_[p.first] = std::make_shared<RSAVerifier>(key.c_str(), format);
-#elif USE_EDDSA_OPENSSL
-      verifiers_[p.first] = std::make_shared<EdDSA_Verifier>(key, format);
-#endif
+      verifiers_[p.first] = std::make_shared<TransactionVerifier>(key, format);
       publicKeyIndexToVerifier[p.second] = verifiers_[p.first];
     } else {
       verifiers_[p.first] = iter->second;
@@ -270,11 +258,7 @@ void SigManager::setClientPublicKey(const std::string& key, PrincipalId id, conc
   if (replicasInfo_.isIdOfExternalClient(id) || replicasInfo_.isIdOfClientService(id)) {
     try {
       std::unique_lock lock(mutex_);
-#ifdef USE_CRYPTOPP
-      verifiers_.insert_or_assign(id, std::make_shared<RSAVerifier>(key.c_str(), format));
-#elif USE_EDDSA_OPENSSL
-      verifiers_.insert_or_assign(id, std::make_shared<EdDSA_Verifier>(key, format));
-#endif
+      verifiers_.insert_or_assign(id, std::make_shared<TransactionVerifier>(key, format));
     } catch (const std::exception& e) {
       LOG_ERROR(KEY_EX_LOG, "failed to add a key for client: " << id << " reason: " << e.what());
       throw;

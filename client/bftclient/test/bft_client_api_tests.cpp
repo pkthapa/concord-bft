@@ -32,7 +32,7 @@
 #include "bftclient/bft_client.h"
 #include "bftclient/fake_comm.h"
 #include "msg_receiver.h"
-#include "openssl_utils.hpp"
+#include "sign_verify_utils.hpp"
 #include "Logger.hpp"
 
 using namespace std;
@@ -43,13 +43,8 @@ using namespace bftEngine;
 using namespace placeholders;
 using namespace concord::secretsmanager;
 using concord::util::crypto::KeyFormat;
-
-#ifdef USE_CRYPTOPP
+using concord::util::signerverifier::TransactionVerifier;
 using namespace CryptoPP;
-using concord::util::cryptopp_utils::RSAVerifier;
-#elif USE_EDDSA_OPENSSL
-using concord::util::openssl_utils::EdDSA_Verifier;
-#endif
 
 using ReplicaId_t = bft::client::ReplicaId;
 
@@ -185,17 +180,13 @@ TEST_P(ClientApiTestParametrizedFixture, print_received_messages_and_timeout) {
       test_config_.secrets_manager_config = sd;
     }
 
-    // initialize the test's RSAVerifier/EdDSA_Verifier
+    // initialize the test's RSAVerifier/EdDSAVerifier
     string public_key_full_path({keypair_path + PUB_KEY_NAME});
     std::ifstream file(public_key_full_path);
     std::stringstream stream;
     stream << file.rdbuf();
     auto pub_key_str = stream.str();
-#ifdef USE_CRYPTOPP
-    transaction_verifier_.reset(new RSAVerifier(pub_key_str, KeyFormat::PemFormat));
-#elif USE_EDDSA_OPENSSL
-    transaction_verifier_.reset(new EdDSA_Verifier(pub_key_str, KeyFormat::PemFormat));
-#endif
+    transaction_verifier_.reset(new TransactionVerifier(pub_key_str, KeyFormat::PemFormat));
   }
   unique_ptr<FakeCommunication> comm;
   if (sign_transaction) {

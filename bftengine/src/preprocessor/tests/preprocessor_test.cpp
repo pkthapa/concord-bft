@@ -155,22 +155,7 @@ class DummyPreProcessor : public PreProcessor {
 };
 
 // clang-format off
-const vector<string> eddsaPrivateKey = {
-  {"61498efe1764b89357a02e2887d224154006ceacf26269f8695a4af561453eef"},
-  {"247a74ab3620ec6b9f5feab9ee1f86521da3fa2804ad45bb5bf2c5b21ef105bc"},
-  {"fb539bc3d66deda55524d903da26dbec1f4b6abf41ec5db521e617c64eb2c341"},
-  {"55ea66e855b83ec4a02bd8fcce6bb4426ad3db2a842fa2a2a6777f13e40a4717"},
-  {"f2f3d43da68329bfe31419636072e27cfd1a8fff259be4bfada667080eb00556"}
-};
-
-const vector<string> eddsaPublicKey = {
-  {"386f4fb049a5d8bb0706d3793096c8f91842ce380dfc342a2001d50dfbc901f4"},
-  {"3f9e7dbde90477c24c1bacf14e073a356c1eca482d352d9cc0b16560a4e7e469"},
-  {"2311c6013ff657844669d8b803b2e1ed33fe06eed445f966a800a8fbb8d790e8"},
-  {"1ba7449655784fc9ce193a7887de1e4d3d35f7c82b802440c4f28bf678a34b34"},
-  {"c426c524c92ad9d0b740f68ee312abf0298051a7e0364a867b940e9693ae6095"}
-};
-
+#ifdef USE_CRYPTOPP
 const vector<string> privateKeys = {
   {
     "308204BA020100300D06092A864886F70D0101010500048204A4308204A00201000282010100C55B8F7979BF24B335017082BF33EE2960E3A0"
@@ -335,6 +320,23 @@ const vector<string> publicKeys = {
     "B2D8A83B020111"
   }
 };
+#elif USE_EDDSA_OPENSSL
+const vector<string> privateKeys = {
+  {"61498efe1764b89357a02e2887d224154006ceacf26269f8695a4af561453eef"},
+  {"247a74ab3620ec6b9f5feab9ee1f86521da3fa2804ad45bb5bf2c5b21ef105bc"},
+  {"fb539bc3d66deda55524d903da26dbec1f4b6abf41ec5db521e617c64eb2c341"},
+  {"55ea66e855b83ec4a02bd8fcce6bb4426ad3db2a842fa2a2a6777f13e40a4717"},
+  {"f2f3d43da68329bfe31419636072e27cfd1a8fff259be4bfada667080eb00556"}
+};
+
+const vector<string> publicKeys = {
+  {"386f4fb049a5d8bb0706d3793096c8f91842ce380dfc342a2001d50dfbc901f4"},
+  {"3f9e7dbde90477c24c1bacf14e073a356c1eca482d352d9cc0b16560a4e7e469"},
+  {"2311c6013ff657844669d8b803b2e1ed33fe06eed445f966a800a8fbb8d790e8"},
+  {"1ba7449655784fc9ce193a7887de1e4d3d35f7c82b802440c4f28bf678a34b34"},
+  {"c426c524c92ad9d0b740f68ee312abf0298051a7e0364a867b940e9693ae6095"}
+};
+#endif
 // clang-format on
 
 void setUpConfiguration_4() {
@@ -348,22 +350,17 @@ void setUpConfiguration_4() {
   replicaConfig.numOfExternalClients = 15;
   replicaConfig.clientBatchingEnabled = true;
 
-  replicaConfig.publicKeysOfReplicas.insert(
-      pair<uint16_t, const string>(replica_0, eddsaPublicKey /*publicKeys*/[replica_0]));
-  replicaConfig.publicKeysOfReplicas.insert(
-      pair<uint16_t, const string>(replica_1, eddsaPublicKey /*publicKeys*/[replica_1]));
-  replicaConfig.publicKeysOfReplicas.insert(
-      pair<uint16_t, const string>(replica_2, eddsaPublicKey /*publicKeys*/[replica_2]));
-  replicaConfig.publicKeysOfReplicas.insert(
-      pair<uint16_t, const string>(replica_3, eddsaPublicKey /*publicKeys*/[replica_3]));
-  replicaConfig.replicaPrivateKey = eddsaPrivateKey[0] /*privateKeys[0]*/;
+  replicaConfig.publicKeysOfReplicas.insert(pair<uint16_t, const string>(replica_0, publicKeys[replica_0]));
+  replicaConfig.publicKeysOfReplicas.insert(pair<uint16_t, const string>(replica_1, publicKeys[replica_1]));
+  replicaConfig.publicKeysOfReplicas.insert(pair<uint16_t, const string>(replica_2, publicKeys[replica_2]));
+  replicaConfig.publicKeysOfReplicas.insert(pair<uint16_t, const string>(replica_3, publicKeys[replica_3]));
+  replicaConfig.replicaPrivateKey = privateKeys[0];
 
   for (auto i = 0; i < replicaConfig.numReplicas; i++) {
     replicaConfig.replicaId = i;
     replicasInfo[i] = std::make_unique<ReplicasInfo>(replicaConfig, true, true);
     sigManager[i].reset(SigManager::initInTesting(i,
-                                                  /*privateKeys[i],*/
-                                                  eddsaPrivateKey[i],
+                                                  privateKeys[i],
                                                   replicaConfig.publicKeysOfReplicas,
                                                   concord::util::crypto::KeyFormat::HexaDecimalStrippedFormat,
                                                   nullptr,
@@ -379,8 +376,8 @@ void setUpConfiguration_7() {
   replicaConfig.numReplicas = numOfReplicas_7;
   replicaConfig.fVal = fVal_7;
 
-  replicaConfig.publicKeysOfReplicas.insert(pair<uint16_t, const string>(replica_4, eddsaPublicKey /*publicKeys*/[4]));
-  replicaConfig.replicaPrivateKey = eddsaPrivateKey[4] /*privateKeys[4]*/;
+  replicaConfig.publicKeysOfReplicas.insert(pair<uint16_t, const string>(replica_4, publicKeys[4]));
+  replicaConfig.replicaPrivateKey = privateKeys[4];
 }
 
 void setUpCommunication() {

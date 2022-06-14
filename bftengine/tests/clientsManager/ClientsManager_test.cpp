@@ -16,7 +16,7 @@
 #include "gtest/gtest.h"
 #include "messages/ClientReplyMsg.hpp"
 #include "ReservedPagesMock.hpp"
-#include "openssl_utils.hpp"
+#include "sign_verify_utils.hpp"
 
 using bftEngine::impl::ClientsManager;
 using bftEngine::impl::NodeIdType;
@@ -43,12 +43,12 @@ using std::unique_ptr;
 using std::vector;
 
 #ifdef USE_CRYPTOPP
-using concord::util::cryptopp_utils::RSASigner;
 using concord::util::cryptopp_utils::Crypto;
 #elif USE_EDDSA_OPENSSL
-using concord::util::openssl_utils::EdDSA_Signer;
 using concord::util::openssl_utils::Crypto;
 #endif
+
+using concord::util::signerverifier::TransactionSigner;
 
 // Testing values to be used for certain Concord-BFT configuration that ClientsManager and/or its dependencies may
 // reference.
@@ -238,11 +238,7 @@ static bool verifyClientPublicKeyLoadedToKEM(NodeIdType client_id, const pair<st
     return false;
   }
 
-#ifdef USE_CRYPTOPP
-  RSASigner signer(expected_key.first, kKeyFormatForTesting);
-#elif USE_EDDSA_OPENSSL
-  EdDSA_Signer signer(expected_key.first, kKeyFormatForTesting);
-#endif
+  TransactionSigner signer(expected_key.first, kKeyFormatForTesting);
   string signature = signer.sign(kArbitraryMessageForTestingKeyAgreement);
   return SigManager::instance()->verifySig(client_id,
                                            kArbitraryMessageForTestingKeyAgreement.data(),

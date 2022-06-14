@@ -16,18 +16,13 @@
 #include "pruning_handler.hpp"
 #include "categorization/versioned_kv_category.h"
 #include "kvbc_key_types.hpp"
-#include "openssl_utils.hpp"
+#include "sign_verify_utils.hpp"
 
 namespace concord::kvbc::pruning {
 
 using concord::util::crypto::KeyFormat;
-#ifdef USE_CRYPTOPP
-using concord::util::cryptopp_utils::RSASigner;
-using concord::util::cryptopp_utils::RSAVerifier;
-#elif USE_EDDSA_OPENSSL
-using concord::util::openssl_utils::EdDSA_Signer;
-using concord::util::openssl_utils::EdDSA_Verifier;
-#endif
+using concord::util::signerverifier::TransactionSigner;
+using concord::util::signerverifier::TransactionVerifier;
 
 void PruningSigner::sign(concord::messages::LatestPrunableBlock& block) {
   std::ostringstream oss;
@@ -39,26 +34,13 @@ void PruningSigner::sign(concord::messages::LatestPrunableBlock& block) {
 }
 
 PruningSigner::PruningSigner(const std::string& key)
-    :
-#ifdef USE_CRYPTOPP
-      signer_ {
-  std::make_unique<RSASigner>(key, KeyFormat::HexaDecimalStrippedFormat)
-}
-#elif USE_EDDSA_OPENSSL
-      signer_ {
-  std::make_unique<EdDSA_Signer>(key, KeyFormat::HexaDecimalStrippedFormat)
-}
-#endif
-{}
+    : signer_{std::make_unique<TransactionSigner>(key, KeyFormat::HexaDecimalStrippedFormat)} {}
 
 PruningVerifier::PruningVerifier(const std::set<std::pair<uint16_t, const std::string>>& replicasPublicKeys) {
   auto i = 0u;
   for (auto& [idx, pkey] : replicasPublicKeys) {
-#ifdef USE_CRYPTOPP
-    replicas_.push_back(Replica{idx, std::make_unique<RSAVerifier>(pkey, KeyFormat::HexaDecimalStrippedFormat)});
-#elif USE_EDDSA_OPENSSL
-    replicas_.push_back(Replica{idx, std::make_unique<EdDSA_Verifier>(pkey, KeyFormat::HexaDecimalStrippedFormat)});
-#endif
+    replicas_.push_back(
+        Replica{idx, std::make_unique<TransactionVerifier>(pkey, KeyFormat::HexaDecimalStrippedFormat)});
     const auto ins_res = replica_ids_.insert(replicas_.back().principal_id);
     if (!ins_res.second) {
       throw std::runtime_error{"PruningVerifier found duplicate replica principal_id: " +

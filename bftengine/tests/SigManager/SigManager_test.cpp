@@ -12,29 +12,17 @@
 #include "SigManager.hpp"
 #include "helper.hpp"
 
+#include <random>
 #include <cryptopp/dll.h>
 #include <cryptopp/rsa.h>
 #include <cryptopp/osrng.h>
 #include <cryptopp/base64.h>
 #include <cryptopp/files.h>
 #include "gtest/gtest.h"
-#include "openssl_utils.hpp"
-
-#include <string>
-#include <vector>
-#include <ctime>
-#include <random>
-#include <memory>
+#include "sign_verify_utils.hpp"
 
 using namespace std;
 using concord::util::crypto::KeyFormat;
-#ifdef USE_CRYPTOPP
-using concord::util::cryptopp_utils::RSASigner;
-using concord::util::cryptopp_utils::RSAVerifier;
-#elif USE_EDDSA_OPENSSL
-using concord::util::openssl_utils::EdDSA_Signer;
-using concord::util::openssl_utils::EdDSA_Verifier;
-#endif
 
 constexpr char KEYS_BASE_PARENT_PATH[] = "/tmp/";
 constexpr char KEYS_BASE_PATH[] = "/tmp/transaction_signing_keys";
@@ -46,7 +34,16 @@ constexpr size_t RANDOM_DATA_SIZE = 1000U;
 
 std::default_random_engine generator;
 
-void generateKeyPairs(size_t count) {
+using concord::util::signerverifier::TransactionSigner;
+using concord::util::signerverifier::TransactionVerifier;
+
+#ifdef USE_CRYPTOPP
+constexpr char ALGO_NAME[] = "rsa";
+#elif USE_EDDSA_OPENSSL
+constexpr char ALGO_NAME[] = "eddsa";
+#endif
+
+void generateKeyPairs(size_t count, const char algo[]) {
   ostringstream cmd;
 
   ASSERT_EQ(0, system(cmd.str().c_str()));
@@ -57,7 +54,7 @@ void generateKeyPairs(size_t count) {
   cmd.clear();
 
   cmd << KEYS_GEN_SCRIPT_PATH << " -n " << count << " -r " << PRIV_KEY_NAME << " -u " << PUB_KEY_NAME << " -o "
-      << KEYS_BASE_PARENT_PATH;
+      << KEYS_BASE_PARENT_PATH << " -a " << algo;
   ASSERT_EQ(0, system(cmd.str().c_str()));
 }
 
@@ -89,19 +86,14 @@ TEST(SignerAndVerifierTest, LoadSignVerifyFromPemfiles) {
   string privKey, pubkey, sig;
   char data[RANDOM_DATA_SIZE]{0};
 
-  generateKeyPairs(1);
+  generateKeyPairs(1, ALGO_NAME);
   generateRandomData(data, RANDOM_DATA_SIZE);
   readFile(privateKeyFullPath, privKey);
   readFile(publicKeyFullPath, pubkey);
-#ifdef USE_CRYPTOPP
-  auto verifier_ = unique_ptr<RSAVerifier>(new RSAVerifier(pubkey, KeyFormat::PemFormat));
-  auto signer_ = unique_ptr<RSASigner>(new RSASigner(privKey, KeyFormat::PemFormat));
-#elif USE_EDDSA_OPENSSL
-  auto verifier_ = unique_ptr<EdDSA_Verifier>(new EdDSA_Verifier(pubkey, KeyFormat::PemFormat));
-  auto signer_ = unique_ptr<EdDSA_Signer>(new EdDSA_Signer(privKey, KeyFormat::PemFormat));
-#endif
+  auto verifier_ = unique_ptr<TransactionVerifier>(new TransactionVerifier(pubkey, KeyFormat::PemFormat));
+  auto signer_ = unique_ptr<TransactionSigner>(new TransactionSigner(privKey, KeyFormat::PemFormat));
 
-  // sign with RSASigner/EdDSA_Signer
+  // sign with RSASigner/EdDSASigner
   size_t expectedSignerSigLen = signer_->signatureLength();
   sig.reserve(expectedSignerSigLen);
   size_t lenRetData;
@@ -110,7 +102,7 @@ TEST(SignerAndVerifierTest, LoadSignVerifyFromPemfiles) {
   lenRetData = sig.size();
   ASSERT_EQ(lenRetData, expectedSignerSigLen);
 
-  // validate with RSAVerifier/EdDSA_Verifier
+  // validate with RSAVerifier/EdDSAVerifier
   ASSERT_TRUE(verifier_->verify(str_data, sig));
 
   // change data randomally, expect failure
@@ -130,14 +122,10 @@ TEST(SigManagerTest, ReplicasOnlyCheckVerify) {
   constexpr size_t numReplicas{4};
   constexpr PrincipalId myId{0};
   string myPrivKey;
-#ifdef USE_CRYPTOPP
-  unique_ptr<RSASigner> signers[numReplicas];
-#elif USE_EDDSA_OPENSSL
-  unique_ptr<EdDSA_Signer> signers[numReplicas];
-#endif
+  unique_ptr<TransactionSigner> signers[numReplicas];
   set<pair<PrincipalId, const string>> publicKeysOfReplicas;
 
-  generateKeyPairs(numReplicas);
+  generateKeyPairs(numReplicas, ALGO_NAME);
 
   // Load signers to simulate other replicas
   for (size_t i{1}; i <= numReplicas; ++i) {
@@ -150,19 +138,10 @@ TEST(SigManagerTest, ReplicasOnlyCheckVerify) {
       myPrivKey = privKey;
       continue;
     }
-
-#ifdef USE_CRYPTOPP
-    signers[pid].reset(new RSASigner(privKey, KeyFormat::PemFormat));
-#elif USE_EDDSA_OPENSSL
-    signers[pid].reset(new EdDSA_Signer(privKey, KeyFormat::PemFormat));
-#endif
+    signers[pid].reset(new TransactionSigner(privKey, KeyFormat::PemFormat));
     string pubKeyFullPath({string(KEYS_BASE_PATH) + string("/") + to_string(i) + string("/") + PUB_KEY_NAME});
     readFile(pubKeyFullPath, pubKey);
-#ifdef USE_CRYPTOPP
     publicKeysOfReplicas.insert(make_pair(pid, pubKey));
-#elif USE_EDDSA_OPENSSL
-    publicKeysOfReplicas.insert(make_pair(pid, pubKey));
-#endif
   }
 
   ReplicasInfo replicaInfo(createReplicaConfig(), false, false);
@@ -178,7 +157,7 @@ TEST(SigManagerTest, ReplicasOnlyCheckVerify) {
 
     if (i == myId) continue;
 
-    // sign with RSASigner/EdDSA_Signer (other replicas, mock)
+    // sign with RSASigner/EdDSASigner (other replicas, mock)
     expectedSignerSigLen = signer->signatureLength();
     sig.reserve(expectedSignerSigLen);
     generateRandomData(data, RANDOM_DATA_SIZE);
@@ -207,16 +186,12 @@ TEST(SigManagerTest, ReplicasOnlyCheckSign) {
   constexpr size_t numReplicas{4};
   constexpr PrincipalId myId{0};
   string myPrivKey, privKey, pubKey, sig;
-#ifdef USE_CRYPTOPP
-  unique_ptr<RSAVerifier> verifier;
-#elif USE_EDDSA_OPENSSL
-  unique_ptr<EdDSA_Verifier> verifier;
-#endif
+  unique_ptr<TransactionVerifier> verifier;
   set<pair<PrincipalId, const string>> publicKeysOfReplicas;
   char data[RANDOM_DATA_SIZE]{0};
   size_t expectedSignerSigLen;
 
-  generateKeyPairs(numReplicas);
+  generateKeyPairs(numReplicas, ALGO_NAME);
 
   // Load my private key
   string privateKeyFullPath({string(KEYS_BASE_PATH) + string("/") + to_string(1) + string("/") + PRIV_KEY_NAME});
@@ -225,21 +200,13 @@ TEST(SigManagerTest, ReplicasOnlyCheckSign) {
   // Load single other replica's verifier (mock)
   string pubKeyFullPath({string(KEYS_BASE_PATH) + string("/") + to_string(1) + string("/") + PUB_KEY_NAME});
   readFile(pubKeyFullPath, pubKey);
-#ifdef USE_CRYPTOPP
-  verifier.reset(new RSAVerifier(pubKey, KeyFormat::PemFormat));
-#elif USE_EDDSA_OPENSSL
-  verifier.reset(new EdDSA_Verifier(pubKey, KeyFormat::PemFormat));
-#endif
+  verifier.reset(new TransactionVerifier(pubKey, KeyFormat::PemFormat));
 
   // load public key of other replicas, must be done for SigManager ctor
   for (size_t i{2}; i <= numReplicas; ++i) {
     pubKeyFullPath = string(KEYS_BASE_PATH) + string("/") + to_string(i) + string("/") + PUB_KEY_NAME;
     readFile(pubKeyFullPath, pubKey);
-#ifdef USE_CRYPTOPP
     publicKeysOfReplicas.insert(make_pair(i - 1, pubKey));
-#elif USE_EDDSA_OPENSSL
-    publicKeysOfReplicas.insert(make_pair(i - 1, pubKey));
-#endif
   }
 
   ReplicasInfo replicaInfo(createReplicaConfig(), false, false);
@@ -279,18 +246,14 @@ TEST(SigManagerTest, ReplicasAndClientsCheckVerify) {
   constexpr PrincipalId myId{0};
   string myPrivKey;
   size_t i, signerIndex{0};
-#ifdef USE_CRYPTOPP
-  unique_ptr<RSASigner>
+  unique_ptr<TransactionSigner>
       signers[numReplicas + numParticipantNodes];  // only external clients and consensus replicas sign
-#elif USE_EDDSA_OPENSSL
-  unique_ptr<EdDSA_Signer>
-      signers[numReplicas + numParticipantNodes];  // only external clients and consensus replicas sign
-#endif
+
   set<pair<PrincipalId, const string>> publicKeysOfReplicas;
   set<pair<const string, set<uint16_t>>> publicKeysOfClients;
   unordered_map<PrincipalId, size_t> principalIdToSignerIndex;
 
-  generateKeyPairs(numReplicas + numParticipantNodes);
+  generateKeyPairs(numReplicas + numParticipantNodes, ALGO_NAME);
 
   // Load replica signers to simulate other replicas
   PrincipalId currPrincipalId{0};
@@ -303,11 +266,7 @@ TEST(SigManagerTest, ReplicasAndClientsCheckVerify) {
       myPrivKey = privKey;
       continue;
     }
-#ifdef USE_CRYPTOPP
-    signers[signerIndex].reset(new RSASigner(privKey, KeyFormat::PemFormat));
-#elif USE_EDDSA_OPENSSL
-    signers[signerIndex].reset(new EdDSA_Signer(privKey, KeyFormat::PemFormat));
-#endif
+    signers[signerIndex].reset(new TransactionSigner(privKey, KeyFormat::PemFormat));
 
     string pubKeyFullPath({string(KEYS_BASE_PATH) + string("/") + to_string(i) + string("/") + PUB_KEY_NAME});
     readFile(pubKeyFullPath, pubKey);
@@ -322,12 +281,7 @@ TEST(SigManagerTest, ReplicasAndClientsCheckVerify) {
     string privKey, pubKey;
     string privateKeyFullPath({string(KEYS_BASE_PATH) + string("/") + to_string(i) + string("/") + PRIV_KEY_NAME});
     readFile(privateKeyFullPath, privKey);
-
-#ifdef USE_CRYPTOPP
-    signers[signerIndex].reset(new RSASigner(privKey, KeyFormat::PemFormat));
-#elif USE_EDDSA_OPENSSL
-    signers[signerIndex].reset(new EdDSA_Signer(privKey, KeyFormat::PemFormat));
-#endif
+    signers[signerIndex].reset(new TransactionSigner(privKey, KeyFormat::PemFormat));
     string pubKeyFullPath({string(KEYS_BASE_PATH) + string("/") + to_string(i) + string("/") + PUB_KEY_NAME});
     set<PrincipalId> principalIds;
     for (size_t j{0}; j < numBftClientsInParticipantNodes; ++j) {
