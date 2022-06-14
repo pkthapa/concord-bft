@@ -32,7 +32,7 @@ using concord::util::cryptopp_utils::ECDSAVerifier;
 #else
 #include "openssl_utils.hpp"
 
-using concord::util::openssl_utils::EdDSA_Verifier;
+using concord::util::openssl_utils::EdDSAVerifier;
 #endif
 
 namespace concord::reconfiguration {
@@ -342,7 +342,7 @@ BftReconfigurationHandler::BftReconfigurationHandler() {
 #ifdef USE_CRYPTOPP
   verifier_.reset(new ECDSAVerifier(key_str, KeyFormat::PemFormat));
 #else
-  verifier_.reset(new EdDSA_Verifier(key_str, KeyFormat::PemFormat));
+  verifier_.reset(new EdDSAVerifier(key_str, KeyFormat::PemFormat));
 #endif
 }
 bool BftReconfigurationHandler::verifySignature(uint32_t sender_id,

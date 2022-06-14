@@ -46,7 +46,6 @@ class ECDSAVerifier::Impl {
 };
 bool ECDSAVerifier::verify(const std::string& data, const std::string& sig) const { return impl_->verify(data, sig); }
 ECDSAVerifier::ECDSAVerifier(const std::string& str_pub_key, KeyFormat fmt) : key_str_{str_pub_key} {
-  LOG_INFO(OPENSSL_LOG, "str_pub_key: " << str_pub_key << "str_pub_key.size:" << str_pub_key.size());
   ECDSA<ECP, CryptoPP::SHA256>::PublicKey publicKey;
   if (fmt == KeyFormat::PemFormat) {
     StringSource s(str_pub_key, true);
