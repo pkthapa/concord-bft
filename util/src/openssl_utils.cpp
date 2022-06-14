@@ -170,7 +170,7 @@ bool CertificateUtils::verifyCertificate(X509* cert_to_verify,
   return res;
 }
 
-EdDSA_Signer::EdDSA_Signer(const string& strPrivKey, KeyFormat fmt) : keyStr_{strPrivKey} {
+EdDSASigner::EdDSASigner(const string& strPrivKey, KeyFormat fmt) : keyStr_{strPrivKey} {
   ConcordAssertGT(strPrivKey.size(), 0);
 
   if (KeyFormat::PemFormat == fmt) {
@@ -208,7 +208,7 @@ EdDSA_Signer::EdDSA_Signer(const string& strPrivKey, KeyFormat fmt) : keyStr_{st
   ConcordAssertNE(edPkey_, nullptr);
 }
 
-string EdDSA_Signer::sign(const string& dataToSign) {
+string EdDSASigner::sign(const string& dataToSign) {
   unique_ptr<EVP_MD_CTX, EVP_MD_CTX_Deleter> edCtx(EVP_MD_CTX_new());
 
   ConcordAssertNE(edCtx, nullptr);
@@ -224,11 +224,11 @@ string EdDSA_Signer::sign(const string& dataToSign) {
   return signature;
 }
 
-uint32_t EdDSA_Signer::signatureLength() const { return sigLen_; }
+uint32_t EdDSASigner::signatureLength() const { return sigLen_; }
 
-string EdDSA_Signer::getPrivKey() const { return keyStr_; }
+string EdDSASigner::getPrivKey() const { return keyStr_; }
 
-EdDSA_Verifier::EdDSA_Verifier(const string& strPubKey, KeyFormat fmt) : keyStr_{strPubKey} {
+EdDSAVerifier::EdDSAVerifier(const string& strPubKey, KeyFormat fmt) : keyStr_{strPubKey} {
   ConcordAssertGT(strPubKey.size(), 0);
 
   if (KeyFormat::PemFormat == fmt) {
@@ -264,7 +264,7 @@ EdDSA_Verifier::EdDSA_Verifier(const string& strPubKey, KeyFormat fmt) : keyStr_
   ConcordAssertNE(edPkey_, nullptr);
 }
 
-bool EdDSA_Verifier::verify(const string& dataToVerify, const string& sigToVerify) const {
+bool EdDSAVerifier::verify(const string& dataToVerify, const string& sigToVerify) const {
   sigLen_ = sigToVerify.size();
   ConcordAssertEQ(sigLen_, SIG_LENGTH);
 
@@ -284,9 +284,9 @@ bool EdDSA_Verifier::verify(const string& dataToVerify, const string& sigToVerif
   return true;
 }
 
-uint32_t EdDSA_Verifier::signatureLength() const { return sigLen_; }
+uint32_t EdDSAVerifier::signatureLength() const { return sigLen_; }
 
-string EdDSA_Verifier::getPubKey() const { return keyStr_; }
+string EdDSAVerifier::getPubKey() const { return keyStr_; }
 
 pair<string, string> Crypto::generateEdDSAKeyPair() const {
   unique_ptr<EVP_PKEY, EVP_PKEY_Deleter> edPkey;
