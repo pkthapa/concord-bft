@@ -68,14 +68,14 @@ class CertificateUtils {
 };
 
 // This class implements OpenSSL's EdDSA signer.
-class EdDSA_Signer : public ISigner {
+class EdDSASigner : public ISigner {
  public:
   /*
    * Constructor to initialize a signer.
    * @param strPrivKey Private key.
    * @param fmt Format of the private key (HexaDecimalStrippedFormat & PemFormat).
    */
-  EdDSA_Signer(const string& strPrivKey, KeyFormat fmt);
+  EdDSASigner(const string& strPrivKey, KeyFormat fmt);
 
   /*
    * Signs and returns the signature.
@@ -103,14 +103,14 @@ class EdDSA_Signer : public ISigner {
 };
 
 // This class implements OpenSSL's EdDSA verifier.
-class EdDSA_Verifier : public IVerifier {
+class EdDSAVerifier : public IVerifier {
  public:
   /*
    * Constructor to initialize a verifier.
    * @param strPubKey Public key.
    * @param fmt Format of the public key (HexaDecimalStrippedFormat & PemFormat).
    */
-  EdDSA_Verifier(const string& strPubKey, KeyFormat fmt);
+  EdDSAVerifier(const string& strPubKey, KeyFormat fmt);
 
   /*
    * Verifies the signature.

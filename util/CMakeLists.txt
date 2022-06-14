@@ -102,3 +102,5 @@ if(USE_PROMETHEUS)
             util
             )
 endif()
+
+add_subdirectory(bench)

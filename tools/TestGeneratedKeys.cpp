@@ -21,16 +21,10 @@
 #include "threshsign/IThresholdSigner.h"
 #include "threshsign/IThresholdVerifier.h"
 #include "KeyfileIOUtils.hpp"
-#include "cryptopp_utils.hpp"
-#include "openssl_utils.hpp"
+#include "sign_verify_utils.hpp"
 
-#ifdef USE_CRYPTOPP
-using concord::util::cryptopp_utils::RSASigner;
-using concord::util::cryptopp_utils::RSAVerifier;
-#elif USE_EDDSA_OPENSSL
-using concord::util::openssl_utils::EdDSA_Signer;
-using concord::util::openssl_utils::EdDSA_Verifier;
-#endif
+using concord::util::signerverifier::TransactionSigner;
+using concord::util::signerverifier::TransactionVerifier;
 using concord::util::crypto::KeyFormat;
 
 // How often to output status when testing cryptosystems, measured as an
@@ -141,20 +135,20 @@ static bool testRSAKeyPair(const std::string& privateKey, const std::string& pub
   // limiting their scope to those statements; declaring them by value is not
   // possible in this case becuause they lack paramter-less default
   // constructors.
-  std::unique_ptr<RSASigner> signer;
-  std::unique_ptr<RSAVerifier> verifier;
+  std::unique_ptr<TransactionSigner> signer;
+  std::unique_ptr<TransactionVerifier> verifier;
 
   std::string invalidPrivateKey = "FAILURE: Invalid RSA private key for replica " + std::to_string(replicaID) + ".\n";
   std::string invalidPublicKey = "FAILURE: Invalid RSA public key for replica " + std::to_string(replicaID) + ".\n";
 
   try {
-    signer.reset(new RSASigner(privateKey, KeyFormat::HexaDecimalStrippedFormat));
+    signer.reset(new TransactionSigner(privateKey, KeyFormat::HexaDecimalStrippedFormat));
   } catch (std::exception& e) {
     std::cout << invalidPrivateKey;
     return false;
   }
   try {
-    verifier.reset(new RSAVerifier(publicKey, KeyFormat::HexaDecimalStrippedFormat));
+    verifier.reset(new TransactionVerifier(publicKey, KeyFormat::HexaDecimalStrippedFormat));
   } catch (std::exception& e) {
     std::cout << invalidPublicKey;
     return false;
@@ -263,8 +257,8 @@ static bool testEdDSAKeyPair(const std::string& privateKey, const std::string& p
   // limiting their scope to those statements; declaring them by value is not
   // possible in this case becuause they lack paramter-less default
   // constructors.
-  std::unique_ptr<EdDSA_Signer> signer;
-  std::unique_ptr<EdDSA_Verifier> verifier;
+  std::unique_ptr<TransactionSigner> signer;
+  std::unique_ptr<TransactionVerifier> verifier;
 
   const std::string invalidPrivateKey =
       "FAILURE: Invalid EdDSA private key for replica " + std::to_string(replicaID) + ".\n";
@@ -272,13 +266,13 @@ static bool testEdDSAKeyPair(const std::string& privateKey, const std::string& p
       "FAILURE: Invalid EdDSA public key for replica " + std::to_string(replicaID) + ".\n";
 
   try {
-    signer.reset(new EdDSA_Signer(privateKey, KeyFormat::HexaDecimalStrippedFormat));
+    signer.reset(new TransactionSigner(privateKey, KeyFormat::HexaDecimalStrippedFormat));
   } catch (const std::exception& e) {
     std::cout << invalidPrivateKey;
     return false;
   }
   try {
-    verifier.reset(new EdDSA_Verifier(publicKey, KeyFormat::HexaDecimalStrippedFormat));
+    verifier.reset(new TransactionVerifier(publicKey, KeyFormat::HexaDecimalStrippedFormat));
   } catch (const std::exception& e) {
     std::cout << invalidPublicKey;
     return false;
