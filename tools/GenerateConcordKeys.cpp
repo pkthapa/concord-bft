@@ -25,7 +25,7 @@
 #include "util/filesystem.hpp"
 #include "openssl_utils.hpp"
 
-using concord::util::openssl_utils::Crypto;
+using concord::crypto::openssl::Crypto;
 
 // Helper functions and static state to this executable's main function.
 

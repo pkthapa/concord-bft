@@ -25,8 +25,8 @@ using namespace std;
 namespace bftEngine {
 namespace impl {
 
-using concord::util::signerverifier::TransactionSigner;
-using concord::util::signerverifier::TransactionVerifier;
+using concord::signerverifier::TransactionSigner;
+using concord::signerverifier::TransactionVerifier;
 
 concord::messages::keys_and_signatures::ClientsPublicKeys clientsPublicKeys_;
 

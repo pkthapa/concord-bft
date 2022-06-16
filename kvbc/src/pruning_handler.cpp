@@ -21,8 +21,8 @@
 namespace concord::kvbc::pruning {
 
 using concord::util::crypto::KeyFormat;
-using concord::util::signerverifier::TransactionSigner;
-using concord::util::signerverifier::TransactionVerifier;
+using concord::signerverifier::TransactionSigner;
+using concord::signerverifier::TransactionVerifier;
 
 void PruningSigner::sign(concord::messages::LatestPrunableBlock& block) {
   std::ostringstream oss;

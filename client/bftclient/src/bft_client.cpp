@@ -23,7 +23,7 @@ using namespace concord::secretsmanager;
 using namespace bftEngine;
 using namespace bftEngine::impl;
 using concord::util::crypto::KeyFormat;
-using concord::util::signerverifier::TransactionSigner;
+using concord::signerverifier::TransactionSigner;
 
 namespace bft::client {
 
