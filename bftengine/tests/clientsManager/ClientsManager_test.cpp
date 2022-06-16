@@ -43,12 +43,12 @@ using std::unique_ptr;
 using std::vector;
 
 #ifdef USE_CRYPTOPP
-using concord::util::cryptopp_utils::Crypto;
+using concord::crypto::cryptopp::Crypto;
 #elif USE_EDDSA_OPENSSL
-using concord::util::openssl_utils::Crypto;
+using concord::crypto::openssl::Crypto;
 #endif
 
-using concord::util::signerverifier::TransactionSigner;
+using concord::signerverifier::TransactionSigner;
 
 // Testing values to be used for certain Concord-BFT configuration that ClientsManager and/or its dependencies may
 // reference.

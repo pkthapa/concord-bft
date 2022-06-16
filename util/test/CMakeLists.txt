@@ -75,9 +75,13 @@ add_executable(RawMemoryPool_test RawMemoryPool_test.cpp)
 add_test(RawMemoryPool_test RawMemoryPool_test)
 target_link_libraries(RawMemoryPool_test GTest::Main util)
 
-add_executable(crypto_utils_test crypto_utils_test.cpp )
-add_test(crypto_utils_test crypto_utils_test)
-target_link_libraries(crypto_utils_test GTest::Main util)
+add_executable(cryptopp_utils_test cryptopp_utils_test.cpp )
+add_test(cryptopp_utils_test cryptopp_utils_test)
+target_link_libraries(cryptopp_utils_test GTest::Main util)
+
+add_executable(openssl_utils_test openssl_utils_test.cpp )
+add_test(openssl_utils_test openssl_utils_test)
+target_link_libraries(openssl_utils_test GTest::Main util)
 
 add_executable(synchronized_value_test synchronized_value_test.cpp)
 add_test(synchronized_value_test synchronized_value_test)

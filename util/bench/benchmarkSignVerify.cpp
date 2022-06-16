@@ -26,10 +26,10 @@
 #include "openssl_utils.hpp"
 #include "cryptopp_utils.hpp"
 
-using concord::util::cryptopp_utils::RSASigner;
-using concord::util::cryptopp_utils::RSAVerifier;
-using concord::util::openssl_utils::EdDSASigner;
-using concord::util::openssl_utils::EdDSAVerifier;
+using concord::crypto::cryptopp::RSASigner;
+using concord::crypto::cryptopp::RSAVerifier;
+using concord::crypto::openssl::EdDSASigner;
+using concord::crypto::openssl::EdDSAVerifier;
 
 std::default_random_engine generator;
 
@@ -261,11 +261,12 @@ void rsaVerifierBenchmark(picobench::state& s) {
 
 /**
  * @brief Construct a new PICOBENCH object.
+ * Take one of the fastest samples out of 3 samples.
  */
-PICOBENCH(edDSASignerBenchmark).label("EdDSA-Signer").samples(10).iterations({50000, 1000000});
-PICOBENCH(rsaSignerBenchmark).label("RSA-Signer").samples(10).iterations({50000, 1000000});
-PICOBENCH(edDSAVerifierBenchmark).label("EdDSA-Verifier").samples(10).iterations({50000, 1000000});
-PICOBENCH(rsaVerifierBenchmark).label("RSA-Verifier").samples(10).iterations({50000, 1000000});
+PICOBENCH(edDSASignerBenchmark).label("EdDSA-Signer").samples(3).iterations({1, 10, 100, 1000, 10000, 50000});
+PICOBENCH(rsaSignerBenchmark).label("RSA-Signer").samples(3).iterations({1, 10, 100, 1000, 10000, 50000});
+PICOBENCH(edDSAVerifierBenchmark).label("EdDSA-Verifier").samples(3).iterations({1, 10, 100, 1000, 10000, 50000});
+PICOBENCH(rsaVerifierBenchmark).label("RSA-Verifier").samples(3).iterations({1, 10, 100, 1000, 10000, 50000});
 
 /**
  * @brief Entry function.

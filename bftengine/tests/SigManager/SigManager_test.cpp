@@ -34,8 +34,8 @@ constexpr size_t RANDOM_DATA_SIZE = 1000U;
 
 std::default_random_engine generator;
 
-using concord::util::signerverifier::TransactionSigner;
-using concord::util::signerverifier::TransactionVerifier;
+using concord::signerverifier::TransactionSigner;
+using concord::signerverifier::TransactionVerifier;
 
 #ifdef USE_CRYPTOPP
 constexpr char ALGO_NAME[] = "rsa";

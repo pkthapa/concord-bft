@@ -34,9 +34,9 @@ using concord::util::crypto::KeyFormat;
 using concord::util::cryptointerface::ISigner;
 using concord::util::cryptointerface::IVerifier;
 
-namespace concord::util::openssl_utils {
+namespace concord::crypto::openssl {
 
-constexpr static size_t SIG_LENGTH{64};
+constexpr static size_t EdDSA_SIG_LENGTH{64};
 
 // Deleter classes.
 class EVP_PKEY_Deleter {
@@ -98,7 +98,7 @@ class EdDSASigner : public ISigner {
 
  private:
   unique_ptr<EVP_PKEY, EVP_PKEY_Deleter> edPkey_;
-  size_t sigLen_{SIG_LENGTH};
+  size_t sigLen_{EdDSA_SIG_LENGTH};
   string keyStr_;
 };
 
@@ -134,7 +134,7 @@ class EdDSAVerifier : public IVerifier {
 
  private:
   unique_ptr<EVP_PKEY, EVP_PKEY_Deleter> edPkey_;
-  mutable size_t sigLen_{SIG_LENGTH};
+  mutable size_t sigLen_{EdDSA_SIG_LENGTH};
   string keyStr_;
 };
 
@@ -148,10 +148,19 @@ class Crypto {
   Crypto() = default;
   ~Crypto() = default;
 
-  /*
-   * Generates an EdDSA asymmetric key pair (private-public key pair).
-   * @return Private-Public key pair.
+  /**
+   * @brief Generates an EdDSA asymmetric key pair (private-public key pair).
+   *
+   * @return pair<string, string> Private-Public key pair.
    */
-  pair<string, string> generateEdDSAKeyPair() const;
+  pair<string, string> generateEdDSAKeyPair(const KeyFormat fmt = KeyFormat::HexaDecimalStrippedFormat) const;
+
+  /**
+   * @brief Generates an EdDSA PEM file from hexadecimal key pair (private-public key pair).
+   *
+   * @param key_pair Key pair in hexa-decimal format.
+   * @return pair<string, string>
+   */
+  pair<string, string> EdDSAHexToPem(const std::pair<std::string, std::string>& hex_key_pair) const;
 };
-}  // namespace concord::util::openssl_utils
+}  // namespace concord::crypto::openssl
