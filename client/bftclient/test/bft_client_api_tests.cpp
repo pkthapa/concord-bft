@@ -43,7 +43,7 @@ using namespace bftEngine;
 using namespace placeholders;
 using namespace concord::secretsmanager;
 using concord::util::crypto::KeyFormat;
-using concord::util::signerverifier::TransactionVerifier;
+using concord::signerverifier::TransactionVerifier;
 using namespace CryptoPP;
 
 using ReplicaId_t = bft::client::ReplicaId;

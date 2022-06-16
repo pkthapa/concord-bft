@@ -15,12 +15,12 @@
 
 #include "openssl_utils.hpp"
 
-namespace concord::util::signerverifier {
+namespace concord::signerverifier {
 #ifdef USE_CRYPTOPP
-using TransactionSigner = concord::util::cryptopp_utils::RSASigner;
-using TransactionVerifier = concord::util::cryptopp_utils::RSAVerifier;
+using TransactionSigner = concord::crypto::cryptopp::RSASigner;
+using TransactionVerifier = concord::crypto::cryptopp::RSAVerifier;
 #elif USE_EDDSA_OPENSSL
-using TransactionSigner = concord::util::openssl_utils::EdDSASigner;
-using TransactionVerifier = concord::util::openssl_utils::EdDSAVerifier;
+using TransactionSigner = concord::crypto::openssl::EdDSASigner;
+using TransactionVerifier = concord::crypto::openssl::EdDSAVerifier;
 #endif
-}  // namespace concord::util::signerverifier
+}  // namespace concord::signerverifier

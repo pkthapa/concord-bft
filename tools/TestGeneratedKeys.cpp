@@ -23,8 +23,8 @@
 #include "KeyfileIOUtils.hpp"
 #include "sign_verify_utils.hpp"
 
-using concord::util::signerverifier::TransactionSigner;
-using concord::util::signerverifier::TransactionVerifier;
+using concord::signerverifier::TransactionSigner;
+using concord::signerverifier::TransactionVerifier;
 using concord::util::crypto::KeyFormat;
 
 // How often to output status when testing cryptosystems, measured as an

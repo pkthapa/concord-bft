@@ -23,6 +23,9 @@ namespace fs = std::experimental::filesystem;
 
 namespace concord::client::reconfiguration::handlers {
 
+using concord::crypto::cryptopp::Crypto;
+using concord::crypto::openssl::CertificateUtils;
+
 template <typename T>
 bool validateInputState(const State& state, std::optional<uint64_t> init_block = std::nullopt) {
   concord::messages::ClientStateReply crep;
@@ -65,14 +68,13 @@ void ClientTlsKeyExchangeHandler::exchangeTlsKeys(const std::string& pkey_path,
                                                   const std::string& cert_path,
                                                   const uint64_t blockid) {
   // Generate new key pair
-  auto new_cert_keys = concord::util::cryptopp_utils::Crypto::instance().generateECDSAKeyPair(
-      concord::util::crypto::KeyFormat::PemFormat, concord::util::crypto::CurveType::secp384r1);
+  auto new_cert_keys = Crypto::instance().generateECDSAKeyPair(concord::util::crypto::KeyFormat::PemFormat,
+                                                               concord::util::crypto::CurveType::secp384r1);
 
   std::string master_key = sm_->decryptFile(master_key_path_).value_or(std::string());
   if (master_key.empty()) master_key = psm_.decryptFile(master_key_path_).value_or(std::string());
   if (master_key.empty()) LOG_FATAL(getLogger(), "unable to read the node master key");
-  auto cert = concord::util::openssl_utils::CertificateUtils::generateSelfSignedCert(
-      cert_path, new_cert_keys.second, master_key);
+  auto cert = CertificateUtils::generateSelfSignedCert(cert_path, new_cert_keys.second, master_key);
 
   sm_->encryptFile(pkey_path, new_cert_keys.first);
   psm_.encryptFile(cert_path, cert);
@@ -152,9 +154,9 @@ bool ClientMasterKeyExchangeHandler::validate(const State& state) const {
 bool ClientMasterKeyExchangeHandler::execute(const State& state, WriteState& out) {
   LOG_INFO(getLogger(), "execute transaction signing key exchange request");
   // Generate new key pair
-  auto hex_keys = concord::util::cryptopp_utils::Crypto::instance().generateRsaKeyPair(
-      2048, concord::util::crypto::KeyFormat::HexaDecimalStrippedFormat);
-  auto pem_keys = concord::util::cryptopp_utils::Crypto::instance().RsaHexToPem(hex_keys);
+  auto hex_keys =
+      Crypto::instance().generateRsaKeyPair(2048, concord::util::crypto::KeyFormat::HexaDecimalStrippedFormat);
+  auto pem_keys = Crypto::instance().RsaHexToPem(hex_keys);
 
   concord::messages::ReconfigurationRequest rreq;
   concord::messages::ClientExchangePublicKey creq;

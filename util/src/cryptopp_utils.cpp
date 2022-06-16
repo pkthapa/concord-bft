@@ -25,7 +25,7 @@
 
 using namespace CryptoPP;
 
-namespace concord::util::cryptopp_utils {
+namespace concord::crypto::cryptopp {
 
 class ECDSAVerifier::Impl {
   std::unique_ptr<ECDSA<ECP, CryptoPP::SHA256>::Verifier> verifier_;
@@ -272,4 +272,4 @@ KeyFormat Crypto::getFormat(const std::string& key) const {
 Crypto::Crypto() : impl_{new Impl()} {}
 
 Crypto::~Crypto() = default;
-}  // namespace concord::util::cryptopp_utils
+}  // namespace concord::crypto::cryptopp
