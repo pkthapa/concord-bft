@@ -30,7 +30,7 @@
 #include "bcstatetransfer/SimpleBCStateTransfer.hpp"
 #include "bftengine/PersistentStorageImp.hpp"
 #include "bftengine/DbMetadataStorage.hpp"
-#include "cryptopp_utils.hpp"
+#include "sign_verify_utils.hpp"
 #include "json_output.hpp"
 #include "bftengine/ReplicaSpecificInfoManager.hpp"
 #include "kvbc_adapter/replica_adapter.hpp"
@@ -45,6 +45,7 @@
 namespace concord::kvbc::tools::db_editor {
 
 using namespace categorization;
+using concord::signerverifier::TransactionVerifier;
 
 inline const auto kToolName = "kv_blockchain_db_editor"s;
 
@@ -365,7 +366,7 @@ struct VerifyBlockRequests {
       out << "\t\t\"signature_digest\": \"" << hex_digest << "\",\n";
       out << "\t\t\"persistency_type\": \"" << persistencyType(req.requestPersistencyType) << "\",\n";
       std::string verification_result;
-      auto verifier = std::make_unique<concord::util::cryptopp_utils::RSAVerifier>(
+      auto verifier = std::make_unique<TransactionVerifier>(
           client_keys.ids_to_keys[req.clientId].key,
           (concord::util::crypto::KeyFormat)client_keys.ids_to_keys[req.clientId].format);
 
@@ -1058,7 +1059,6 @@ struct VerifyDbCheckpoint {
   using CheckpointDesc = bftEngine::bcst::impl::DataStore::CheckpointDesc;
   using BlockHashData = std::tuple<uint64_t, BlockDigest, BlockDigest>;  //<blockId, parentHash, blockHash>
   using IVerifier = concord::util::cryptointerface::IVerifier;
-  using RSAVerifier = concord::util::cryptopp_utils::RSAVerifier;
   using KeyFormat = concord::util::crypto::KeyFormat;
   using ReplicaId = uint16_t;
   const bool read_only = true;
@@ -1106,7 +1106,7 @@ struct VerifyDbCheckpoint {
               auto format = cmd.format;
               transform(format.begin(), format.end(), format.begin(), ::tolower);
               auto key_format = ((format == "hex") ? KeyFormat::HexaDecimalStrippedFormat : KeyFormat::PemFormat);
-              replica_keys.emplace(repId, std::make_unique<RSAVerifier>(cmd.key, key_format));
+              replica_keys.emplace(repId, std::make_unique<TransactionVerifier>(cmd.key, key_format));
             },
             *val);
       }

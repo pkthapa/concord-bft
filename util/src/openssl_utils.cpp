@@ -19,7 +19,7 @@
 #include <regex>
 #include <utility>
 
-namespace concord::util::openssl_utils {
+namespace concord::crypto::openssl {
 
 class BIO_Deleter {
  public:
@@ -214,7 +214,7 @@ string EdDSASigner::sign(const string& dataToSign) {
   ConcordAssertNE(edCtx, nullptr);
   ConcordAssertEQ(1, EVP_DigestSignInit(edCtx.get(), nullptr, nullptr, nullptr, edPkey_.get()));
 
-  string signature(64, 0);
+  string signature(EdDSA_SIG_LENGTH, 0);
   ConcordAssertEQ(1,
                   EVP_DigestSign(edCtx.get(),
                                  reinterpret_cast<unsigned char*>(signature.data()),
@@ -266,7 +266,7 @@ EdDSAVerifier::EdDSAVerifier(const string& strPubKey, KeyFormat fmt) : keyStr_{s
 
 bool EdDSAVerifier::verify(const string& dataToVerify, const string& sigToVerify) const {
   sigLen_ = sigToVerify.size();
-  ConcordAssertEQ(sigLen_, SIG_LENGTH);
+  ConcordAssertEQ(sigLen_, EdDSA_SIG_LENGTH);
 
   unique_ptr<EVP_MD_CTX, EVP_MD_CTX_Deleter> edCtx(EVP_MD_CTX_new());
 
@@ -288,7 +288,7 @@ uint32_t EdDSAVerifier::signatureLength() const { return sigLen_; }
 
 string EdDSAVerifier::getPubKey() const { return keyStr_; }
 
-pair<string, string> Crypto::generateEdDSAKeyPair() const {
+pair<string, string> Crypto::generateEdDSAKeyPair(const KeyFormat fmt) const {
   unique_ptr<EVP_PKEY, EVP_PKEY_Deleter> edPkey;
   unique_ptr<EVP_PKEY_CTX, EVP_PKEY_CTX_Deleter> edPkeyCtx(EVP_PKEY_CTX_new_id(NID_ED25519, nullptr));
 
@@ -298,15 +298,71 @@ pair<string, string> Crypto::generateEdDSAKeyPair() const {
   ConcordAssertEQ(
       1, EVP_PKEY_keygen(edPkeyCtx.get(), reinterpret_cast<EVP_PKEY**>(&edPkey)));  // Generate EdDSA key 'edPkey'.
 
-  unsigned char privKey[64]{};
-  unsigned char pubKey[64]{};
-  size_t privlen{64};
-  size_t publen{64};
+  unsigned char privKey[EdDSA_SIG_LENGTH]{};
+  unsigned char pubKey[EdDSA_SIG_LENGTH]{};
+  size_t privlen{EdDSA_SIG_LENGTH};
+  size_t publen{EdDSA_SIG_LENGTH};
 
   ConcordAssertEQ(1, EVP_PKEY_get_raw_private_key(edPkey.get(), privKey, &privlen));
   ConcordAssertEQ(1, EVP_PKEY_get_raw_public_key(edPkey.get(), pubKey, &publen));
 
-  return make_pair(concordUtils::bufferToHex(reinterpret_cast<const char*>(privKey), (const size_t)privlen, false),
-                   concordUtils::bufferToHex(reinterpret_cast<const char*>(pubKey), (const size_t)publen, false));
+  pair<string, string> keyPair;
+  keyPair.first = concordUtils::bufferToHex(reinterpret_cast<const char*>(privKey), (const size_t)privlen, false);
+  keyPair.second = concordUtils::bufferToHex(reinterpret_cast<const char*>(pubKey), (const size_t)publen, false);
+
+  if (KeyFormat::PemFormat == fmt) {
+    keyPair = EdDSAHexToPem(keyPair);
+  }
+  return keyPair;
 }
-}  // namespace concord::util::openssl_utils
+
+pair<string, string> Crypto::EdDSAHexToPem(const std::pair<std::string, std::string>& hex_key_pair) const {
+  auto privKey = concordUtils::hexToASCII(hex_key_pair.first);
+  auto pubKey = concordUtils::hexToASCII(hex_key_pair.second);
+
+  unique_ptr<EVP_PKEY, EVP_PKEY_Deleter> ed_privKey(
+      EVP_PKEY_new_raw_private_key(NID_ED25519, nullptr, (const unsigned char*)privKey.data(), privKey.size()));
+  unique_ptr<EVP_PKEY, EVP_PKEY_Deleter> ed_pubKey(
+      EVP_PKEY_new_raw_public_key(NID_ED25519, nullptr, (const unsigned char*)pubKey.data(), pubKey.size()));
+
+  ConcordAssertNE(nullptr, ed_privKey);
+  ConcordAssertNE(nullptr, ed_pubKey);
+
+  const char* const tempPrivPem = "/tmp/concordTempPrivKey.pem";
+  const char* const tempPubPem = "/tmp/concordTempPubKey.pem";
+
+  FILE* fp = fopen(tempPrivPem, "w");
+  PEM_write_PrivateKey(fp, ed_privKey.get(), nullptr, nullptr, 0, nullptr, nullptr);
+  fclose(fp);
+
+  fp = fopen(tempPubPem, "w");
+  PEM_write_PUBKEY(fp, ed_pubKey.get());
+  fclose(fp);
+
+  string privPemString, pubPemString;
+
+  // Read private key from pem file.
+  std::ifstream privPem(tempPrivPem);
+  string temp;
+  if (privPem.is_open()) {
+    while (privPem.good()) {
+      getline(privPem, temp);
+      privPemString += temp + '\n';
+    }
+  }
+
+  // Read public key from pem file.
+  std::ifstream pubPem(tempPubPem);
+  if (pubPem.is_open()) {
+    while (pubPem.good()) {
+      getline(pubPem, temp);
+      pubPemString += temp + '\n';
+    }
+  }
+
+  remove(tempPrivPem);
+  remove(tempPubPem);
+
+  return make_pair(privPemString, pubPemString);
+}
+}  // namespace concord::crypto::openssl

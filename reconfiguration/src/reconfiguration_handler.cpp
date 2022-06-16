@@ -28,11 +28,11 @@ using namespace concord::messages;
 using concord::util::crypto::KeyFormat;
 
 #if USE_CRYPTOPP
-using concord::util::cryptopp_utils::ECDSAVerifier;
+using concord::crypto::cryptopp::ECDSAVerifier;
 #else
 #include "openssl_utils.hpp"
 
-using concord::util::openssl_utils::EdDSAVerifier;
+using concord::crypto::openssl::EdDSAVerifier;
 #endif
 
 namespace concord::reconfiguration {

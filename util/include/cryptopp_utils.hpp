@@ -22,7 +22,7 @@ using concord::util::crypto::CurveType;
 using concord::util::cryptointerface::ISigner;
 using concord::util::cryptointerface::IVerifier;
 
-namespace concord::util::cryptopp_utils {
+namespace concord::crypto::cryptopp {
 
 class ECDSAVerifier : public IVerifier {
  public:
@@ -100,4 +100,4 @@ class Crypto {
   class Impl;
   std::unique_ptr<Impl> impl_;
 };
-}  // namespace concord::util::cryptopp_utils
+}  // namespace concord::crypto::cryptopp

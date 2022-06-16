@@ -25,6 +25,8 @@
 namespace bftEngine::impl {
 
 using concord::util::crypto::KeyFormat;
+using concord::crypto::cryptopp::Crypto;
+using concord::crypto::openssl::CertificateUtils;
 
 KeyExchangeManager::KeyExchangeManager(InitData* id)
     : repID_{ReplicaConfig::instance().getreplicaId()},
@@ -149,18 +151,16 @@ void KeyExchangeManager::loadClientPublicKeys() {
 }
 
 void KeyExchangeManager::exchangeTlsKeys(const std::string& type, const SeqNum& bft_sn) {
-  auto keys = concord::util::cryptopp_utils::Crypto::instance().generateECDSAKeyPair(
-      concord::util::crypto::KeyFormat::PemFormat, concord::util::crypto::CurveType::secp384r1);
+  auto keys = Crypto::instance().generateECDSAKeyPair(concord::util::crypto::KeyFormat::PemFormat,
+                                                      concord::util::crypto::CurveType::secp384r1);
   bool use_unified_certs = bftEngine::ReplicaConfig::instance().useUnifiedCertificates;
   const std::string base_path =
       bftEngine::ReplicaConfig::instance().certificatesRootPath + "/" + std::to_string(repID_);
   std::string root_path = (use_unified_certs) ? base_path : base_path + "/" + type;
   std::string cert_path = (use_unified_certs) ? root_path + "/node.cert" : root_path + "/" + type + ".cert";
-  std::string prev_key_pem = concord::util::cryptopp_utils::Crypto::instance()
-                                 .RsaHexToPem(std::make_pair(SigManager::instance()->getSelfPrivKey(), ""))
-                                 .first;
-  auto cert =
-      concord::util::openssl_utils::CertificateUtils::generateSelfSignedCert(cert_path, keys.second, prev_key_pem);
+  std::string prev_key_pem =
+      Crypto::instance().RsaHexToPem(std::make_pair(SigManager::instance()->getSelfPrivKey(), "")).first;
+  auto cert = CertificateUtils::generateSelfSignedCert(cert_path, keys.second, prev_key_pem);
   // Now that we have generated new key pair and certificate, lets do the actual exchange on this replica
   std::string pk_path = root_path + "/pk.pem";
   std::fstream nec_f(pk_path);
