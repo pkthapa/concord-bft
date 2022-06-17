@@ -28,13 +28,23 @@
 #include "categorized_kvbc_msgs.cmf.hpp"
 #include "metadata_block_id.h"
 #include "ReplicaResources.h"
+
+#ifdef USE_EDDSA_SINGLE_SIGN
+#include "openssl_utils.hpp"
+#endif
+
 #include <chrono>
 #include <algorithm>
 #include <memory>
 
 namespace concord::kvbc::reconfiguration {
 
+#ifdef USE_CRYPTOPP_RSA
 using concord::crypto::cryptopp::Crypto;
+#elif USE_EDDSA_SINGLE_SIGN
+using concord::crypto::openssl::OpenSSLCryptoImpl;
+#endif
+
 using bftEngine::impl::DbCheckpointManager;
 using bftEngine::impl::SigManager;
 using concord::kvbc::KvbAppFilter;
@@ -322,13 +332,9 @@ bool StateSnapshotReconfigurationHandler::handle(const concord::messages::Signed
           resp.data.hash = public_state_hash.hash;
           resp.signature.assign(SigManager::instance()->getMySigLength(), 0);
           const auto data_ser = serialize(resp.data);
-          // We pass 0 as the last parameter. At the time of writing this code, the last parameter's value is not used
-          // and is not a reference. Therefore, we pass a temporary here so that if the type is changed to a reference,
-          // it will break and will prompt the user to review it again.
           SigManager::instance()->sign(reinterpret_cast<const char*>(data_ser.data()),
                                        data_ser.size(),
-                                       reinterpret_cast<char*>(resp.signature.data()),
-                                       0);
+                                       reinterpret_cast<char*>(resp.signature.data()));
           LOG_INFO(getLogger(),
                    "SignedPublicStateHashRequest: successful request for snapshot ID = "
                        << req.snapshot_id << ", requesting participant ID = " << req.participant_id);
@@ -1049,7 +1055,7 @@ bool ReconfigurationHandler::handle(const messages::UnwedgeStatusRequest& req,
       std::to_string(bftEngine::ReplicaConfig::instance().getreplicaId()) + std::to_string(curr_epoch);
   auto sig_manager = bftEngine::impl::SigManager::instance();
   std::string sig(sig_manager->getMySigLength(), '\0');
-  sig_manager->sign(sig_data.c_str(), sig_data.size(), sig.data(), sig.size());
+  sig_manager->sign(sig_data.c_str(), sig_data.size(), sig.data());
   response.can_unwedge = true;
   response.curr_epoch = curr_epoch;
   response.signature = std::vector<uint8_t>(sig.begin(), sig.end());
@@ -1259,7 +1265,12 @@ bool InternalPostKvReconfigurationHandler::handle(const concord::messages::Clien
   }
   std::string path = bftEngine::ReplicaConfig::instance().clientsKeysPrefix + "/" + std::to_string(group_id) +
                      "/transaction_signing_pub.pem";
+#ifdef USE_CRYPTOPP_RSA
   auto pem_key = Crypto::instance().RsaHexToPem(std::make_pair("", command.pub_key));
+#elif USE_EDDSA_SINGLE_SIGN
+  auto pem_key = OpenSSLCryptoImpl::instance().EdDSAHexToPem(std::make_pair("", command.pub_key));
+#endif
+
   concord::secretsmanager::SecretsManagerPlain sm;
   LOG_INFO(getLogger(), KVLOG(path, pem_key.second, sender_id));
   return sm.encryptFile(path, pem_key.second);

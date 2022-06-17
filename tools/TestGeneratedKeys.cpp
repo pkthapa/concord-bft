@@ -126,7 +126,7 @@ static bool validateFundamentalFields(const std::vector<TestReplicaConfig>& conf
   return true;
 }
 
-#ifdef USE_CRYPTOPP
+#ifdef USE_CRYPTOPP_RSA
 // Helper function to test RSA keys to test the compatibility of a single key
 // pair.
 static bool testRSAKeyPair(const std::string& privateKey, const std::string& publicKey, uint16_t replicaID) {
@@ -249,7 +249,7 @@ static bool testRSAKeys(const std::vector<TestReplicaConfig>& configs) {
 
   return true;
 }
-#elif USE_EDDSA_OPENSSL
+#elif USE_EDDSA_SINGLE_SIGN
 // Helper function to test EdDSA keys to test the compatibility of a single key pair.
 static bool testEdDSAKeyPair(const std::string& privateKey, const std::string& publicKey, uint16_t replicaID) {
   // The signer and verifier are stored with unique pointers rather than by
@@ -849,9 +849,9 @@ int main(int argc, char** argv) {
     std::cout << "Cryptographic configurations read appear to be sane.\n";
     std::cout << "Testing key functionality and agreement...\n";
 
-#ifdef USE_CRYPTOPP
+#ifdef USE_CRYPTOPP_RSA
     if (!testRSAKeys(configs))
-#elif USE_EDDSA_OPENSSL
+#elif USE_EDDSA_SINGLE_SIGN
     if (!testEdDSAKeys(configs))
 #endif
     {

@@ -27,7 +27,7 @@
 using namespace concord::messages;
 using concord::util::crypto::KeyFormat;
 
-#if USE_CRYPTOPP
+#if USE_CRYPTOPP_RSA
 using concord::crypto::cryptopp::ECDSAVerifier;
 #else
 #include "openssl_utils.hpp"
@@ -339,7 +339,7 @@ BftReconfigurationHandler::BftReconfigurationHandler() {
     key_str.append(buf, 0, key_content.gcount());
   }
   key_str.append(buf, 0, key_content.gcount());
-#ifdef USE_CRYPTOPP
+#ifdef USE_CRYPTOPP_RSA
   verifier_.reset(new ECDSAVerifier(key_str, KeyFormat::PemFormat));
 #else
   verifier_.reset(new EdDSAVerifier(key_str, KeyFormat::PemFormat));
