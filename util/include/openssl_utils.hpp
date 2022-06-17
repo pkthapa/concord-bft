@@ -138,19 +138,20 @@ class EdDSAVerifier : public IVerifier {
   string keyStr_;
 };
 
-class Crypto {
+class OpenSSLCryptoImpl {
  public:
-  static Crypto& instance() {
-    static Crypto crypto;
+  static OpenSSLCryptoImpl& instance() {
+    static OpenSSLCryptoImpl crypto;
     return crypto;
   }
 
-  Crypto() = default;
-  ~Crypto() = default;
+  OpenSSLCryptoImpl() = default;
+  ~OpenSSLCryptoImpl() = default;
 
   /**
    * @brief Generates an EdDSA asymmetric key pair (private-public key pair).
    *
+   * @param fmt Output key format.
    * @return pair<string, string> Private-Public key pair.
    */
   pair<string, string> generateEdDSAKeyPair(const KeyFormat fmt = KeyFormat::HexaDecimalStrippedFormat) const;
@@ -162,5 +163,13 @@ class Crypto {
    * @return pair<string, string>
    */
   pair<string, string> EdDSAHexToPem(const std::pair<std::string, std::string>& hex_key_pair) const;
+
+  /**
+   * @brief Returns the key's format.
+   *
+   * @param key
+   * @return KeyFormat
+   */
+  KeyFormat getFormat(const std::string& key) const;
 };
 }  // namespace concord::crypto::openssl

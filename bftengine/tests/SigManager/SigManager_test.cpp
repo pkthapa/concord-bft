@@ -37,9 +37,9 @@ std::default_random_engine generator;
 using concord::signerverifier::TransactionSigner;
 using concord::signerverifier::TransactionVerifier;
 
-#ifdef USE_CRYPTOPP
+#ifdef USE_CRYPTOPP_RSA
 constexpr char ALGO_NAME[] = "rsa";
-#elif USE_EDDSA_OPENSSL
+#elif USE_EDDSA_SINGLE_SIGN
 constexpr char ALGO_NAME[] = "eddsa";
 #endif
 
@@ -216,7 +216,7 @@ TEST(SigManagerTest, ReplicasOnlyCheckSign) {
   expectedSignerSigLen = sigManager->getSigLength(myId);
   generateRandomData(data, RANDOM_DATA_SIZE);
   sig.resize(expectedSignerSigLen);
-  sigManager->sign(data, RANDOM_DATA_SIZE, sig.data(), expectedSignerSigLen);
+  sigManager->sign(data, RANDOM_DATA_SIZE, sig.data());
 
   // Validate with RSAVerifier (mock)
   std::string str_data(data, RANDOM_DATA_SIZE);

@@ -20,7 +20,7 @@
 
 namespace concord::secretsmanager {
 string base64Enc(const vector<uint8_t>& cipher_text) {
-#ifdef USE_CRYPTOPP
+#ifdef USE_CRYPTOPP_RSA
   CryptoPP::Base64Encoder encoder;
   encoder.Put(cipher_text.data(), cipher_text.size());
   encoder.MessageEnd();
@@ -29,7 +29,7 @@ string base64Enc(const vector<uint8_t>& cipher_text) {
   encoder.Get((unsigned char*)output.data(), output.size());
 
   return output;
-#elif USE_EDDSA_OPENSSL
+#elif USE_EDDSA_SINGLE_SIGN
   if (cipher_text.capacity() == 0) {
     return {};
   }
@@ -56,11 +56,11 @@ string base64Enc(const vector<uint8_t>& cipher_text) {
 }
 
 vector<uint8_t> base64Dec(const string& input) {
-#ifdef USE_CRYPTOPP
+#ifdef USE_CRYPTOPP_RSA
   vector<uint8_t> dec;
   CryptoPP::StringSource ss(input, true, new CryptoPP::Base64Decoder(new CryptoPP::VectorSink(dec)));
   return dec;
-#elif USE_EDDSA_OPENSSL
+#elif USE_EDDSA_SINGLE_SIGN
   if (input.empty()) {
     return {};
   }
