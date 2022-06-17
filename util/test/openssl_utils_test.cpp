@@ -18,36 +18,36 @@
 
 namespace {
 
-using concord::crypto::openssl::Crypto;
+using concord::crypto::openssl::OpenSSLCryptoImpl;
 using concord::crypto::openssl::EdDSASigner;
 using concord::crypto::openssl::EdDSAVerifier;
 
 TEST(openssl_utils, generate_eddsa_keys_hex_format) {
-  ASSERT_NO_THROW(Crypto::instance().generateEdDSAKeyPair());
-  auto keys = Crypto::instance().generateEdDSAKeyPair();
+  ASSERT_NO_THROW(OpenSSLCryptoImpl::instance().generateEdDSAKeyPair());
+  auto keys = OpenSSLCryptoImpl::instance().generateEdDSAKeyPair();
   LOG_INFO(GL, keys.first << " | " << keys.second);
 }
 
 TEST(openssl_utils, generate_eddsa_keys_pem_format) {
-  ASSERT_NO_THROW(Crypto::instance().generateEdDSAKeyPair());
-  auto keys = Crypto::instance().generateEdDSAKeyPair(KeyFormat::PemFormat);
+  ASSERT_NO_THROW(OpenSSLCryptoImpl::instance().generateEdDSAKeyPair());
+  auto keys = OpenSSLCryptoImpl::instance().generateEdDSAKeyPair(KeyFormat::PemFormat);
   LOG_INFO(GL, keys.first << " | " << keys.second);
 }
 
 TEST(openssl_utils, generate_ECDSA_keys_pem_format) {
-  ASSERT_NO_THROW(Crypto::instance().generateEdDSAKeyPair(KeyFormat::PemFormat));
-  auto keys = Crypto::instance().generateEdDSAKeyPair(KeyFormat::PemFormat);
+  ASSERT_NO_THROW(OpenSSLCryptoImpl::instance().generateEdDSAKeyPair(KeyFormat::PemFormat));
+  auto keys = OpenSSLCryptoImpl::instance().generateEdDSAKeyPair(KeyFormat::PemFormat);
   LOG_INFO(GL, keys.first << " | " << keys.second);
 }
 
 TEST(openssl_utils, generate_ECDSA_keys_hex_format) {
-  ASSERT_NO_THROW(Crypto::instance().generateEdDSAKeyPair(KeyFormat::HexaDecimalStrippedFormat));
-  auto keys = Crypto::instance().generateEdDSAKeyPair(KeyFormat::HexaDecimalStrippedFormat);
+  ASSERT_NO_THROW(OpenSSLCryptoImpl::instance().generateEdDSAKeyPair(KeyFormat::HexaDecimalStrippedFormat));
+  auto keys = OpenSSLCryptoImpl::instance().generateEdDSAKeyPair(KeyFormat::HexaDecimalStrippedFormat);
   LOG_INFO(GL, keys.first << " | " << keys.second);
 }
 
 TEST(openssl_utils, test_eddsa_keys_hex) {
-  auto keys = Crypto::instance().generateEdDSAKeyPair();
+  auto keys = OpenSSLCryptoImpl::instance().generateEdDSAKeyPair();
   EdDSASigner signer(keys.first, KeyFormat::HexaDecimalStrippedFormat);
   EdDSAVerifier verifier(keys.second, KeyFormat::HexaDecimalStrippedFormat);
   std::string data = "Hello VMworld";
@@ -56,7 +56,7 @@ TEST(openssl_utils, test_eddsa_keys_hex) {
 }
 
 TEST(openssl_utils, test_eddsa_keys_pem) {
-  auto keys = Crypto::instance().generateEdDSAKeyPair(KeyFormat::PemFormat);
+  auto keys = OpenSSLCryptoImpl::instance().generateEdDSAKeyPair(KeyFormat::PemFormat);
   EdDSASigner signer(keys.first, KeyFormat::PemFormat);
   EdDSAVerifier verifier(keys.second, KeyFormat::PemFormat);
   std::string data = "Hello VMworld";
@@ -65,8 +65,8 @@ TEST(openssl_utils, test_eddsa_keys_pem) {
 }
 
 TEST(openssl_utils, test_eddsa_keys_combined_a) {
-  auto keys = Crypto::instance().generateEdDSAKeyPair();
-  auto pemKeys = Crypto::instance().EdDSAHexToPem(keys);
+  auto keys = OpenSSLCryptoImpl::instance().generateEdDSAKeyPair();
+  auto pemKeys = OpenSSLCryptoImpl::instance().EdDSAHexToPem(keys);
   EdDSASigner signer(keys.first, KeyFormat::HexaDecimalStrippedFormat);
   EdDSAVerifier verifier(pemKeys.second, KeyFormat::PemFormat);
   std::string data = "Hello VMworld";
@@ -75,8 +75,8 @@ TEST(openssl_utils, test_eddsa_keys_combined_a) {
 }
 
 TEST(openssl_utils, test_eddsa_keys_combined_b) {
-  auto keys = Crypto::instance().generateEdDSAKeyPair();
-  auto pemKeys = Crypto::instance().EdDSAHexToPem(keys);
+  auto keys = OpenSSLCryptoImpl::instance().generateEdDSAKeyPair();
+  auto pemKeys = OpenSSLCryptoImpl::instance().EdDSAHexToPem(keys);
   EdDSASigner signer(pemKeys.first, KeyFormat::PemFormat);
   EdDSAVerifier verifier(keys.second, KeyFormat::HexaDecimalStrippedFormat);
   std::string data = "Hello VMworld";

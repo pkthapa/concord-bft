@@ -25,8 +25,13 @@
 namespace bftEngine::impl {
 
 using concord::util::crypto::KeyFormat;
-using concord::crypto::cryptopp::Crypto;
 using concord::crypto::openssl::CertificateUtils;
+
+#ifdef USE_CRYPTOPP_RSA
+using concord::crypto::cryptopp::Crypto;
+#elif USE_EDDSA_SINGLE_SIGN
+using concord::crypto::openssl::OpenSSLCryptoImpl;
+#endif
 
 KeyExchangeManager::KeyExchangeManager(InitData* id)
     : repID_{ReplicaConfig::instance().getreplicaId()},
@@ -151,15 +156,22 @@ void KeyExchangeManager::loadClientPublicKeys() {
 }
 
 void KeyExchangeManager::exchangeTlsKeys(const std::string& type, const SeqNum& bft_sn) {
-  auto keys = Crypto::instance().generateECDSAKeyPair(concord::util::crypto::KeyFormat::PemFormat,
-                                                      concord::util::crypto::CurveType::secp384r1);
+  auto keys = concord::crypto::cryptopp::Crypto::instance().generateECDSAKeyPair(
+      concord::util::crypto::KeyFormat::PemFormat, concord::util::crypto::CurveType::secp384r1);
   bool use_unified_certs = bftEngine::ReplicaConfig::instance().useUnifiedCertificates;
   const std::string base_path =
       bftEngine::ReplicaConfig::instance().certificatesRootPath + "/" + std::to_string(repID_);
   std::string root_path = (use_unified_certs) ? base_path : base_path + "/" + type;
   std::string cert_path = (use_unified_certs) ? root_path + "/node.cert" : root_path + "/" + type + ".cert";
+
+#ifdef USE_CRYPTOPP_RSA
   std::string prev_key_pem =
       Crypto::instance().RsaHexToPem(std::make_pair(SigManager::instance()->getSelfPrivKey(), "")).first;
+#elif USE_EDDSA_SINGLE_SIGN
+  std::string prev_key_pem =
+      OpenSSLCryptoImpl::instance().EdDSAHexToPem(std::make_pair(SigManager::instance()->getSelfPrivKey(), "")).first;
+#endif
+
   auto cert = CertificateUtils::generateSelfSignedCert(cert_path, keys.second, prev_key_pem);
   // Now that we have generated new key pair and certificate, lets do the actual exchange on this replica
   std::string pk_path = root_path + "/pk.pem";
@@ -189,8 +201,7 @@ void KeyExchangeManager::exchangeTlsKeys(const std::string& type, const SeqNum& 
   std::vector<uint8_t> data_vec;
   concord::messages::serialize(data_vec, req);
   std::string sig(SigManager::instance()->getMySigLength(), '\0');
-  uint16_t sig_length{0};
-  SigManager::instance()->sign(reinterpret_cast<char*>(data_vec.data()), data_vec.size(), sig.data(), sig_length);
+  SigManager::instance()->sign(reinterpret_cast<char*>(data_vec.data()), data_vec.size(), sig.data());
   req.signature = std::vector<uint8_t>(sig.begin(), sig.end());
   data_vec.clear();
   concord::messages::serialize(data_vec, req);
@@ -215,8 +226,7 @@ void KeyExchangeManager::sendMainPublicKey() {
   std::vector<uint8_t> data_vec;
   concord::messages::serialize(data_vec, req);
   std::string sig(SigManager::instance()->getMySigLength(), '\0');
-  uint16_t sig_length{0};
-  SigManager::instance()->sign(reinterpret_cast<char*>(data_vec.data()), data_vec.size(), sig.data(), sig_length);
+  SigManager::instance()->sign(reinterpret_cast<char*>(data_vec.data()), data_vec.size(), sig.data());
   req.signature = std::vector<uint8_t>(sig.begin(), sig.end());
   data_vec.clear();
   concord::messages::serialize(data_vec, req);

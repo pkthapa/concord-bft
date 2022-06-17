@@ -23,8 +23,12 @@ namespace fs = std::experimental::filesystem;
 
 namespace concord::client::reconfiguration::handlers {
 
+#ifdef USE_CRYPTOPP_RSA
 using concord::crypto::cryptopp::Crypto;
+#elif USE_EDDSA_SINGLE_SIGN
+using concord::crypto::openssl::OpenSSLCryptoImpl;
 using concord::crypto::openssl::CertificateUtils;
+#endif
 
 template <typename T>
 bool validateInputState(const State& state, std::optional<uint64_t> init_block = std::nullopt) {
@@ -68,8 +72,8 @@ void ClientTlsKeyExchangeHandler::exchangeTlsKeys(const std::string& pkey_path,
                                                   const std::string& cert_path,
                                                   const uint64_t blockid) {
   // Generate new key pair
-  auto new_cert_keys = Crypto::instance().generateECDSAKeyPair(concord::util::crypto::KeyFormat::PemFormat,
-                                                               concord::util::crypto::CurveType::secp384r1);
+  auto new_cert_keys = concord::crypto::cryptopp::Crypto::instance().generateECDSAKeyPair(
+      concord::util::crypto::KeyFormat::PemFormat, concord::util::crypto::CurveType::secp384r1);
 
   std::string master_key = sm_->decryptFile(master_key_path_).value_or(std::string());
   if (master_key.empty()) master_key = psm_.decryptFile(master_key_path_).value_or(std::string());
@@ -153,10 +157,15 @@ bool ClientMasterKeyExchangeHandler::validate(const State& state) const {
 }
 bool ClientMasterKeyExchangeHandler::execute(const State& state, WriteState& out) {
   LOG_INFO(getLogger(), "execute transaction signing key exchange request");
-  // Generate new key pair
+// Generate new key pair
+#ifdef USE_CRYPTOPP_RSA
   auto hex_keys =
       Crypto::instance().generateRsaKeyPair(2048, concord::util::crypto::KeyFormat::HexaDecimalStrippedFormat);
   auto pem_keys = Crypto::instance().RsaHexToPem(hex_keys);
+#elif USE_EDDSA_SINGLE_SIGN
+  auto hex_keys = OpenSSLCryptoImpl::instance().generateEdDSAKeyPair();
+  auto pem_keys = OpenSSLCryptoImpl::instance().EdDSAHexToPem(hex_keys);
+#endif
 
   concord::messages::ReconfigurationRequest rreq;
   concord::messages::ClientExchangePublicKey creq;

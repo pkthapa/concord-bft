@@ -244,11 +244,10 @@ bool SigManager::verifySig(
   return result;
 }
 
-void SigManager::sign(const char* data, size_t dataLength, char* outSig, uint16_t outSigLength) const {
+void SigManager::sign(const char* data, size_t dataLength, char* outSig) const {
   std::string str_data(data, dataLength);
   std::string sig = mySigner_->sign(str_data);
-  outSigLength = sig.size();
-  std::memcpy(outSig, sig.c_str(), outSigLength);
+  std::memcpy(outSig, sig.c_str(), sig.size());
 }
 
 uint16_t SigManager::getMySigLength() const { return (uint16_t)mySigner_->signatureLength(); }

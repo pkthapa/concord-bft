@@ -38,9 +38,9 @@ void IntegrityChecker::initKeysConfig(const fs::path& keys_file) {
   config.cVal = parser.get_value<std::uint16_t>("c_val");
   config.publicKeysOfReplicas.clear();
 
-#ifdef USE_CRYPTOPP
+#ifdef USE_CRYPTOPP_RSA
   auto txnSignerPublicKeys = parser.get_values<std::string>("rsa_public_keys");
-#elif USE_EDDSA_OPENSSL
+#elif USE_EDDSA_SINGLE_SIGN
   auto txnSignerPublicKeys = parser.get_values<std::string>("eddsa_public_keys");
 #endif
 
