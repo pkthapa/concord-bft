@@ -76,7 +76,7 @@ class InternalSigner : public concord::util::cryptointerface::ISigner {
   std::string sign(const std::string& data) override {
     std::string out;
     out.resize(bftEngine::impl::SigManager::instance()->getMySigLength());
-    bftEngine::impl::SigManager::instance()->sign(data.data(), data.size(), out.data(), signatureLength());
+    bftEngine::impl::SigManager::instance()->sign(data.data(), data.size(), out.data());
     return out;
   }
   uint32_t signatureLength() const override { return bftEngine::impl::SigManager::instance()->getMySigLength(); }

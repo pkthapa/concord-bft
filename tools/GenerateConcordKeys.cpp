@@ -25,7 +25,7 @@
 #include "util/filesystem.hpp"
 #include "openssl_utils.hpp"
 
-using concord::crypto::openssl::Crypto;
+using concord::crypto::openssl::OpenSSLCryptoImpl;
 
 // Helper functions and static state to this executable's main function.
 
@@ -38,7 +38,7 @@ static bool containsHelpOption(int argc, char** argv) {
   return false;
 }
 
-#ifdef USE_CRYPTOPP
+#ifdef USE_CRYPTOPP_RSA
 static CryptoPP::RandomPool sGlobalRandGen;
 const unsigned int rsaKeyLength = 2048;
 
@@ -207,18 +207,18 @@ int main(int argc, char** argv) {
 
     config.cVal = (n - (3 * config.fVal) - 1) / 2;
 
-#ifdef USE_CRYPTOPP
+#ifdef USE_CRYPTOPP_RSA
     std::vector<std::pair<std::string, std::string>> rsaKeys;
-#elif USE_EDDSA_OPENSSL
+#elif USE_EDDSA_SINGLE_SIGN
     std::vector<std::pair<std::string, std::string>> eddsaKeys;
 #endif
 
     for (uint16_t i = 0; i < n + ro; ++i) {
-#ifdef USE_CRYPTOPP
+#ifdef USE_CRYPTOPP_RSA
       rsaKeys.push_back(generateRsaKey());
       config.publicKeysOfReplicas.insert(std::pair<uint16_t, std::string>(i, rsaKeys[i].second));
-#elif USE_EDDSA_OPENSSL
-      eddsaKeys.push_back(Crypto::instance().generateEdDSAKeyPair());
+#elif USE_EDDSA_SINGLE_SIGN
+      eddsaKeys.push_back(OpenSSLCryptoImpl::instance().generateEdDSAKeyPair());
       config.publicKeysOfReplicas.insert(std::pair<uint16_t, std::string>(i, eddsaKeys[i].second));
 #endif
     }
@@ -232,9 +232,9 @@ int main(int argc, char** argv) {
     // Output the generated keys.
     for (uint16_t i = 0; i < n; ++i) {
       config.replicaId = i;
-#ifdef USE_CRYPTOPP
+#ifdef USE_CRYPTOPP_RSA
       config.replicaPrivateKey = rsaKeys[i].first;
-#elif USE_EDDSA_OPENSSL
+#elif USE_EDDSA_SINGLE_SIGN
       config.replicaPrivateKey = eddsaKeys[i].first;
 #endif
       outputReplicaKeyfile(n, ro, config, outputPrefix + std::to_string(i), &cryptoSys);
@@ -243,9 +243,9 @@ int main(int argc, char** argv) {
     for (uint16_t i = n; i < n + ro; ++i) {
       config.isReadOnly = true;
       config.replicaId = i;
-#ifdef USE_CRYPTOPP
+#ifdef USE_CRYPTOPP_RSA
       config.replicaPrivateKey = rsaKeys[i].first;
-#elif USE_EDDSA_OPENSSL
+#elif USE_EDDSA_SINGLE_SIGN
       config.replicaPrivateKey = eddsaKeys[i].first;
 #endif
       outputReplicaKeyfile(n, ro, config, outputPrefix + std::to_string(i));
