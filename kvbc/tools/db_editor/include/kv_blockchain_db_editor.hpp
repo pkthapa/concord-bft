@@ -366,9 +366,10 @@ struct VerifyBlockRequests {
       out << "\t\t\"signature_digest\": \"" << hex_digest << "\",\n";
       out << "\t\t\"persistency_type\": \"" << persistencyType(req.requestPersistencyType) << "\",\n";
       std::string verification_result;
-      auto verifier = std::make_unique<TransactionVerifier>(
+      const auto verificationKey = getByteArrayKeyClass<EdDSAPublicKey, EdDSAPublicKeyByteSize>(
           client_keys.ids_to_keys[req.clientId].key,
           (concord::util::crypto::KeyFormat)client_keys.ids_to_keys[req.clientId].format);
+      auto verifier = std::make_unique<TransactionVerifier>(verificationKey.getBytes());
 
       if (req.requestPersistencyType == concord::messages::execution_data::EPersistecyType::RAW_ON_CHAIN) {
         auto result = verifier->verify(req.request, req.signature);
@@ -1106,7 +1107,10 @@ struct VerifyDbCheckpoint {
               auto format = cmd.format;
               transform(format.begin(), format.end(), format.begin(), ::tolower);
               auto key_format = ((format == "hex") ? KeyFormat::HexaDecimalStrippedFormat : KeyFormat::PemFormat);
-              replica_keys.emplace(repId, std::make_unique<TransactionVerifier>(cmd.key, key_format));
+
+              const auto verificationKey =
+                  getByteArrayKeyClass<EdDSAPublicKey, EdDSAPublicKeyByteSize>(cmd.key, key_format);
+              replica_keys.emplace(repId, std::make_unique<TransactionVerifier>(verificationKey.getBytes()));
             },
             *val);
       }

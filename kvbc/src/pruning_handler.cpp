@@ -21,6 +21,10 @@
 namespace concord::kvbc::pruning {
 
 using concord::util::crypto::KeyFormat;
+using concord::signerverifier::PrivateKeyClassType;
+using concord::signerverifier::PrivateKeyByteSize;
+using concord::signerverifier::PublicKeyClassType;
+using concord::signerverifier::PublicKeyByteSize;
 using concord::signerverifier::TransactionSigner;
 using concord::signerverifier::TransactionVerifier;
 
@@ -33,14 +37,18 @@ void PruningSigner::sign(concord::messages::LatestPrunableBlock& block) {
   block.signature = std::vector<uint8_t>(signature.begin(), signature.end());
 }
 
-PruningSigner::PruningSigner(const std::string& key)
-    : signer_{std::make_unique<TransactionSigner>(key, KeyFormat::HexaDecimalStrippedFormat)} {}
+PruningSigner::PruningSigner(const std::string& key) {
+  const auto signingKey =
+      getByteArrayKeyClass<PrivateKeyClassType, PrivateKeyByteSize>(key, KeyFormat::HexaDecimalStrippedFormat);
+  signer_.reset(new TransactionSigner(signingKey.getBytes()));
+}
 
 PruningVerifier::PruningVerifier(const std::set<std::pair<uint16_t, const std::string>>& replicasPublicKeys) {
   auto i = 0u;
   for (auto& [idx, pkey] : replicasPublicKeys) {
-    replicas_.push_back(
-        Replica{idx, std::make_unique<TransactionVerifier>(pkey, KeyFormat::HexaDecimalStrippedFormat)});
+    const auto verificationKey =
+        getByteArrayKeyClass<PublicKeyClassType, PublicKeyByteSize>(pkey, KeyFormat::HexaDecimalStrippedFormat);
+    replicas_.push_back(Replica{idx, std::make_unique<TransactionVerifier>(verificationKey.getBytes())});
     const auto ins_res = replica_ids_.insert(replicas_.back().principal_id);
     if (!ins_res.second) {
       throw std::runtime_error{"PruningVerifier found duplicate replica principal_id: " +

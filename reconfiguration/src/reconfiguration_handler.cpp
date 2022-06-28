@@ -23,19 +23,20 @@
 #include "bftengine/DbCheckpointManager.hpp"
 
 #include <fstream>
-
-using namespace concord::messages;
-using concord::util::crypto::KeyFormat;
+#include "sign_verify_utils.hpp"
 
 #if USE_CRYPTOPP_RSA
 using concord::crypto::cryptopp::ECDSAVerifier;
 #else
-#include "openssl_utils.hpp"
-
-using concord::crypto::openssl::EdDSAVerifier;
 #endif
 
 namespace concord::reconfiguration {
+
+using namespace concord::messages;
+using concord::util::crypto::KeyFormat;
+using concord::signerverifier::PublicKeyClassType;
+using concord::signerverifier::PublicKeyByteSize;
+using concord::signerverifier::TransactionVerifier;
 
 bool ReconfigurationHandler::handle(const WedgeCommand& cmd,
                                     uint64_t bft_seq_num,
@@ -342,9 +343,12 @@ BftReconfigurationHandler::BftReconfigurationHandler() {
 #ifdef USE_CRYPTOPP_RSA
   verifier_.reset(new ECDSAVerifier(key_str, KeyFormat::PemFormat));
 #else
-  verifier_.reset(new EdDSAVerifier(key_str, KeyFormat::PemFormat));
+  const auto verificationKey =
+      getByteArrayKeyClass<PublicKeyClassType, PublicKeyByteSize>(key_str, KeyFormat::PemFormat);
+  verifier_.reset(new TransactionVerifier(verificationKey.getBytes()));
 #endif
 }
+
 bool BftReconfigurationHandler::verifySignature(uint32_t sender_id,
                                                 const std::string& data,
                                                 const std::string& signature) const {

@@ -36,24 +36,6 @@ using concord::crypto::IVerifier;
 
 namespace concord::crypto::openssl {
 
-constexpr static size_t EdDSA_SIG_LENGTH{64};
-
-// Deleter classes.
-class EVP_PKEY_Deleter {
- public:
-  void operator()(EVP_PKEY* p) const { EVP_PKEY_free(p); }
-};
-
-class EVP_MD_CTX_Deleter {
- public:
-  void operator()(EVP_MD_CTX* p) const { EVP_MD_CTX_free(p); }
-};
-
-class EVP_PKEY_CTX_Deleter {
- public:
-  void operator()(EVP_PKEY_CTX* p) const { EVP_PKEY_CTX_free(p); }
-};
-
 class CertificateUtils {
  public:
   static std::string generateSelfSignedCert(const std::string& origin_cert_path,
@@ -65,77 +47,6 @@ class CertificateUtils {
                                 uint32_t& remote_peer_id,
                                 std::string& conn_type,
                                 bool use_unified_certs);
-};
-
-// This class implements OpenSSL's EdDSA signer.
-class EdDSASigner : public ISigner {
- public:
-  /*
-   * Constructor to initialize a signer.
-   * @param strPrivKey Private key.
-   * @param fmt Format of the private key (HexaDecimalStrippedFormat & PemFormat).
-   */
-  EdDSASigner(const string& strPrivKey, KeyFormat fmt);
-
-  /*
-   * Signs and returns the signature.
-   * @param dataToSign Data to sign.
-   * @return Generated signature in string format.
-   */
-  string sign(const string& dataToSign) override;
-
-  /*
-   * Gets the signature length.
-   * @return Length of the signature.
-   */
-  uint32_t signatureLength() const override;
-
-  /*
-   * Gets the private key in string format.
-   * @return Private key in string format.
-   */
-  string getPrivKey() const override;
-
- private:
-  unique_ptr<EVP_PKEY, EVP_PKEY_Deleter> edPkey_;
-  size_t sigLen_{EdDSA_SIG_LENGTH};
-  string keyStr_;
-};
-
-// This class implements OpenSSL's EdDSA verifier.
-class EdDSAVerifier : public IVerifier {
- public:
-  /*
-   * Constructor to initialize a verifier.
-   * @param strPubKey Public key.
-   * @param fmt Format of the public key (HexaDecimalStrippedFormat & PemFormat).
-   */
-  EdDSAVerifier(const string& strPubKey, KeyFormat fmt);
-
-  /*
-   * Verifies the signature.
-   * @param dataToVerify Data to verify with 'sigToVerify'.
-   * @param sigToVerify Generated signature to verify with 'dataToVerify'.
-   * @return Verification result.
-   */
-  bool verify(const string& dataToVerify, const string& sigToVerify) const override;
-
-  /*
-   * Gets the signature length.
-   * @return Length of the signature.
-   */
-  uint32_t signatureLength() const override;
-
-  /*
-   * Gets the public key in string format.
-   * @return Public key in string format.
-   */
-  string getPubKey() const override;
-
- private:
-  unique_ptr<EVP_PKEY, EVP_PKEY_Deleter> edPkey_;
-  mutable size_t sigLen_{EdDSA_SIG_LENGTH};
-  string keyStr_;
 };
 
 class OpenSSLCryptoImpl {

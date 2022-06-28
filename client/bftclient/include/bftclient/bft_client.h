@@ -123,7 +123,7 @@ class Client {
 
   Metrics metrics_;
 
-  // Transaction RSA signer
+  // Transaction RSA/EdDSA signer
   std::unique_ptr<concord::crypto::ISigner> transaction_signer_;
 
   static constexpr int64_t MAX_VALUE_NANOSECONDS = 1000 * 1000 * 1000;  // 1 second

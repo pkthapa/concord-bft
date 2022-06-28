@@ -19,12 +19,17 @@
 #include "ReplicaConfig.hpp"
 #include "hex_tools.h"
 #include "sign_verify_utils.hpp"
+//#include "SerializableByteArray.hpp"
 
 using namespace std;
 
 namespace bftEngine {
 namespace impl {
 
+using concord::signerverifier::PrivateKeyClassType;
+using concord::signerverifier::PrivateKeyByteSize;
+using concord::signerverifier::PublicKeyClassType;
+using concord::signerverifier::PublicKeyByteSize;
 using concord::signerverifier::TransactionSigner;
 using concord::signerverifier::TransactionVerifier;
 
@@ -141,7 +146,9 @@ SigManager::SigManager(PrincipalId myId,
 
   ConcordAssert(publicKeysMapping.size() >= numPublickeys);
   if (!mySigPrivateKey.first.empty()) {
-    mySigner_.reset(new TransactionSigner(mySigPrivateKey.first.c_str(), mySigPrivateKey.second));
+    const auto signingKey =
+        getByteArrayKeyClass<PrivateKeyClassType, PrivateKeyByteSize>(mySigPrivateKey.first, mySigPrivateKey.second);
+    mySigner_.reset(new TransactionSigner(signingKey.getBytes()));
   }
   for (const auto& p : publicKeysMapping) {
     ConcordAssert(verifiers_.count(p.first) == 0);
@@ -150,7 +157,8 @@ SigManager::SigManager(PrincipalId myId,
     auto iter = publicKeyIndexToVerifier.find(p.second);
     const auto& [key, format] = publickeys[p.second];
     if (iter == publicKeyIndexToVerifier.end()) {
-      verifiers_[p.first] = std::make_shared<TransactionVerifier>(key, format);
+      const auto verificationKey = getByteArrayKeyClass<PublicKeyClassType, PublicKeyByteSize>(key, format);
+      verifiers_[p.first] = std::make_shared<TransactionVerifier>(verificationKey.getBytes());
       publicKeyIndexToVerifier[p.second] = verifiers_[p.first];
     } else {
       verifiers_[p.first] = iter->second;
@@ -257,7 +265,8 @@ void SigManager::setClientPublicKey(const std::string& key, PrincipalId id, conc
   if (replicasInfo_.isIdOfExternalClient(id) || replicasInfo_.isIdOfClientService(id)) {
     try {
       std::unique_lock lock(mutex_);
-      verifiers_.insert_or_assign(id, std::make_shared<TransactionVerifier>(key, format));
+      const auto verificationKey = getByteArrayKeyClass<EdDSAPublicKey, EdDSAPublicKeyByteSize>(key, format);
+      verifiers_.insert_or_assign(id, std::make_shared<TransactionVerifier>(verificationKey.getBytes()));
     } catch (const std::exception& e) {
       LOG_ERROR(KEY_EX_LOG, "failed to add a key for client: " << id << " reason: " << e.what());
       throw;

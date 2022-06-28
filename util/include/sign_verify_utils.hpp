@@ -14,13 +14,20 @@
 #pragma once
 
 #include "openssl_utils.hpp"
+#include "crypto/eddsa/EdDSA.h"
+#include "crypto/eddsa/EdDSASigner.hpp"
+#include "crypto/eddsa/EdDSAVerifier.hpp"
 
 namespace concord::signerverifier {
 #ifdef USE_CRYPTOPP_RSA
 using TransactionSigner = concord::crypto::cryptopp::RSASigner;
 using TransactionVerifier = concord::crypto::cryptopp::RSAVerifier;
 #elif USE_EDDSA_SINGLE_SIGN
-using TransactionSigner = concord::crypto::openssl::EdDSASigner;
-using TransactionVerifier = concord::crypto::openssl::EdDSAVerifier;
+using PrivateKeyClassType = EdDSAPrivateKey;
+using PublicKeyClassType = EdDSAPublicKey;
+static constexpr const auto PrivateKeyByteSize = EdDSAPrivateKeyByteSize;
+static constexpr const auto PublicKeyByteSize = EdDSAPublicKeyByteSize;
+using TransactionSigner = concord::crypto::openssl::eddsa::EdDSASigner<PrivateKeyClassType>;
+using TransactionVerifier = concord::crypto::openssl::eddsa::EdDSAVerifier<PublicKeyClassType>;
 #endif
 }  // namespace concord::signerverifier
