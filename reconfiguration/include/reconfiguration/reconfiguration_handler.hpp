@@ -26,7 +26,7 @@ class BftReconfigurationHandler : public IReconfigurationHandler {
   BftReconfigurationHandler();
   bool verifySignature(uint32_t sender_id, const std::string &data, const std::string &signature) const override;
 
-  std::unique_ptr<concord::util::cryptointerface::IVerifier> verifier_;
+  std::unique_ptr<concord::crypto::IVerifier> verifier_;
 };
 class ReconfigurationHandler : public BftReconfigurationHandler {
  public:

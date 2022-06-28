@@ -34,8 +34,13 @@ constexpr size_t RANDOM_DATA_SIZE = 1000U;
 
 std::default_random_engine generator;
 
+using concord::signerverifier::PrivateKeyClassType;
+using concord::signerverifier::PrivateKeyByteSize;
+using concord::signerverifier::PublicKeyClassType;
+using concord::signerverifier::PublicKeyByteSize;
 using concord::signerverifier::TransactionSigner;
 using concord::signerverifier::TransactionVerifier;
+using concord::crypto::openssl::OpenSSLCryptoImpl;
 
 #ifdef USE_CRYPTOPP_RSA
 constexpr char ALGO_NAME[] = "rsa";
@@ -79,6 +84,46 @@ void corrupt(char* data, size_t len) {
   }
 }
 
+TEST(SignerAndVerifierTest, LoadSignVerifyFromHexKeyPair) {
+  char data[RANDOM_DATA_SIZE]{0};
+
+  const auto keyPair = OpenSSLCryptoImpl::instance().generateEdDSAKeyPair();
+  generateRandomData(data, RANDOM_DATA_SIZE);
+
+  const auto signingKey = getByteArrayKeyClass<PrivateKeyClassType, PrivateKeyByteSize>(
+      keyPair.first, KeyFormat::HexaDecimalStrippedFormat);
+  const auto verificationKey =
+      getByteArrayKeyClass<PublicKeyClassType, PublicKeyByteSize>(keyPair.second, KeyFormat::HexaDecimalStrippedFormat);
+
+  const auto signer_ = unique_ptr<TransactionSigner>(new TransactionSigner(signingKey.getBytes()));
+  auto verifier_ = unique_ptr<TransactionVerifier>(new TransactionVerifier(verificationKey.getBytes()));
+
+  // sign with RSASigner/EdDSASigner
+  std::string sig;
+  size_t expectedSignerSigLen = signer_->signatureLength();
+  sig.reserve(expectedSignerSigLen);
+  size_t lenRetData;
+  std::string str_data(data, RANDOM_DATA_SIZE);
+  sig = signer_->sign(str_data);
+  lenRetData = sig.size();
+  ASSERT_EQ(lenRetData, expectedSignerSigLen);
+
+  // validate with RSAVerifier/EdDSAVerifier
+  ASSERT_TRUE(verifier_->verify(str_data, sig));
+
+  // change data randomally, expect failure
+  char data1[RANDOM_DATA_SIZE];
+  std::copy(std::begin(data), std::end(data), std::begin(data1));
+  corrupt(data1 + 10, 1);
+  std::string str_data1(data1, RANDOM_DATA_SIZE);
+  ASSERT_FALSE(verifier_->verify(str_data1, sig));
+
+  // change signature randomally, expect failure
+  corrupt(sig.data(), 1);
+  str_data = std::string(data, RANDOM_DATA_SIZE);
+  ASSERT_FALSE(verifier_->verify(str_data, sig));
+}
+
 TEST(SignerAndVerifierTest, LoadSignVerifyFromPemfiles) {
   string publicKeyFullPath({string(KEYS_BASE_PATH) + string("/1/") + PUB_KEY_NAME});
   string privateKeyFullPath({string(KEYS_BASE_PATH) + string("/1/") + PRIV_KEY_NAME});
@@ -90,8 +135,13 @@ TEST(SignerAndVerifierTest, LoadSignVerifyFromPemfiles) {
   generateRandomData(data, RANDOM_DATA_SIZE);
   readFile(privateKeyFullPath, privKey);
   readFile(publicKeyFullPath, pubkey);
-  auto verifier_ = unique_ptr<TransactionVerifier>(new TransactionVerifier(pubkey, KeyFormat::PemFormat));
-  auto signer_ = unique_ptr<TransactionSigner>(new TransactionSigner(privKey, KeyFormat::PemFormat));
+
+  const auto signingKey = getByteArrayKeyClass<PrivateKeyClassType, PrivateKeyByteSize>(privKey, KeyFormat::PemFormat);
+  const auto verificationKey =
+      getByteArrayKeyClass<PublicKeyClassType, PublicKeyByteSize>(pubkey, KeyFormat::PemFormat);
+
+  auto verifier_ = unique_ptr<TransactionVerifier>(new TransactionVerifier(verificationKey.getBytes()));
+  const auto signer_ = unique_ptr<TransactionSigner>(new TransactionSigner(signingKey.getBytes()));
 
   // sign with RSASigner/EdDSASigner
   size_t expectedSignerSigLen = signer_->signatureLength();
@@ -138,7 +188,9 @@ TEST(SigManagerTest, ReplicasOnlyCheckVerify) {
       myPrivKey = privKey;
       continue;
     }
-    signers[pid].reset(new TransactionSigner(privKey, KeyFormat::PemFormat));
+    const auto signingKey =
+        getByteArrayKeyClass<PrivateKeyClassType, PrivateKeyByteSize>(privKey, KeyFormat::PemFormat);
+    signers[pid].reset(new TransactionSigner(signingKey.getBytes()));
     string pubKeyFullPath({string(KEYS_BASE_PATH) + string("/") + to_string(i) + string("/") + PUB_KEY_NAME});
     readFile(pubKeyFullPath, pubKey);
     publicKeysOfReplicas.insert(make_pair(pid, pubKey));
@@ -200,7 +252,10 @@ TEST(SigManagerTest, ReplicasOnlyCheckSign) {
   // Load single other replica's verifier (mock)
   string pubKeyFullPath({string(KEYS_BASE_PATH) + string("/") + to_string(1) + string("/") + PUB_KEY_NAME});
   readFile(pubKeyFullPath, pubKey);
-  verifier.reset(new TransactionVerifier(pubKey, KeyFormat::PemFormat));
+
+  const auto verificationKey =
+      getByteArrayKeyClass<PublicKeyClassType, PublicKeyByteSize>(pubKey, KeyFormat::PemFormat);
+  verifier.reset(new TransactionVerifier(verificationKey.getBytes()));
 
   // load public key of other replicas, must be done for SigManager ctor
   for (size_t i{2}; i <= numReplicas; ++i) {
@@ -266,7 +321,9 @@ TEST(SigManagerTest, ReplicasAndClientsCheckVerify) {
       myPrivKey = privKey;
       continue;
     }
-    signers[signerIndex].reset(new TransactionSigner(privKey, KeyFormat::PemFormat));
+    const auto signingKey =
+        getByteArrayKeyClass<PrivateKeyClassType, PrivateKeyByteSize>(privKey, KeyFormat::PemFormat);
+    signers[signerIndex].reset(new TransactionSigner(signingKey.getBytes()));
 
     string pubKeyFullPath({string(KEYS_BASE_PATH) + string("/") + to_string(i) + string("/") + PUB_KEY_NAME});
     readFile(pubKeyFullPath, pubKey);
@@ -281,7 +338,9 @@ TEST(SigManagerTest, ReplicasAndClientsCheckVerify) {
     string privKey, pubKey;
     string privateKeyFullPath({string(KEYS_BASE_PATH) + string("/") + to_string(i) + string("/") + PRIV_KEY_NAME});
     readFile(privateKeyFullPath, privKey);
-    signers[signerIndex].reset(new TransactionSigner(privKey, KeyFormat::PemFormat));
+    const auto signingKey =
+        getByteArrayKeyClass<PrivateKeyClassType, PrivateKeyByteSize>(privKey, KeyFormat::PemFormat);
+    signers[signerIndex].reset(new TransactionSigner(signingKey.getBytes()));
     string pubKeyFullPath({string(KEYS_BASE_PATH) + string("/") + to_string(i) + string("/") + PUB_KEY_NAME});
     set<PrincipalId> principalIds;
     for (size_t j{0}; j < numBftClientsInParticipantNodes; ++j) {

@@ -207,20 +207,15 @@ int main(int argc, char** argv) {
 
     config.cVal = (n - (3 * config.fVal) - 1) / 2;
 
-#ifdef USE_CRYPTOPP_RSA
-    std::vector<std::pair<std::string, std::string>> rsaKeys;
-#elif USE_EDDSA_SINGLE_SIGN
-    std::vector<std::pair<std::string, std::string>> eddsaKeys;
-#endif
+    std::vector<std::pair<std::string, std::string>> replicaKeyPairs;
 
     for (uint16_t i = 0; i < n + ro; ++i) {
 #ifdef USE_CRYPTOPP_RSA
-      rsaKeys.push_back(generateRsaKey());
-      config.publicKeysOfReplicas.insert(std::pair<uint16_t, std::string>(i, rsaKeys[i].second));
+      replicaKeyPairs.push_back(generateRsaKey());
 #elif USE_EDDSA_SINGLE_SIGN
-      eddsaKeys.push_back(OpenSSLCryptoImpl::instance().generateEdDSAKeyPair());
-      config.publicKeysOfReplicas.insert(std::pair<uint16_t, std::string>(i, eddsaKeys[i].second));
+      replicaKeyPairs.push_back(OpenSSLCryptoImpl::instance().generateEdDSAKeyPair());
 #endif
+      config.publicKeysOfReplicas.insert(std::pair<uint16_t, std::string>(i, replicaKeyPairs[i].second));
     }
 
     // We want to generate public key for n-out-of-n case
@@ -232,22 +227,14 @@ int main(int argc, char** argv) {
     // Output the generated keys.
     for (uint16_t i = 0; i < n; ++i) {
       config.replicaId = i;
-#ifdef USE_CRYPTOPP_RSA
-      config.replicaPrivateKey = rsaKeys[i].first;
-#elif USE_EDDSA_SINGLE_SIGN
-      config.replicaPrivateKey = eddsaKeys[i].first;
-#endif
+      config.replicaPrivateKey = replicaKeyPairs[i].first;
       outputReplicaKeyfile(n, ro, config, outputPrefix + std::to_string(i), &cryptoSys);
     }
 
     for (uint16_t i = n; i < n + ro; ++i) {
       config.isReadOnly = true;
       config.replicaId = i;
-#ifdef USE_CRYPTOPP_RSA
-      config.replicaPrivateKey = rsaKeys[i].first;
-#elif USE_EDDSA_SINGLE_SIGN
-      config.replicaPrivateKey = eddsaKeys[i].first;
-#endif
+      config.replicaPrivateKey = replicaKeyPairs[i].first;
       outputReplicaKeyfile(n, ro, config, outputPrefix + std::to_string(i));
     }
   } catch (std::exception& e) {

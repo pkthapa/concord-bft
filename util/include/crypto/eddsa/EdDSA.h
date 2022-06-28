@@ -12,10 +12,17 @@
 //
 #pragma once
 #include "SerializableByteArray.hpp"
+#include "crypto_utils.hpp"
+#include "openssl_crypto.hpp"
+#include "hex_tools.h"
 
-static constexpr const size_t EdDSAPrivateKeyByteSize = 32;
-static constexpr const size_t EdDSAPublicKeyByteSize = 32;
-static constexpr const size_t EdDSASignatureByteSize = 64;
+using concord::util::crypto::KeyFormat;
+using concord::util::openssl_utils::UniquePKEY;
+using concord::util::openssl_utils::OPENSSL_SUCCESS;
+
+static constexpr const size_t EdDSAPrivateKeyByteSize = 32UL;
+static constexpr const size_t EdDSAPublicKeyByteSize = 32UL;
+static constexpr const size_t EdDSASignatureByteSize = 64UL;
 
 class EdDSAPrivateKey : public SerializableByteArray<EdDSAPrivateKeyByteSize> {
  public:
@@ -26,3 +33,77 @@ class EdDSAPublicKey : public SerializableByteArray<EdDSAPublicKeyByteSize> {
  public:
   EdDSAPublicKey(const EdDSAPublicKey::ByteArray& arr) : SerializableByteArray<EdDSAPublicKeyByteSize>(arr) {}
 };
+
+/**
+ * @brief Generate hex format key from pem file.
+ *
+ * @tparam ByteArrayKeyClass
+ * @tparam KeyLength
+ * @param pemKey
+ * @return std::vector<uint8_t> Generated key.
+ */
+template <typename ByteArrayKeyClass, size_t KeyLength>
+static std::vector<uint8_t> extractHexKeyFromPem(const std::string& pemKey) {
+  concord::util::openssl_utils::UniquePKEY pkey;
+  const std::string temp{"/tmp/concordTempKey.pem"};
+
+  std::ofstream out(temp.data());
+  out << pemKey;
+  out.close();
+
+  auto deleter = [](FILE* fp) {
+    if (nullptr != fp) {
+      fclose(fp);
+    }
+  };
+  std::unique_ptr<FILE, decltype(deleter)> fp(fopen(temp.data(), "r"), deleter);
+  if (nullptr == fp) {
+    LOG_ERROR(EDDSA_SIG_LOG, "Unable to open private key file to initialize signer." << KVLOG(fp.get(), pemKey));
+    std::terminate();
+  }
+
+  size_t keyLen{KeyLength};
+  unsigned char extractedKey[KeyLength]{'\0'};
+
+  std::string hexKey;
+  if constexpr (std::is_same_v<ByteArrayKeyClass, EdDSAPrivateKey>) {
+    pkey.reset(PEM_read_PrivateKey(fp.get(), nullptr, nullptr, nullptr));
+    ConcordAssertEQ(
+        EVP_PKEY_get_raw_private_key(pkey.get(), extractedKey, &keyLen),  // Extract private key in 'extractedKey'.
+        OPENSSL_SUCCESS);
+  } else if (std::is_same_v<ByteArrayKeyClass, EdDSAPublicKey>) {
+    pkey.reset(PEM_read_PUBKEY(fp.get(), nullptr, nullptr, nullptr));
+    ConcordAssertEQ(
+        EVP_PKEY_get_raw_public_key(pkey.get(), extractedKey, &keyLen),  // Extract public key in 'extractedKey'.
+        OPENSSL_SUCCESS);
+  }
+
+  const std::vector<uint8_t> key(extractedKey, extractedKey + keyLen);
+  remove(temp.data());
+  return key;
+}
+
+/**
+ * @brief Get the ByteArray Key Class object
+ *
+ * @tparam ByteArrayKeyClass
+ * @tparam KeyLength
+ * @param key
+ * @param format
+ * @return ByteArrayKeyClass
+ */
+template <typename ByteArrayKeyClass, size_t KeyLength>
+static ByteArrayKeyClass getByteArrayKeyClass(const std::string& key, KeyFormat format) {
+  std::vector<uint8_t> extractedKey;
+
+  if (KeyFormat::PemFormat == format) {
+    extractedKey = extractHexKeyFromPem<ByteArrayKeyClass, KeyLength>(key);
+  } else if (KeyFormat::HexaDecimalStrippedFormat == format) {
+    extractedKey = concordUtils::unhex(key);
+  }
+  ConcordAssertEQ(extractedKey.size(), KeyLength);
+
+  typename ByteArrayKeyClass::ByteArray resultBytes;
+  std::memcpy(resultBytes.data(), extractedKey.data(), extractedKey.size());
+  return ByteArrayKeyClass{resultBytes};
+}

@@ -14,22 +14,14 @@
 // This convenience header combines different block implementations.
 
 #include "aes.h"
+#include "openssl_crypto.hpp"
+#include "assertUtils.hpp"
 
 #include <cryptopp/filters.h>
 
-#include "assertUtils.hpp"
-
 namespace concord::secretsmanager {
 
-class EVP_CIPHER_CTX_Deleter {
- public:
-  void operator()(EVP_CIPHER_CTX* p) { EVP_CIPHER_CTX_free(p); }
-};
-
-class BIO_Deleter {
- public:
-  void operator()(BIO* p) { BIO_free_all(p); }
-};
+using concord::util::openssl_utils::UniqueOpenSSLCipherContext;
 
 AES_CBC::AES_CBC(const KeyParams& params) {
 #ifdef USE_CRYPTOPP_RSA
@@ -55,19 +47,14 @@ vector<uint8_t> AES_CBC::encrypt(const string& input) const {
     return {};
   }
 
-  auto deleter = [](unsigned char* p) {
-    if (nullptr != p) {
-      delete[] p;
-    }
-  };
-  unique_ptr<unsigned char, decltype(deleter)> ciphertext(new unsigned char[input.size() + AES_BLOCK_SIZE], deleter);
-  unique_ptr<unsigned char, decltype(deleter)> plaintext(new unsigned char[input.size() + 1], deleter);
+  unique_ptr<unsigned char[]> ciphertext(new unsigned char[input.size() + AES_BLOCK_SIZE]);
+  unique_ptr<unsigned char[]> plaintext(new unsigned char[input.size() + 1]);
 
   for (size_t i{0UL}; i < input.size(); ++i) {
     plaintext.get()[i] = (unsigned char)input[i];
   }
 
-  unique_ptr<EVP_CIPHER_CTX, EVP_CIPHER_CTX_Deleter> ctx(EVP_CIPHER_CTX_new());
+  UniqueOpenSSLCipherContext ctx(EVP_CIPHER_CTX_new());
   ConcordAssert(nullptr != ctx);
 
   int c_len{0};
@@ -98,14 +85,8 @@ string AES_CBC::decrypt(const vector<uint8_t>& cipher) const {
   const int cipherLength = cipher.capacity();
   int c_len{0}, f_len{0};
 
-  auto deleter = [](unsigned char* p) {
-    if (nullptr != p) {
-      delete[] p;
-    }
-  };
-  unique_ptr<unsigned char, decltype(deleter)> plaintext(new unsigned char[cipherLength], deleter);
-
-  unique_ptr<EVP_CIPHER_CTX, EVP_CIPHER_CTX_Deleter> ctx(EVP_CIPHER_CTX_new());
+  unique_ptr<unsigned char[]> plaintext(new unsigned char[cipherLength]);
+  UniqueOpenSSLCipherContext ctx(EVP_CIPHER_CTX_new());
   ConcordAssert(nullptr != ctx);
 
   ConcordAssert(1 == EVP_DecryptInit_ex(ctx.get(), EVP_aes_256_cbc(), nullptr, key.data(), iv.data()));

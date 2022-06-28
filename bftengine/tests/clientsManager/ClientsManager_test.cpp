@@ -48,6 +48,8 @@ using concord::crypto::cryptopp::Crypto;
 using concord::crypto::openssl::OpenSSLCryptoImpl;
 #endif
 
+using concord::signerverifier::PrivateKeyClassType;
+using concord::signerverifier::PrivateKeyByteSize;
 using concord::signerverifier::TransactionSigner;
 
 // Testing values to be used for certain Concord-BFT configuration that ClientsManager and/or its dependencies may
@@ -238,7 +240,9 @@ static bool verifyClientPublicKeyLoadedToKEM(NodeIdType client_id, const pair<st
     return false;
   }
 
-  TransactionSigner signer(expected_key.first, kKeyFormatForTesting);
+  const auto signingKey =
+      getByteArrayKeyClass<PrivateKeyClassType, PrivateKeyByteSize>(expected_key.first, kKeyFormatForTesting);
+  TransactionSigner signer(signingKey.getBytes());
   string signature = signer.sign(kArbitraryMessageForTestingKeyAgreement);
   return SigManager::instance()->verifySig(client_id,
                                            kArbitraryMessageForTestingKeyAgreement.data(),
