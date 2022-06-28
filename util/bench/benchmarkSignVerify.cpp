@@ -12,7 +12,7 @@
 //
 
 // #define PICOBENCH_DEBUG
-//#define PICOBENCH_IMPLEMENT_WITH_MAIN
+// #define PICOBENCH_IMPLEMENT_WITH_MAIN
 #define PICOBENCH_IMPLEMENT
 #define PICOBENCH_STD_FUNCTION_BENCHMARKS
 
@@ -23,13 +23,17 @@
 #include <boost/program_options.hpp>
 #include "thread_pool.hpp"
 #include "picobench.hpp"
-#include "openssl_utils.hpp"
 #include "cryptopp_utils.hpp"
+#include "crypto/eddsa/EdDSASigner.hpp"
+#include "crypto/eddsa/EdDSAVerifier.hpp"
 
+using std::string;
+using std::unique_ptr;
 using concord::crypto::cryptopp::RSASigner;
 using concord::crypto::cryptopp::RSAVerifier;
-using concord::crypto::openssl::EdDSASigner;
-using concord::crypto::openssl::EdDSAVerifier;
+
+using TestTxnSigner = concord::crypto::openssl::eddsa::EdDSASigner<EdDSAPrivateKey>;
+using TestTxnVerifier = concord::crypto::openssl::eddsa::EdDSAVerifier<EdDSAPublicKey>;
 
 std::default_random_engine generator;
 
@@ -96,7 +100,7 @@ void generateRandomData(size_t len) {
  * @param path File path.
  * @param keyOut File content.
  */
-void readFile(std::string_view path, std::string& keyOut) {
+void readFile(std::string_view path, string& keyOut) {
   std::stringstream stream;
   std::ifstream file(path.data());
   ConcordAssert(file.good());
@@ -119,7 +123,8 @@ void edDSASignerBenchmark(picobench::state& s) {
   readFile(privateKeyFullPath, privKey);
   readFile(publicKeyFullPath, pubkey);
 
-  auto signer_ = unique_ptr<EdDSASigner>(new EdDSASigner(privKey, KeyFormat::PemFormat));
+  const auto signingKey = getByteArrayKeyClass<EdDSAPrivateKey, EdDSAPrivateKeyByteSize>(privKey, KeyFormat::PemFormat);
+  auto signer_ = unique_ptr<TestTxnSigner>(new TestTxnSigner(signingKey.getBytes()));
 
   // Sign with EdDSASigner.
   size_t expectedSignerSigLen = signer_->signatureLength();
@@ -155,8 +160,13 @@ void edDSAVerifierBenchmark(picobench::state& s) {
 
   readFile(privateKeyFullPath, privKey);
   readFile(publicKeyFullPath, pubkey);
-  auto verifier_ = unique_ptr<EdDSAVerifier>(new EdDSAVerifier(pubkey, KeyFormat::PemFormat));
-  auto signer_ = unique_ptr<EdDSASigner>(new EdDSASigner(privKey, KeyFormat::PemFormat));
+
+  const auto signingKey = getByteArrayKeyClass<EdDSAPrivateKey, EdDSAPrivateKeyByteSize>(privKey, KeyFormat::PemFormat);
+  const auto verificationKey =
+      getByteArrayKeyClass<EdDSAPublicKey, EdDSAPublicKeyByteSize>(pubkey, KeyFormat::PemFormat);
+
+  auto signer_ = unique_ptr<TestTxnSigner>(new TestTxnSigner(signingKey.getBytes()));
+  auto verifier_ = unique_ptr<TestTxnVerifier>(new TestTxnVerifier(verificationKey.getBytes()));
 
   // Sign with EdDSASigner.
   size_t expectedSignerSigLen = signer_->signatureLength();

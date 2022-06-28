@@ -23,6 +23,8 @@ using namespace concord::secretsmanager;
 using namespace bftEngine;
 using namespace bftEngine::impl;
 using concord::util::crypto::KeyFormat;
+using concord::signerverifier::PrivateKeyClassType;
+using concord::signerverifier::PrivateKeyByteSize;
 using concord::signerverifier::TransactionSigner;
 
 namespace bft::client {
@@ -58,8 +60,12 @@ Client::Client(SharedCommPtr comm, const ClientConfig& config, std::shared_ptr<c
     }
 
     key_plaintext = secretsManager->decryptFile(file_path);
-    if (!key_plaintext) throw InvalidPrivateKeyException(file_path, config.secrets_manager_config != std::nullopt);
-    transaction_signer_ = std::make_unique<TransactionSigner>(key_plaintext.value(), KeyFormat::PemFormat);
+    if (!key_plaintext) {
+      throw InvalidPrivateKeyException(file_path, config.secrets_manager_config != std::nullopt);
+    }
+    const auto signingKey =
+        getByteArrayKeyClass<PrivateKeyClassType, PrivateKeyByteSize>(key_plaintext.value(), KeyFormat::PemFormat);
+    transaction_signer_ = std::make_unique<TransactionSigner>(signingKey.getBytes());
   }
   communication_->setReceiver(config_.id.val, &receiver_);
   communication_->start();

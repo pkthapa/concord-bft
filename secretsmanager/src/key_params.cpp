@@ -16,11 +16,8 @@ KeyParams::KeyParams(const std::string& pkey, const std::string& piv) {
   CryptoPP::StringSource sskey(pkey, true, new CryptoPP::HexDecoder(new CryptoPP::VectorSink(key)));
   CryptoPP::StringSource ssiv(piv, true, new CryptoPP::HexDecoder(new CryptoPP::VectorSink(iv)));
 #elif USE_EDDSA_SINGLE_SIGN
-  const auto keyInAsciiStr = concordUtils::hexToASCII(pkey);
-  const auto ivInAsciiStr = concordUtils::hexToASCII(piv);
-
-  std::copy(keyInAsciiStr.begin(), keyInAsciiStr.end(), std::back_inserter(key));
-  std::copy(ivInAsciiStr.begin(), ivInAsciiStr.end(), std::back_inserter(iv));
+  key = concordUtils::unhex(pkey);
+  iv = concordUtils::unhex(piv);
 #endif
 }
 }  // namespace concord::secretsmanager

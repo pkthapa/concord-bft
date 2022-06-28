@@ -23,6 +23,10 @@
 #include "KeyfileIOUtils.hpp"
 #include "sign_verify_utils.hpp"
 
+using concord::signerverifier::PrivateKeyClassType;
+using concord::signerverifier::PrivateKeyByteSize;
+using concord::signerverifier::PublicKeyClassType;
+using concord::signerverifier::PublicKeyByteSize;
 using concord::signerverifier::TransactionSigner;
 using concord::signerverifier::TransactionVerifier;
 using concord::util::crypto::KeyFormat;
@@ -266,13 +270,17 @@ static bool testEdDSAKeyPair(const std::string& privateKey, const std::string& p
       "FAILURE: Invalid EdDSA public key for replica " + std::to_string(replicaID) + ".\n";
 
   try {
-    signer.reset(new TransactionSigner(privateKey, KeyFormat::HexaDecimalStrippedFormat));
+    const auto signingKey =
+        getByteArrayKeyClass<PrivateKeyClassType, PrivateKeyByteSize>(privateKey, KeyFormat::HexaDecimalStrippedFormat);
+    signer.reset(new TransactionSigner(signingKey.getBytes()));
   } catch (const std::exception& e) {
     std::cout << invalidPrivateKey;
     return false;
   }
   try {
-    verifier.reset(new TransactionVerifier(publicKey, KeyFormat::HexaDecimalStrippedFormat));
+    const auto verificationKey =
+        getByteArrayKeyClass<PublicKeyClassType, PublicKeyByteSize>(publicKey, KeyFormat::HexaDecimalStrippedFormat);
+    verifier.reset(new TransactionVerifier(verificationKey.getBytes()));
   } catch (const std::exception& e) {
     std::cout << invalidPublicKey;
     return false;

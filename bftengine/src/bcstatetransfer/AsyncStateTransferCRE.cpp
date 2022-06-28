@@ -71,7 +71,7 @@ class Communication : public ICommunication {
   uint16_t repId_;
 };
 
-class InternalSigner : public concord::util::cryptointerface::ISigner {
+class InternalSigner : public concord::crypto::ISigner {
  public:
   std::string sign(const std::string& data) override {
     std::string out;

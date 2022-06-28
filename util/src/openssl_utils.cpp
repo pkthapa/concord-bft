@@ -15,22 +15,18 @@
 #include "Logger.hpp"
 #include "assertUtils.hpp"
 #include "hex_tools.h"
+#include "openssl_crypto.hpp"
+#include "crypto/eddsa/EdDSA.h"
 
 #include <regex>
 #include <utility>
 
 namespace concord::crypto::openssl {
 
-class BIO_Deleter {
- public:
-  void operator()(BIO* p) const { BIO_free(p); }
-};
-
-class X509_Deleter {
- public:
-  void operator()(X509* p) const { X509_free(p); }
-};
-constexpr size_t EDDSA_KEY_SIZE = 32;
+using concord::util::openssl_utils::UniquePKEY;
+using concord::util::openssl_utils::UniqueOpenSSLPKEYContext;
+using concord::util::openssl_utils::UniqueX509;
+using concord::util::openssl_utils::UniqueBIO;
 
 string CertificateUtils::generateSelfSignedCert(const string& origin_cert_path,
                                                 const string& public_key,
@@ -44,14 +40,14 @@ string CertificateUtils::generateSelfSignedCert(const string& origin_cert_path,
     return string();
   }
 
-  unique_ptr<X509, X509_Deleter> cert(PEM_read_X509(fp.get(), NULL, NULL, NULL));
+  UniqueX509 cert(PEM_read_X509(fp.get(), NULL, NULL, NULL));
   if (!cert) {
     LOG_ERROR(OPENSSL_LOG, "Cannot parse certificate, path: " << origin_cert_path);
     return string();
   }
 
-  unique_ptr<EVP_PKEY, EVP_PKEY_Deleter> priv_key(EVP_PKEY_new());
-  unique_ptr<BIO, BIO_Deleter> priv_bio(BIO_new(BIO_s_mem()));
+  UniquePKEY priv_key(EVP_PKEY_new());
+  UniqueBIO priv_bio(BIO_new(BIO_s_mem()));
 
   if (BIO_write(priv_bio.get(), static_cast<const char*>(signing_key.c_str()), signing_key.size()) <= 0) {
     LOG_ERROR(OPENSSL_LOG, "Unable to create private key object");
@@ -62,8 +58,8 @@ string CertificateUtils::generateSelfSignedCert(const string& origin_cert_path,
     LOG_ERROR(OPENSSL_LOG, "Unable to create private key object");
     return string();
   }
-  unique_ptr<EVP_PKEY, EVP_PKEY_Deleter> pub_key(EVP_PKEY_new());
-  unique_ptr<BIO, BIO_Deleter> pub_bio(BIO_new(BIO_s_mem()));
+  UniquePKEY pub_key(EVP_PKEY_new());
+  UniqueBIO pub_bio(BIO_new(BIO_s_mem()));
 
   if (BIO_write(pub_bio.get(), static_cast<const char*>(public_key.c_str()), public_key.size()) <= 0) {
     LOG_ERROR(OPENSSL_LOG, "Unable to create public key object");
@@ -77,7 +73,7 @@ string CertificateUtils::generateSelfSignedCert(const string& origin_cert_path,
   X509_set_pubkey(cert.get(), pub_key.get());
   X509_sign(cert.get(), priv_key.get(), EVP_sha256());
 
-  unique_ptr<BIO, BIO_Deleter> outbio(BIO_new(BIO_s_mem()));
+  UniqueBIO outbio(BIO_new(BIO_s_mem()));
   if (!PEM_write_bio_X509(outbio.get(), cert.get())) {
     LOG_ERROR(OPENSSL_LOG, "Unable to create certificate object");
     return string();
@@ -90,8 +86,8 @@ string CertificateUtils::generateSelfSignedCert(const string& origin_cert_path,
 }
 
 bool CertificateUtils::verifyCertificate(X509* cert, const string& public_key) {
-  unique_ptr<EVP_PKEY, EVP_PKEY_Deleter> pub_key(EVP_PKEY_new());
-  unique_ptr<BIO, BIO_Deleter> pub_bio(BIO_new(BIO_s_mem()));
+  UniquePKEY pub_key(EVP_PKEY_new());
+  UniqueBIO pub_bio(BIO_new(BIO_s_mem()));
 
   if (BIO_write(pub_bio.get(), static_cast<const char*>(public_key.c_str()), public_key.size()) <= 0) {
     return false;
@@ -159,7 +155,7 @@ bool CertificateUtils::verifyCertificate(X509* cert_to_verify,
     return false;
   }
 
-  unique_ptr<X509, X509_Deleter> localCert(PEM_read_X509(fp.get(), NULL, NULL, NULL));
+  UniqueX509 localCert(PEM_read_X509(fp.get(), NULL, NULL, NULL));
   if (!localCert) {
     LOG_ERROR(OPENSSL_LOG, "Cannot parse certificate, path: " << local_cert_path);
     return false;
@@ -170,130 +166,9 @@ bool CertificateUtils::verifyCertificate(X509* cert_to_verify,
   return res;
 }
 
-EdDSASigner::EdDSASigner(const string& strPrivKey, KeyFormat fmt) : keyStr_{strPrivKey} {
-  ConcordAssertGT(strPrivKey.size(), 0);
-
-  if (KeyFormat::PemFormat == fmt) {
-    // Write the key data into a temp file under /tmp/ directory and delete the temp file after usage.
-    const string temp{"/tmp/concordTempPrivKey.pem"};
-    ofstream out(temp.data());
-    out << strPrivKey;
-    out.close();
-
-    auto deleter = [](FILE* fp) {
-      if (nullptr != fp) {
-        fclose(fp);
-      }
-    };
-    unique_ptr<FILE, decltype(deleter)> fp(fopen(temp.data(), "r"), deleter);
-
-    if (nullptr == fp) {
-      LOG_ERROR(OPENSSL_LOG, "Unable to open private key file to initialize signer." << KVLOG(fp.get(), strPrivKey));
-      std::terminate();
-    }
-
-    size_t keyLen{EDDSA_KEY_SIZE};
-    unsigned char privKey[EDDSA_KEY_SIZE]{};
-
-    edPkey_.reset(PEM_read_PrivateKey(fp.get(), nullptr, nullptr, nullptr));
-    ConcordAssertEQ(1,
-                    EVP_PKEY_get_raw_private_key(edPkey_.get(),
-                                                 privKey,
-                                                 &keyLen));  // Extract private key in 'privKey'.
-    keyStr_ = concordUtils::bufferToHex(privKey, EDDSA_KEY_SIZE);
-    remove(temp.data());
-  } else {
-    string privCh = concordUtils::hexToASCII(strPrivKey);
-    edPkey_.reset(
-        EVP_PKEY_new_raw_private_key(NID_ED25519, nullptr, (const unsigned char*)privCh.data(), privCh.size()));
-  }
-  ConcordAssertNE(edPkey_, nullptr);
-}
-
-string EdDSASigner::sign(const string& dataToSign) {
-  unique_ptr<EVP_MD_CTX, EVP_MD_CTX_Deleter> edCtx(EVP_MD_CTX_new());
-
-  ConcordAssertNE(edCtx, nullptr);
-  ConcordAssertEQ(1, EVP_DigestSignInit(edCtx.get(), nullptr, nullptr, nullptr, edPkey_.get()));
-
-  string signature(EdDSA_SIG_LENGTH, 0);
-  ConcordAssertEQ(1,
-                  EVP_DigestSign(edCtx.get(),
-                                 reinterpret_cast<unsigned char*>(signature.data()),
-                                 &sigLen_,
-                                 reinterpret_cast<const unsigned char*>(dataToSign.data()),
-                                 dataToSign.size()));
-  return signature;
-}
-
-uint32_t EdDSASigner::signatureLength() const { return sigLen_; }
-
-string EdDSASigner::getPrivKey() const { return keyStr_; }
-
-EdDSAVerifier::EdDSAVerifier(const string& strPubKey, KeyFormat fmt) : keyStr_{strPubKey} {
-  ConcordAssertGT(strPubKey.size(), 0);
-
-  if (KeyFormat::PemFormat == fmt) {
-    // Write the key data into a temp file under /tmp/ directory and delete the temp file after usage.
-    const string temp{"/tmp/concordTempPubKey.pem"};
-    ofstream out(temp.data());
-    out << strPubKey;
-    out.close();
-
-    auto deleter = [](FILE* fp) {
-      if (nullptr != fp) {
-        fclose(fp);
-      }
-    };
-    unique_ptr<FILE, decltype(deleter)> fp(fopen(temp.data(), "r"), deleter);
-    if (nullptr == fp) {
-      LOG_ERROR(OPENSSL_LOG, "Unable to open public key file to initialize verifier." << KVLOG(fp.get(), strPubKey));
-      std::terminate();
-    }
-
-    size_t keyLen{EDDSA_KEY_SIZE};
-    unsigned char pubKey[EDDSA_KEY_SIZE]{};
-
-    edPkey_.reset(PEM_read_PUBKEY(fp.get(), nullptr, nullptr, nullptr));
-    ConcordAssertEQ(1, EVP_PKEY_get_raw_public_key(edPkey_.get(), pubKey,
-                                                   &keyLen));  // Extract public key in 'pubKey'.
-    keyStr_ = concordUtils::bufferToHex(pubKey, EDDSA_KEY_SIZE);
-    remove(temp.data());
-  } else {
-    string pubCh = concordUtils::hexToASCII(strPubKey);
-    edPkey_.reset(EVP_PKEY_new_raw_public_key(NID_ED25519, nullptr, (const unsigned char*)pubCh.data(), pubCh.size()));
-  }
-  ConcordAssertNE(edPkey_, nullptr);
-}
-
-bool EdDSAVerifier::verify(const string& dataToVerify, const string& sigToVerify) const {
-  sigLen_ = sigToVerify.size();
-  ConcordAssertEQ(sigLen_, EdDSA_SIG_LENGTH);
-
-  unique_ptr<EVP_MD_CTX, EVP_MD_CTX_Deleter> edCtx(EVP_MD_CTX_new());
-
-  ConcordAssert(nullptr != edCtx);
-  ConcordAssertEQ(1, EVP_DigestVerifyInit(edCtx.get(), nullptr, nullptr, nullptr, edPkey_.get()));
-
-  if (1 != EVP_DigestVerify(edCtx.get(),
-                            reinterpret_cast<const unsigned char*>(sigToVerify.data()),
-                            sigLen_,
-                            reinterpret_cast<const unsigned char*>(dataToVerify.data()),
-                            dataToVerify.size())) {
-    LOG_ERROR(OPENSSL_LOG,
-              "EdDSA verification failed." << KVLOG(sigLen_, sigToVerify, dataToVerify.size(), dataToVerify));
-    return false;
-  }
-  return true;
-}
-
-uint32_t EdDSAVerifier::signatureLength() const { return sigLen_; }
-
-string EdDSAVerifier::getPubKey() const { return keyStr_; }
-
 pair<string, string> OpenSSLCryptoImpl::generateEdDSAKeyPair(const KeyFormat fmt) const {
-  unique_ptr<EVP_PKEY, EVP_PKEY_Deleter> edPkey;
-  unique_ptr<EVP_PKEY_CTX, EVP_PKEY_CTX_Deleter> edPkeyCtx(EVP_PKEY_CTX_new_id(NID_ED25519, nullptr));
+  UniquePKEY edPkey;
+  UniqueOpenSSLPKEYContext edPkeyCtx(EVP_PKEY_CTX_new_id(NID_ED25519, nullptr));
 
   ConcordAssertNE(edPkeyCtx, nullptr);
 
@@ -301,10 +176,10 @@ pair<string, string> OpenSSLCryptoImpl::generateEdDSAKeyPair(const KeyFormat fmt
   ConcordAssertEQ(
       1, EVP_PKEY_keygen(edPkeyCtx.get(), reinterpret_cast<EVP_PKEY**>(&edPkey)));  // Generate EdDSA key 'edPkey'.
 
-  unsigned char privKey[EdDSA_SIG_LENGTH]{};
-  unsigned char pubKey[EdDSA_SIG_LENGTH]{};
-  size_t privlen{EdDSA_SIG_LENGTH};
-  size_t publen{EdDSA_SIG_LENGTH};
+  unsigned char privKey[EdDSASignatureByteSize]{};
+  unsigned char pubKey[EdDSASignatureByteSize]{};
+  size_t privlen{EdDSASignatureByteSize};
+  size_t publen{EdDSASignatureByteSize};
 
   ConcordAssertEQ(1, EVP_PKEY_get_raw_private_key(edPkey.get(), privKey, &privlen));
   ConcordAssertEQ(1, EVP_PKEY_get_raw_public_key(edPkey.get(), pubKey, &publen));
@@ -324,10 +199,9 @@ pair<string, string> OpenSSLCryptoImpl::EdDSAHexToPem(const std::pair<std::strin
   string pubPemString;
 
   if (!hex_key_pair.first.empty()) {  // Proceed with private key pem file generation.
-    auto privKey = concordUtils::hexToASCII(hex_key_pair.first);
+    const auto privKey = concordUtils::unhex(hex_key_pair.first);
 
-    unique_ptr<EVP_PKEY, EVP_PKEY_Deleter> ed_privKey(
-        EVP_PKEY_new_raw_private_key(NID_ED25519, nullptr, (const unsigned char*)privKey.data(), privKey.size()));
+    UniquePKEY ed_privKey(EVP_PKEY_new_raw_private_key(NID_ED25519, nullptr, privKey.data(), privKey.size()));
 
     ConcordAssertNE(nullptr, ed_privKey);
 
@@ -351,10 +225,9 @@ pair<string, string> OpenSSLCryptoImpl::EdDSAHexToPem(const std::pair<std::strin
   }
 
   if (!hex_key_pair.second.empty()) {  // Proceed with public key pem file generation.
-    auto pubKey = concordUtils::hexToASCII(hex_key_pair.second);
+    const auto pubKey = concordUtils::unhex(hex_key_pair.second);
 
-    unique_ptr<EVP_PKEY, EVP_PKEY_Deleter> ed_pubKey(
-        EVP_PKEY_new_raw_public_key(NID_ED25519, nullptr, (const unsigned char*)pubKey.data(), pubKey.size()));
+    UniquePKEY ed_pubKey(EVP_PKEY_new_raw_public_key(NID_ED25519, nullptr, pubKey.data(), pubKey.size()));
 
     ConcordAssertNE(nullptr, ed_pubKey);
 

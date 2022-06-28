@@ -43,7 +43,7 @@ class PruningSigner {
   void sign(concord::messages::LatestPrunableBlock &);
 
  private:
-  std::unique_ptr<concord::util::cryptointerface::ISigner> signer_;
+  std::unique_ptr<concord::crypto::ISigner> signer_;
 };
 
 // This class verifies pruning messages that were signed by serializing message
@@ -72,7 +72,7 @@ class PruningVerifier {
  private:
   struct Replica {
     std::uint64_t principal_id{0};
-    std::unique_ptr<concord::util::cryptointerface::IVerifier> verifier;
+    std::unique_ptr<concord::crypto::IVerifier> verifier;
   };
 
   bool verify(std::uint64_t sender, const std::string &ser, const std::string &signature) const;

@@ -14,7 +14,7 @@
 
 #include <string>
 
-namespace concord::util::cryptointerface {
+namespace concord::crypto {
 
 // Interface for verifier.
 class IVerifier {
@@ -33,4 +33,4 @@ class ISigner {
   virtual ~ISigner() = default;
   virtual std::string getPrivKey() const = 0;
 };
-}  // namespace concord::util::cryptointerface
+}  // namespace concord::crypto

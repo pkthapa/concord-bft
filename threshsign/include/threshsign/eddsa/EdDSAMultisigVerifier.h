@@ -17,6 +17,8 @@
 
 class EdDSAMultisigVerifier;
 
+using concord::crypto::openssl::eddsa::EdDSAVerifier;
+
 bool isSignatureValid(const SingleEdDSASignature &signature);
 
 class EdDSASignatureAccumulator : public IThresholdAccumulator {
