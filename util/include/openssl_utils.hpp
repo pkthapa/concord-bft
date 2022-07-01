@@ -22,7 +22,6 @@
 #include <openssl/x509.h>
 #include <openssl/evp.h>
 
-#include "crypto_interface.hpp"
 #include "crypto_utils.hpp"
 
 using std::pair;
@@ -31,8 +30,6 @@ using std::string;
 using std::unique_ptr;
 using std::ofstream;
 using concord::util::crypto::KeyFormat;
-using concord::crypto::ISigner;
-using concord::crypto::IVerifier;
 
 namespace concord::crypto::openssl {
 

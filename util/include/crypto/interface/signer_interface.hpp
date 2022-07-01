@@ -16,15 +16,6 @@
 
 namespace concord::crypto {
 
-// Interface for verifier.
-class IVerifier {
- public:
-  virtual bool verify(const std::string& data, const std::string& sig) const = 0;
-  virtual uint32_t signatureLength() const = 0;
-  virtual ~IVerifier() = default;
-  virtual std::string getPubKey() const = 0;
-};
-
 // Interface for signer.
 class ISigner {
  public:

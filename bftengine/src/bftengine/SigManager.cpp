@@ -19,7 +19,6 @@
 #include "ReplicaConfig.hpp"
 #include "hex_tools.h"
 #include "sign_verify_utils.hpp"
-//#include "SerializableByteArray.hpp"
 
 using namespace std;
 
@@ -45,11 +44,11 @@ std::string SigManager::getClientsPublicKeys() {
 SigManager* SigManager::initImpl(ReplicaId myId,
                                  const Key& mySigPrivateKey,
                                  const std::set<std::pair<PrincipalId, const std::string>>& publicKeysOfReplicas,
-                                 concord::util::crypto::KeyFormat replicasKeysFormat,
+                                 KeyFormat replicasKeysFormat,
                                  const std::set<std::pair<const std::string, std::set<uint16_t>>>* publicKeysOfClients,
-                                 concord::util::crypto::KeyFormat clientsKeysFormat,
+                                 KeyFormat clientsKeysFormat,
                                  ReplicasInfo& replicasInfo) {
-  vector<pair<Key, concord::util::crypto::KeyFormat>> publickeys;
+  vector<pair<Key, KeyFormat>> publickeys;
   map<PrincipalId, SigManager::KeyIndex> publicKeysMapping;
   size_t lowBound, highBound;
   auto numReplicas = replicasInfo.getNumberOfReplicas();
@@ -107,9 +106,9 @@ SigManager* SigManager::initImpl(ReplicaId myId,
 SigManager* SigManager::init(ReplicaId myId,
                              const Key& mySigPrivateKey,
                              const std::set<std::pair<PrincipalId, const std::string>>& publicKeysOfReplicas,
-                             concord::util::crypto::KeyFormat replicasKeysFormat,
+                             KeyFormat replicasKeysFormat,
                              const std::set<std::pair<const std::string, std::set<uint16_t>>>* publicKeysOfClients,
-                             concord::util::crypto::KeyFormat clientsKeysFormat,
+                             KeyFormat clientsKeysFormat,
                              ReplicasInfo& replicasInfo) {
   SigManager* sm = initImpl(myId,
                             mySigPrivateKey,
@@ -123,8 +122,8 @@ SigManager* SigManager::init(ReplicaId myId,
 
 SigManager::SigManager(PrincipalId myId,
                        uint16_t numReplicas,
-                       const pair<Key, concord::util::crypto::KeyFormat>& mySigPrivateKey,
-                       const vector<pair<Key, concord::util::crypto::KeyFormat>>& publickeys,
+                       const pair<Key, KeyFormat>& mySigPrivateKey,
+                       const vector<pair<Key, KeyFormat>>& publickeys,
                        const map<PrincipalId, KeyIndex>& publicKeysMapping,
                        bool clientTransactionSigningEnabled,
                        ReplicasInfo& replicasInfo)
@@ -260,12 +259,12 @@ void SigManager::sign(const char* data, size_t dataLength, char* outSig) const {
 
 uint16_t SigManager::getMySigLength() const { return (uint16_t)mySigner_->signatureLength(); }
 
-void SigManager::setClientPublicKey(const std::string& key, PrincipalId id, concord::util::crypto::KeyFormat format) {
+void SigManager::setClientPublicKey(const std::string& key, PrincipalId id, KeyFormat format) {
   LOG_INFO(KEY_EX_LOG, "client: " << id << " key: " << key << " format: " << (uint16_t)format);
   if (replicasInfo_.isIdOfExternalClient(id) || replicasInfo_.isIdOfClientService(id)) {
     try {
       std::unique_lock lock(mutex_);
-      const auto verificationKey = getByteArrayKeyClass<EdDSAPublicKey, EdDSAPublicKeyByteSize>(key, format);
+      const auto verificationKey = getByteArrayKeyClass<PublicKeyClassType, PublicKeyByteSize>(key, format);
       verifiers_.insert_or_assign(id, std::make_shared<TransactionVerifier>(verificationKey.getBytes()));
     } catch (const std::exception& e) {
       LOG_ERROR(KEY_EX_LOG, "failed to add a key for client: " << id << " reason: " << e.what());

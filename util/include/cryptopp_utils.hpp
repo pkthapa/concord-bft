@@ -14,7 +14,8 @@
 
 #include <memory>
 
-#include "crypto_interface.hpp"
+#include "crypto/interface/signer_interface.hpp"
+#include "crypto/interface/verifier_interface.hpp"
 #include "crypto_utils.hpp"
 
 using concord::util::crypto::KeyFormat;

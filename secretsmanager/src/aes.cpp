@@ -47,13 +47,8 @@ vector<uint8_t> AES_CBC::encrypt(const string& input) const {
     return {};
   }
 
-  auto deleter = [](unsigned char* p) {
-    if (nullptr != p) {
-      delete[] p;
-    }
-  };
-  unique_ptr<unsigned char, decltype(deleter)> ciphertext(new unsigned char[input.size() + AES_BLOCK_SIZE], deleter);
-  unique_ptr<unsigned char, decltype(deleter)> plaintext(new unsigned char[input.size() + 1], deleter);
+  unique_ptr<unsigned char[]> ciphertext(new unsigned char[input.size() + AES_BLOCK_SIZE]);
+  unique_ptr<unsigned char[]> plaintext(new unsigned char[input.size() + 1]);
 
   for (size_t i{0UL}; i < input.size(); ++i) {
     plaintext.get()[i] = (unsigned char)input[i];
@@ -90,13 +85,7 @@ string AES_CBC::decrypt(const vector<uint8_t>& cipher) const {
   const int cipherLength = cipher.capacity();
   int c_len{0}, f_len{0};
 
-  auto deleter = [](unsigned char* p) {
-    if (nullptr != p) {
-      delete[] p;
-    }
-  };
-  unique_ptr<unsigned char, decltype(deleter)> plaintext(new unsigned char[cipherLength], deleter);
-
+  unique_ptr<unsigned char[]> plaintext(new unsigned char[cipherLength]);
   UniqueOpenSSLCipherContext ctx(EVP_CIPHER_CTX_new());
   ConcordAssert(nullptr != ctx);
 

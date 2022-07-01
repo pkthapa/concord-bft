@@ -15,7 +15,7 @@
 #include "EdDSA.h"
 #include "openssl_crypto.hpp"
 #include "crypto_utils.hpp"
-#include "crypto_interface.hpp"
+#include "crypto/interface/signer_interface.hpp"
 
 // OpenSSL includes.
 #include <openssl/pem.h>
