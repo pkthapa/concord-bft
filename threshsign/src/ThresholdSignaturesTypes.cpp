@@ -350,7 +350,6 @@ Cryptosystem* Cryptosystem::fromConfiguration(std::istream& input,
   type = yaml::readValue<std::string>(input, prefix + "_cryptosystem_type");
   subtype = yaml::readValue<std::string>(input, prefix + "_cryptosystem_subtype_parameter");
   std::uint16_t numSigners = yaml::readValue<std::uint16_t>(input, prefix + "_cryptosystem_num_signers");
-  // std::string publicKey = "uninitialized";
   uint16_t threshold = 1;
   if (type == THRESHOLD_BLS_SCHEME || type == MULTISIG_EDDSA_SCHEME)
     threshold = yaml::readValue<std::uint16_t>(input, prefix + "_cryptosystem_threshold");

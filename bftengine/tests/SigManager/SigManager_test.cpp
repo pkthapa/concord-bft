@@ -254,7 +254,7 @@ TEST(SigManagerTest, ReplicasOnlyCheckSign) {
   readFile(pubKeyFullPath, pubKey);
 
   const auto verificationKey =
-      getByteArrayKeyClass<EdDSAPublicKey, EdDSAPublicKeyByteSize>(pubKey, KeyFormat::PemFormat);
+      getByteArrayKeyClass<PublicKeyClassType, PublicKeyByteSize>(pubKey, KeyFormat::PemFormat);
   verifier.reset(new TransactionVerifier(verificationKey.getBytes()));
 
   // load public key of other replicas, must be done for SigManager ctor

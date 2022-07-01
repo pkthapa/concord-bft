@@ -443,8 +443,8 @@ std::pair<bool, NodeNum> AsyncTlsConnection::checkCertificate(X509* received_cer
   if (expected_peer_id.has_value() && peerId != expected_peer_id.value()) return std::make_pair(false, peerId);
   if (res) return std::make_pair(res, peerId);
   LOG_INFO(logger_,
-           "Unable to validate certificate against the local storage, falling back to validate against the RSA "
-           "public key");
+           "Unable to validate certificate against the local storage, falling back to validate against the replica "
+           "main key");
   std::string pem_pub_key = StateControl::instance().getPeerPubKey(peerId);
   if (pem_pub_key.empty()) return std::make_pair(false, peerId);
 #ifdef USE_CRYPTOPP_RSA
