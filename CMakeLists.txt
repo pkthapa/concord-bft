@@ -23,7 +23,6 @@ if(NOT DEFINED USE_LOG4CPP)
     option(USE_LOG4CPP "Enable LOG4CPP" ON)
 endif()
 
-option(USE_RELIC "Enable usage of Relic library for BLS threshold signature generation/verification" OFF)
 option(USE_CRYPTOPP_RSA "Enable usage of Crypto++ library for RSA/ECDSA signature generation/verification" OFF)
 option(USE_EDDSA_SINGLE_SIGN "Enable usage of OpenSSL library for EdDSA signature generation/verification" ON)
 option(RUN_APOLLO_TESTS "Enable Apollo tests run" ON)
