@@ -13,7 +13,8 @@
 #include "PrimitiveTypes.hpp"
 #include "assertUtils.hpp"
 #include "Metrics.hpp"
-#include "cryptopp_utils.hpp"
+#include "crypto_utils.hpp"
+#include "crypto_interface.hpp"
 
 #include <utility>
 #include <vector>
@@ -99,8 +100,8 @@ class SigManager {
                               ReplicasInfo& replicasInfo);
 
   const PrincipalId myId_;
-  std::unique_ptr<concord::util::cryptointerface::ISigner> mySigner_;
-  std::map<PrincipalId, std::shared_ptr<concord::util::cryptointerface::IVerifier>> verifiers_;
+  std::unique_ptr<concord::crypto::ISigner> mySigner_;
+  std::map<PrincipalId, std::shared_ptr<concord::crypto::IVerifier>> verifiers_;
   bool clientTransactionSigningEnabled_ = true;
   ReplicasInfo& replicasInfo_;
 

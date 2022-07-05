@@ -21,9 +21,9 @@
 #include "bftengine/IStateTransfer.hpp"
 #include "Metrics.hpp"
 #include "kvstream.h"
-#include "direct_kv_block.h"
+#include "digest.hpp"
 
-using concord::kvbc::v1DirectKeyValue::block::detail::BlockDigest;
+using concord::util::digest::BlockDigest;
 
 namespace concord {
 namespace storage {
