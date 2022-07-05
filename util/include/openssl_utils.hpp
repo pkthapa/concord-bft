@@ -31,8 +31,8 @@ using std::string;
 using std::unique_ptr;
 using std::ofstream;
 using concord::util::crypto::KeyFormat;
-using concord::util::cryptointerface::ISigner;
-using concord::util::cryptointerface::IVerifier;
+using concord::crypto::ISigner;
+using concord::crypto::IVerifier;
 
 namespace concord::crypto::openssl {
 

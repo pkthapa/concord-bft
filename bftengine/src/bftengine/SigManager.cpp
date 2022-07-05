@@ -136,7 +136,7 @@ SigManager::SigManager(PrincipalId myId,
           metrics_component_.RegisterAtomicCounter("peer_replicas_signature_verification_failed"),
           metrics_component_.RegisterAtomicCounter("peer_replicas_signatures_verified"),
           metrics_component_.RegisterAtomicCounter("signature_verification_failed_on_unrecognized_participant_id")} {
-  map<KeyIndex, std::shared_ptr<concord::util::cryptointerface::IVerifier>> publicKeyIndexToVerifier;
+  map<KeyIndex, std::shared_ptr<concord::crypto::IVerifier>> publicKeyIndexToVerifier;
   size_t numPublickeys = publickeys.size();
 
   ConcordAssert(publicKeysMapping.size() >= numPublickeys);

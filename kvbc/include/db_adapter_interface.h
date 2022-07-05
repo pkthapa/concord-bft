@@ -6,15 +6,15 @@
 
 #include "kv_types.hpp"
 #include <utility>
-#include "direct_kv_block.h"
-
-using concord::kvbc::v1DirectKeyValue::block::detail::BlockDigest;
+#include "digest.hpp"
 
 namespace concord::storage {
 class IDBClient;
 }
 
 namespace concord::kvbc {
+
+using concord::util::digest::BlockDigest;
 
 class NotFoundException : public std::runtime_error {
  public:

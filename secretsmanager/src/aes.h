@@ -36,13 +36,15 @@ using std::vector;
 using std::unique_ptr;
 
 class AES_CBC {
+#ifdef USE_CRYPTOPP_RSA
   CryptoPP::AES::Encryption aesEncryption;
   CryptoPP::AES::Decryption aesDecryption;
   CryptoPP::CBC_Mode_ExternalCipher::Encryption enc;
   CryptoPP::CBC_Mode_ExternalCipher::Decryption dec;
-
+#elif USE_EDDSA_SINGLE_SIGN
   vector<uint8_t> key;
   vector<uint8_t> iv;
+#endif
 
  public:
   static size_t getBlockSize() { return CryptoPP::AES::BLOCKSIZE; }
