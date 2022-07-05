@@ -10,15 +10,16 @@
 // terms and conditions of the subcomponent's license, as noted in the
 // LICENSE file.
 
-#include <regex>
-
 #include "threshsign/ThresholdSignaturesTypes.h"
 #include "threshsign/IThresholdSigner.h"
 #include "threshsign/IThresholdVerifier.h"
-#include "threshsign/bls/relic/BlsThresholdFactory.h"
-#include "threshsign/bls/relic/PublicParametersFactory.h"
+#include "threshsign/IThresholdFactory.h"
+#include "threshsign/ThresholdSignaturesSchemes.h"
 #include "yaml_utils.hpp"
 #include "Logger.hpp"
+#include "string.hpp"
+
+using concord::util::isValidHexString;
 
 Cryptosystem::Cryptosystem(const std::string& sysType,
                            const std::string& sysSubtype,
@@ -42,46 +43,51 @@ Cryptosystem::Cryptosystem(const std::string& sysType,
 
 // Helper function to generateNewPseudorandomKeys.
 IThresholdFactory* Cryptosystem::createThresholdFactory() {
+#ifdef USE_RELIC
   if (type_ == MULTISIG_BLS_SCHEME || forceMultisig_) {
     return new BLS::Relic::BlsThresholdFactory(BLS::Relic::PublicParametersFactory::getByCurveType(subtype_.c_str()),
                                                true);
-  } else if (type_ == THRESHOLD_BLS_SCHEME) {
-    return new BLS::Relic::BlsThresholdFactory(BLS::Relic::PublicParametersFactory::getByCurveType(subtype_.c_str()));
-  } else {
-    // This should never occur because Cryptosystem validates its parameters
-    // in its constructor.
-    throw std::runtime_error(
-        "Using cryptosystem of unsupported"
-        " type: " +
-        type_ + ".");
   }
+  if (type_ == THRESHOLD_BLS_SCHEME) {
+    return new BLS::Relic::BlsThresholdFactory(BLS::Relic::PublicParametersFactory::getByCurveType(subtype_.c_str()));
+  }
+#endif
+
+#ifdef USE_EDDSA_OPENSSL
+  if (type_ == MULTISIG_EDDSA_SCHEME) {
+    return new EdDSAMultisigFactory();
+  }
+#endif
+
+  // This should never occur because Cryptosystem validates its parameters
+  // in its constructor.
+  throw std::runtime_error(
+      "Using cryptosystem of unsupported"
+      " type: " +
+      type_ + ".");
 }
 
 void Cryptosystem::generateNewPseudorandomKeys() {
   std::unique_ptr<IThresholdFactory> factory(createThresholdFactory());
-  std::vector<IThresholdSigner*> signers;
-  IThresholdVerifier* verifier;
 
-  std::tie(signers, verifier) = factory->newRandomSigners(threshold_, numSigners_);
-  if (forceMultisig_ || type_ == THRESHOLD_BLS_SCHEME) publicKey_ = verifier->getPublicKey().toString();
+  auto [signers, verifier] = factory->newRandomSigners(threshold_, numSigners_);
+  if (type_ == THRESHOLD_BLS_SCHEME) publicKey_ = verifier->getPublicKey().toString();
 
   verificationKeys_.clear();
-  verificationKeys_.push_back("");  // Account for 1-indexing of signer IDs.
+  verificationKeys_.resize(static_cast<size_t>(numSigners_ + 1));
+  verificationKeys_[0] = "";  // Account for 1-indexing of signer IDs.
   for (uint16_t i = 1; i <= numSigners_; ++i) {
-    verificationKeys_.push_back(verifier->getShareVerificationKey(static_cast<ShareID>(i)).toString());
+    verificationKeys_[i] = verifier->getShareVerificationKey(static_cast<ShareID>(i)).toString();
   }
 
   privateKeys_.clear();
-  privateKeys_.push_back("");  // Account for 1-indexing of signer IDs.
+  privateKeys_.resize(static_cast<size_t>(numSigners_ + 1));
+  privateKeys_[0] = "";  // Account for 1-indexing of signer IDs.
   for (uint16_t i = 1; i <= numSigners_; ++i) {
-    privateKeys_.push_back(signers[i]->getShareSecretKey().toString());
+    privateKeys_[i] = signers[i]->getShareSecretKey().toString();
   }
 
-  for (auto signer : signers) delete signer;
-
   signerID_ = NID;
-
-  delete verifier;
 }
 
 std::pair<std::string, std::string> Cryptosystem::generateNewKeyPair() {
@@ -217,32 +223,49 @@ IThresholdSigner* Cryptosystem::createThresholdSigner() {
   return factory->newSigner(signerID_, privateKeys_.front().c_str());
 }
 
-static const size_t expectedPublicKeyLength = 130;
-static const size_t expectedVerificationKeyLength = 130;
+void Cryptosystem::validateKey(const std::string& key, size_t expectedSize) const {
+  auto isValidHex = isValidHexString(key);
+  if ((expectedSize == 0 || (key.length() == expectedSize)) && isValidHex) {
+    return;
+  }
+
+  throw std::runtime_error("Invalid key for this cryptosystem (type " + type_ + " and subtype " + subtype_ +
+                           "): " + key + " expected key size: " + std::to_string(expectedSize) + ", Actual key size: " +
+                           std::to_string(key.length()) + ", IsValidHex: " + std::to_string(isValidHex));
+}
 
 void Cryptosystem::validatePublicKey(const std::string& key) const {
-  if (forceMultisig_ || type_ == THRESHOLD_BLS_SCHEME)
-    if (!((key.length() == expectedPublicKeyLength) && (std::regex_match(key, std::regex("[0-9A-Fa-f]+")))))
-      throw std::runtime_error("invalid public key for this cryptosystem (type " + type_ + " and subtype " + subtype_ +
-                               "): " + key);
+#ifdef USE_EDDSA_OPENSSL
+  UNUSED(key);
+  return;
+#else
+  constexpr const size_t expectedKeyLength = 130u;
+  validateKey(key, expectedKeyLength);
+#endif
 }
 
 void Cryptosystem::validateVerificationKey(const std::string& key) const {
-  if (!((key.length() == expectedVerificationKeyLength) && (std::regex_match(key, std::regex("[0-9A-Fa-f]+")))))
-    throw std::runtime_error("invalid verification key for this cryptosystem (type " + type_ + " and subtype " +
-                             subtype_ + "): " + key);
+#ifdef USE_EDDSA_OPENSSL
+  constexpr const size_t expectedKeyLength = EdDSAPublicKeyByteSize * 2;
+#else
+  constexpr const size_t expectedKeyLength = 130u;
+#endif
+  validateKey(key, expectedKeyLength);
 }
 
 void Cryptosystem::validatePrivateKey(const std::string& key) const {
+#ifdef USE_EDDSA_OPENSSL
+  constexpr const size_t expectedKeyLength = EdDSAPrivateKeyByteSize * 2;
+#else
   // We currently do not validate the length of the private key's string
   // representation because the length of its serialization varies slightly.
-
-  if (!std::regex_match(key, std::regex("[0-9A-Fa-f]+")))
-    throw std::runtime_error("invalid private key for cryptosystem (type " + type_ + " and subtype " + subtype_ +
-                             "): " + key);
+  constexpr const size_t expectedKeyLength = 0;
+#endif
+  validateKey(key, expectedKeyLength);
 }
 
 bool Cryptosystem::isValidCryptosystemSelection(const std::string& type, const std::string& subtype) {
+#ifdef USE_RELIC
   if (type == MULTISIG_BLS_SCHEME) {
     try {
       BLS::Relic::BlsThresholdFactory factory(BLS::Relic::PublicParametersFactory::getByCurveType(subtype.c_str()));
@@ -251,16 +274,23 @@ bool Cryptosystem::isValidCryptosystemSelection(const std::string& type, const s
       LOG_FATAL(THRESHSIGN_LOG, e.what());
       return false;
     }
-  } else if (type == THRESHOLD_BLS_SCHEME) {
+  }
+  if (type == THRESHOLD_BLS_SCHEME) {
     try {
       BLS::Relic::BlsThresholdFactory factory(BLS::Relic::PublicParametersFactory::getByCurveType(subtype.c_str()));
       return true;
     } catch (std::exception& e) {
       return false;
     }
-  } else {
-    return false;
   }
+#endif
+#ifdef USE_EDDSA_OPENSSL
+  UNUSED(subtype);
+  if (type == MULTISIG_EDDSA_SCHEME) {
+    return true;
+  }
+#endif
+  return false;
 }
 
 bool Cryptosystem::isValidCryptosystemSelection(const std::string& type,
@@ -279,16 +309,17 @@ bool Cryptosystem::isValidCryptosystemSelection(const std::string& type,
   return isValidCryptosystemSelection(type, subtype);
 }
 
-void Cryptosystem::getAvailableCryptosystemTypes(std::vector<std::pair<std::string, std::string>>& ret) {
-  std::pair<std::string, std::string> p;
-
-  p.first = MULTISIG_BLS_SCHEME;
-  p.second = "an elliptical curve type, for example, BN-P254";
-  ret.push_back(p);
-
-  p.first = THRESHOLD_BLS_SCHEME;
-  p.second = "an elliptical curve type, for example, BN-P254";
-  ret.push_back(p);
+const std::vector<std::pair<std::string, std::string>>& Cryptosystem::getAvailableCryptosystemTypes() {
+  static const std::vector<std::pair<std::string, std::string>> cryptoSystems = {
+#ifdef USE_RELIC
+      {MULTISIG_BLS_SCHEME, "an elliptical curve type, for example, BN-P254"},
+      {THRESHOLD_BLS_SCHEME, "an elliptical curve type, for example, BN-P254"},
+#endif
+#ifdef USE_EDDSA_OPENSSL
+      {MULTISIG_EDDSA_SCHEME, "EdDSA 25519"}
+#endif
+  };
+  return cryptoSystems;
 }
 void Cryptosystem::writeConfiguration(std::ostream& output, const std::string& prefix, const uint16_t& replicaId) {
   uint16_t numReplicas = getNumSigners();
@@ -296,7 +327,8 @@ void Cryptosystem::writeConfiguration(std::ostream& output, const std::string& p
   output << prefix << "_cryptosystem_type: " << getType() << "\n";
   output << prefix << "_cryptosystem_subtype_parameter: " << getSubtype() << "\n";
   output << prefix << "_cryptosystem_num_signers: " << numReplicas << "\n";
-  if (getType() == THRESHOLD_BLS_SCHEME) output << prefix << "_cryptosystem_threshold: " << getThreshold() << "\n";
+  if (getType() == THRESHOLD_BLS_SCHEME || getType() == MULTISIG_EDDSA_SCHEME)
+    output << prefix << "_cryptosystem_threshold: " << getThreshold() << "\n";
   output << prefix << "_cryptosystem_public_key: " << getSystemPublicKey() << "\n";
   std::vector<std::string> verificationKeys = getSystemVerificationKeys();
   output << prefix << "_cryptosystem_verification_keys:\n";
@@ -320,7 +352,7 @@ Cryptosystem* Cryptosystem::fromConfiguration(std::istream& input,
   std::uint16_t numSigners = yaml::readValue<std::uint16_t>(input, prefix + "_cryptosystem_num_signers");
   std::string publicKey = "uninitialized";
   uint16_t threshold = 1;
-  if (type == THRESHOLD_BLS_SCHEME)
+  if (type == THRESHOLD_BLS_SCHEME || type == MULTISIG_EDDSA_SCHEME)
     threshold = yaml::readValue<std::uint16_t>(input, prefix + "_cryptosystem_threshold");
   else if (type == MULTISIG_BLS_SCHEME)
     threshold = numSigners;

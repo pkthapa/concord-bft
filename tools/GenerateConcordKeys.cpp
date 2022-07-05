@@ -22,7 +22,7 @@
 
 #include "threshsign/ThresholdSignaturesTypes.h"
 #include "KeyfileIOUtils.hpp"
-
+#include "util/filesystem.hpp"
 // Helper functions and static state to this executable's main function.
 
 static bool containsHelpOption(int argc, char** argv) {
@@ -98,8 +98,7 @@ int main(int argc, char** argv) {
         "  --opptimistic_commit_cryptosys SYSTEM_TYPE PARAMETER\n"
         "Currently, the following cryptosystem types are supported (and take the following as parameters):\n";
 
-    std::vector<std::pair<std::string, std::string>> cryptosystemTypes;
-    Cryptosystem::getAvailableCryptosystemTypes(cryptosystemTypes);
+    auto& cryptosystemTypes = Cryptosystem::getAvailableCryptosystemTypes();
     for (size_t i = 0; i < cryptosystemTypes.size(); ++i) {
       usageMessage += "  " + cryptosystemTypes[i].first + " (" + cryptosystemTypes[i].second + ")\n";
     }
@@ -120,12 +119,27 @@ int main(int argc, char** argv) {
     uint16_t ro = 0;
     std::string outputPrefix;
 
-    std::string slowType = MULTISIG_BLS_SCHEME;
-    std::string slowParam = "BN-P254";
-    std::string commitType = MULTISIG_BLS_SCHEME;
-    std::string commitParam = "BN-P254";
-    std::string optType = MULTISIG_BLS_SCHEME;
-    std::string optParam = "BN-P254";
+    std::string defaultSysType = "UninitializedCryptoSystem";
+    std::string defaultSubSysType = "UninitializedCryptoSubSystem";
+
+#ifdef USE_RELIC
+    defaultSysType = MULTISIG_BLS_SCHEME;
+    defaultSubSysType = "BN-P254";
+#endif
+
+// Note that if both USE_RELIC and MULTISIG_EDDSA_SCHEME macros are set, the last option is the one which will be taken
+#ifdef USE_EDDSA_OPENSSL
+    defaultSysType = MULTISIG_EDDSA_SCHEME;
+    defaultSubSysType = "ED25519";
+#endif
+
+    // These are currently unused
+    std::string slowType = defaultSysType;
+    std::string slowParam = defaultSubSysType;
+    std::string commitType = defaultSysType;
+    std::string commitParam = defaultSubSysType;
+    std::string optType = defaultSysType;
+    std::string optParam = defaultSubSysType;
 
     for (int i = 1; i < argc; ++i) {
       std::string option(argv[i]);
@@ -194,8 +208,11 @@ int main(int argc, char** argv) {
     }
 
     // We want to generate public key for n-out-of-n case
-    Cryptosystem cryptoSys(MULTISIG_BLS_SCHEME, "BN-P254", n, n);
+    Cryptosystem cryptoSys(defaultSysType, defaultSubSysType, n, n);
     cryptoSys.generateNewPseudorandomKeys();
+
+    LOG_INFO(GL, "Outputting replica keys to: " << fs::absolute(outputPrefix).parent_path().string());
+
     // Output the generated keys.
     for (uint16_t i = 0; i < n; ++i) {
       config.replicaId = i;

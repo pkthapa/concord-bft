@@ -1,24 +1,35 @@
 set(common_source_files
-    XAssert.cpp
-    Utils.cpp
-    Timer.cpp
-    IPublicKey.cpp
-    ISecretKey.cpp
-    IPublicParameters.cpp
-    IThresholdVerifier.cpp
-    VectorOfShares.cpp
-    ThresholdSignaturesTypes.cpp
-)
+        XAssert.cpp
+        Utils.cpp
+        Timer.cpp
+        IPublicParameters.cpp
+        VectorOfShares.cpp
+        ThresholdSignaturesTypes.cpp
+        )
 
-add_library(common OBJECT ${common_source_files})
+add_library(threshsign STATIC ${common_source_files})
+target_include_directories(threshsign PUBLIC ../include)
+target_link_libraries(threshsign PUBLIC Threads::Threads)
 
-if(BUILD_THIRDPARTY)
-    add_dependencies(common relic)
+if(USE_RELIC)
+    message(STATUS "Using Relic BLS threshold signatures")
+    add_subdirectory(bls)
+    target_compile_definitions(threshsign PUBLIC USE_RELIC)
+    link_with_relic_library(threshsign)
+    target_sources(threshsign PUBLIC $<TARGET_OBJECTS:bls_relic>)
 endif()
 
-target_include_directories(common PRIVATE ../include ${RELIC_INCLUDE_DIRS})
+if(USE_EDDSA_OPENSSL)
+    message(STATUS "Using OpenSSL EdDSA threshold signatures")
+    add_subdirectory(eddsa)
+    target_compile_definitions(threshsign PUBLIC USE_EDDSA_OPENSSL)
+    if(NOT BUILD_THIRDPARTY)
+        find_package(OpenSSL REQUIRED)
+    endif()
+    target_link_libraries(threshsign PUBLIC OpenSSL::Crypto)
+    target_sources(threshsign PUBLIC $<TARGET_OBJECTS:eddsa_openssl>)
+endif()
 
-add_subdirectory(bls)
-if (BUILD_TESTING)
-	add_subdirectory(app)
+if(BUILD_TESTING)
+    add_subdirectory(app)
 endif()
