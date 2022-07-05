@@ -13,8 +13,12 @@
 
 #include "digest_type.hpp"
 #include "digest_holder.hpp"
+
+#if defined USE_CRYPTOPP_SHA_256
 #include "cryptopp_digest_creator.hpp"
+#elif defined USE_OPENSSL_SHA_256 || defined USE_OPENSSL_SHA3_256
 #include "openssl_digest_creator.hpp"
+#endif
 
 namespace concord::util::digest {
 

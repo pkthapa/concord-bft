@@ -21,6 +21,10 @@
 
 namespace concord::secretsmanager {
 
+using std::vector;
+using std::string;
+using std::unique_ptr;
+using concord::util::openssl_utils::OPENSSL_SUCCESS;
 using concord::util::openssl_utils::UniqueOpenSSLCipherContext;
 
 AES_CBC::AES_CBC(const KeyParams& params) {
@@ -60,14 +64,15 @@ vector<uint8_t> AES_CBC::encrypt(const string& input) const {
   int c_len{0};
   int f_len{0};
 
-  ConcordAssert(1 == EVP_EncryptInit_ex(ctx.get(), EVP_aes_256_cbc(), nullptr, key.data(), iv.data()));
-  ConcordAssert(1 == EVP_EncryptUpdate(ctx.get(), ciphertext.get(), &c_len, plaintext.get(), input.size()));
-  ConcordAssert(1 == EVP_EncryptFinal_ex(ctx.get(), ciphertext.get() + c_len, &f_len));
+  ConcordAssert(OPENSSL_SUCCESS == EVP_EncryptInit_ex(ctx.get(), EVP_aes_256_cbc(), nullptr, key.data(), iv.data()));
+  ConcordAssert(OPENSSL_SUCCESS ==
+                EVP_EncryptUpdate(ctx.get(), ciphertext.get(), &c_len, plaintext.get(), input.size()));
+  ConcordAssert(OPENSSL_SUCCESS == EVP_EncryptFinal_ex(ctx.get(), ciphertext.get() + c_len, &f_len));
 
   const int encryptedMsgLen = c_len + f_len;
   vector<uint8_t> cipher(encryptedMsgLen);
   for (int i = 0; i < encryptedMsgLen; ++i) {
-    cipher[i] = (unsigned char)ciphertext.get()[i];  // Copy one character at a time.
+    cipher[i] = ciphertext.get()[i];  // Copy one character at a time.
   }
   return cipher;
 #endif
@@ -89,18 +94,17 @@ string AES_CBC::decrypt(const vector<uint8_t>& cipher) const {
   UniqueOpenSSLCipherContext ctx(EVP_CIPHER_CTX_new());
   ConcordAssert(nullptr != ctx);
 
-  ConcordAssert(1 == EVP_DecryptInit_ex(ctx.get(), EVP_aes_256_cbc(), nullptr, key.data(), iv.data()));
+  ConcordAssert(OPENSSL_SUCCESS == EVP_DecryptInit_ex(ctx.get(), EVP_aes_256_cbc(), nullptr, key.data(), iv.data()));
   EVP_CIPHER_CTX_set_key_length(ctx.get(), EVP_MAX_KEY_LENGTH);
   ConcordAssert(
-      1 == EVP_DecryptUpdate(ctx.get(), plaintext.get(), &c_len, (const unsigned char*)cipher.data(), cipherLength));
-  ConcordAssert(1 == EVP_DecryptFinal_ex(ctx.get(), plaintext.get() + c_len, &f_len));
+      OPENSSL_SUCCESS ==
+      EVP_DecryptUpdate(ctx.get(), plaintext.get(), &c_len, (const unsigned char*)cipher.data(), cipherLength));
+  ConcordAssert(OPENSSL_SUCCESS == EVP_DecryptFinal_ex(ctx.get(), plaintext.get() + c_len, &f_len));
 
   plaintext.get()[c_len + f_len] = 0;
 
   vector<uint8_t> temp(c_len + f_len);
-  for (int i{0}; i < c_len + f_len; ++i) {
-    temp[i] = plaintext.get()[i];
-  }
+  memcpy(&temp[0], plaintext.get(), c_len + f_len);
   return string(temp.begin(), temp.end());
 #endif
 }

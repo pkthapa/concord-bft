@@ -20,6 +20,7 @@
 #include <exception>
 #include "KeyfileIOUtils.hpp"
 #include "yaml_utils.hpp"
+#include "crypto/eddsa/EdDSA.h"
 
 void outputReplicaKeyfile(uint16_t numReplicas,
                           uint16_t numRoReplicas,
@@ -75,15 +76,13 @@ static void validateRSAPrivateKey(const std::string& key) {
 }
 #elif USE_EDDSA_SINGLE_SIGN
 static void validateEdDSAPublicKey(const std::string& key) {
-  const size_t eddsaPublicKeyHexadecimalLength{64UL};
-  if (!(key.length() == eddsaPublicKeyHexadecimalLength) && (std::regex_match(key, std::regex("[0-9A-Fa-f]+")))) {
+  if (!(key.length() == EdDSAPublicKeyByteSize * 2) && (std::regex_match(key, std::regex("[0-9A-Fa-f]+")))) {
     throw std::runtime_error("Invalid EdDSA public key: " + key);
   }
 }
 
 static void validateEdDSAPrivateKey(const std::string& key) {
-  const size_t eddsaPrivateKeyHexadecimalLength{64UL};
-  if (!(key.length() == eddsaPrivateKeyHexadecimalLength) && (std::regex_match(key, std::regex("[0-9A-Fa-f]+")))) {
+  if (!(key.length() == EdDSAPrivateKeyByteSize * 2) && (std::regex_match(key, std::regex("[0-9A-Fa-f]+")))) {
     throw std::runtime_error("Invalid EdDSA private key: " + key);
   }
 }

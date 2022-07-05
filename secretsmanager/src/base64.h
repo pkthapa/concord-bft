@@ -24,23 +24,20 @@
 #include <openssl/pem.h>
 
 namespace concord::secretsmanager {
-using std::string;
-using std::vector;
-using std::unique_ptr;
 
 /*
  * Encode message to Base64 string.
  * @param cipher_text (input) Message to be encoded.
  * @return Base64 encoded message.
  */
-string base64Enc(const vector<uint8_t>& cipher_text);
+std::string base64Enc(const std::vector<uint8_t>& cipher_text);
 
 /*
  * Decode Base64 string.
  * @param b64message (input) Base64 encoded message.
  * @return Decoded, but encrypted message.
  */
-vector<uint8_t> base64Dec(const string& input);
+std::vector<uint8_t> base64Dec(const std::string& input);
 
 size_t calcDecodeLength(const char* b64input);
 

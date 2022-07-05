@@ -99,6 +99,10 @@ add_executable(openssl_digest_creator_test openssl_digest_creator_test.cpp)
 add_test(openssl_digest_creator_test openssl_digest_creator_test)
 target_link_libraries(openssl_digest_creator_test GTest::Main util)
 
-add_executable(digest_holder_test digest_holder_test.cpp)
-add_test(digest_holder_test digest_holder_test)
-target_link_libraries(digest_holder_test GTest::Main util)
+add_executable(cryptopp_digest_holder_test cryptopp_digest_holder_test.cpp)
+add_test(cryptopp_digest_holder_test cryptopp_digest_holder_test)
+target_link_libraries(cryptopp_digest_holder_test GTest::Main util)
+
+add_executable(openssl_digest_holder_test openssl_digest_holder_test.cpp)
+add_test(openssl_digest_holder_test openssl_digest_holder_test)
+target_link_libraries(openssl_digest_holder_test GTest::Main util)
