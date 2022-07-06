@@ -22,7 +22,6 @@ namespace concord::secretsmanager {
 
 using std::string;
 using std::vector;
-using std::unique_ptr;
 
 string base64Enc(const vector<uint8_t>& cipher_text) {
 #ifdef USE_CRYPTOPP_RSA
