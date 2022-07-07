@@ -205,23 +205,15 @@ pair<string, string> OpenSSLCryptoImpl::EdDSAHexToPem(const std::pair<std::strin
 
     ConcordAssertNE(nullptr, ed_privKey);
 
-    const char* const tempPrivPem = "/tmp/concordTempPrivKey.pem";
-
-    FILE* fp = fopen(tempPrivPem, "w");
+    auto fp = tmpfile();
     PEM_write_PrivateKey(fp, ed_privKey.get(), nullptr, nullptr, 0, nullptr, nullptr);
-    fclose(fp);
+    std::rewind(fp);
 
-    // Read private key from pem file.
-    std::ifstream privPem(tempPrivPem);
-    if (privPem.is_open()) {
-      string temp;
-
-      while (privPem.good()) {
-        getline(privPem, temp);
-        privPemString += temp + '\n';
-      }
+    char ch{'\0'};
+    while (((ch = fgetc(fp)) != EOF)) {
+      privPemString += ch;
     }
-    remove(tempPrivPem);
+    fclose(fp);
   }
 
   if (!hex_key_pair.second.empty()) {  // Proceed with public key pem file generation.
@@ -231,23 +223,15 @@ pair<string, string> OpenSSLCryptoImpl::EdDSAHexToPem(const std::pair<std::strin
 
     ConcordAssertNE(nullptr, ed_pubKey);
 
-    const char* const tempPubPem = "/tmp/concordTempPubKey.pem";
-
-    FILE* fp = fopen(tempPubPem, "w");
+    auto fp = tmpfile();
     PEM_write_PUBKEY(fp, ed_pubKey.get());
-    fclose(fp);
+    std::rewind(fp);
 
-    // Read public key from pem file.
-    std::ifstream pubPem(tempPubPem);
-    if (pubPem.is_open()) {
-      string temp;
-
-      while (pubPem.good()) {
-        getline(pubPem, temp);
-        pubPemString += temp + '\n';
-      }
+    char ch{'\0'};
+    while (((ch = fgetc(fp)) != EOF)) {
+      pubPemString += ch;
     }
-    remove(tempPubPem);
+    fclose(fp);
   }
   return make_pair(privPemString, pubPemString);
 }

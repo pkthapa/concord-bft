@@ -23,9 +23,9 @@ using namespace concord::secretsmanager;
 using namespace bftEngine;
 using namespace bftEngine::impl;
 using concord::util::crypto::KeyFormat;
-using concord::signerverifier::PrivateKeyClassType;
-using concord::signerverifier::PrivateKeyByteSize;
-using concord::signerverifier::TransactionSigner;
+using concord::crypto::signature::PrivateKeyClassType;
+using concord::crypto::signature::PrivateKeyByteSize;
+using concord::crypto::signature::TransactionSigner;
 
 namespace bft::client {
 

@@ -44,7 +44,7 @@ class EdDSAPublicKey : public SerializableByteArray<EdDSAPublicKeyByteSize> {
  */
 template <typename ByteArrayKeyClass, size_t KeyLength>
 static std::vector<uint8_t> extractHexKeyFromPem(const std::string& pemKey) {
-  concord::util::openssl_utils::UniquePKEY pkey;
+  UniquePKEY pkey;
   const std::string temp{"/tmp/concordTempKey.pem"};
 
   std::ofstream out(temp.data());
@@ -65,13 +65,12 @@ static std::vector<uint8_t> extractHexKeyFromPem(const std::string& pemKey) {
   size_t keyLen{KeyLength};
   unsigned char extractedKey[KeyLength]{'\0'};
 
-  std::string hexKey;
   if constexpr (std::is_same_v<ByteArrayKeyClass, EdDSAPrivateKey>) {
     pkey.reset(PEM_read_PrivateKey(fp.get(), nullptr, nullptr, nullptr));
     ConcordAssertEQ(
         EVP_PKEY_get_raw_private_key(pkey.get(), extractedKey, &keyLen),  // Extract private key in 'extractedKey'.
         OPENSSL_SUCCESS);
-  } else if (std::is_same_v<ByteArrayKeyClass, EdDSAPublicKey>) {
+  } else if constexpr (std::is_same_v<ByteArrayKeyClass, EdDSAPublicKey>) {
     pkey.reset(PEM_read_PUBKEY(fp.get(), nullptr, nullptr, nullptr));
     ConcordAssertEQ(
         EVP_PKEY_get_raw_public_key(pkey.get(), extractedKey, &keyLen),  // Extract public key in 'extractedKey'.

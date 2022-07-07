@@ -34,9 +34,9 @@ namespace concord::reconfiguration {
 
 using namespace concord::messages;
 using concord::util::crypto::KeyFormat;
-using concord::signerverifier::PublicKeyClassType;
-using concord::signerverifier::PublicKeyByteSize;
-using concord::signerverifier::TransactionVerifier;
+using concord::crypto::signature::PublicKeyClassType;
+using concord::crypto::signature::PublicKeyByteSize;
+using concord::crypto::signature::TransactionVerifier;
 
 bool ReconfigurationHandler::handle(const WedgeCommand& cmd,
                                     uint64_t bft_seq_num,

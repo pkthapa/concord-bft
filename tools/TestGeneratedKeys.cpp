@@ -23,12 +23,14 @@
 #include "KeyfileIOUtils.hpp"
 #include "sign_verify_utils.hpp"
 
-using concord::signerverifier::PrivateKeyClassType;
-using concord::signerverifier::PrivateKeyByteSize;
-using concord::signerverifier::PublicKeyClassType;
-using concord::signerverifier::PublicKeyByteSize;
-using concord::signerverifier::TransactionSigner;
-using concord::signerverifier::TransactionVerifier;
+using concord::crypto::ISigner;
+using concord::crypto::IVerifier;
+using concord::crypto::signature::PrivateKeyClassType;
+using concord::crypto::signature::PrivateKeyByteSize;
+using concord::crypto::signature::PublicKeyClassType;
+using concord::crypto::signature::PublicKeyByteSize;
+using concord::crypto::signature::TransactionSigner;
+using concord::crypto::signature::TransactionVerifier;
 using concord::util::crypto::KeyFormat;
 
 // How often to output status when testing cryptosystems, measured as an
@@ -130,157 +132,39 @@ static bool validateFundamentalFields(const std::vector<TestReplicaConfig>& conf
   return true;
 }
 
+// Helper function to test replica keys to test the compatibility of a single key pair.
+static bool testReplicaKeyPair(const std::string& privateKey, const std::string& publicKey, uint16_t replicaID) {
+  // The signer and verifier are stored with unique pointers rather than by
+  // value so that they can be constructed in try/catch statements without
+  // limiting their scope to those statements; declaring them by value is not
+  // possible in this case becuause they lack paramter-less default
+  // constructors.
+  std::unique_ptr<ISigner> signer;
+  std::unique_ptr<IVerifier> verifier;
+
+  const std::string invalidPrivateKey = "FAILURE: Invalid private key for replica " + std::to_string(replicaID) + ".\n";
+  const std::string invalidPublicKey = "FAILURE: Invalid public key for replica " + std::to_string(replicaID) + ".\n";
+
+  try {
 #ifdef USE_CRYPTOPP_RSA
-// Helper function to test RSA keys to test the compatibility of a single key
-// pair.
-static bool testRSAKeyPair(const std::string& privateKey, const std::string& publicKey, uint16_t replicaID) {
-  // The signer and verifier are stored with unique pointers rather than by
-  // value so that they can be constructed in try/catch statements without
-  // limiting their scope to those statements; declaring them by value is not
-  // possible in this case becuause they lack paramter-less default
-  // constructors.
-  std::unique_ptr<TransactionSigner> signer;
-  std::unique_ptr<TransactionVerifier> verifier;
-
-  std::string invalidPrivateKey = "FAILURE: Invalid RSA private key for replica " + std::to_string(replicaID) + ".\n";
-  std::string invalidPublicKey = "FAILURE: Invalid RSA public key for replica " + std::to_string(replicaID) + ".\n";
-
-  try {
     signer.reset(new TransactionSigner(privateKey, KeyFormat::HexaDecimalStrippedFormat));
-  } catch (std::exception& e) {
-    std::cout << invalidPrivateKey;
-    return false;
-  }
-  try {
-    verifier.reset(new TransactionVerifier(publicKey, KeyFormat::HexaDecimalStrippedFormat));
-  } catch (std::exception& e) {
-    std::cout << invalidPublicKey;
-    return false;
-  }
-
-  for (auto iter = std::begin(kHashesToTest); iter != std::end(kHashesToTest); ++iter) {
-    const std::string& hash = *iter;
-
-    std::string sig;
-    try {
-      sig = signer->sign(hash);
-      if (sig.empty()) {
-        std::cout << "FAILURE: Failed to sign data with"
-                     " replica "
-                  << replicaID << "'s RSA private key.\n";
-        return false;
-      }
-    } catch (std::exception& e) {
-      std::cout << invalidPrivateKey;
-      return false;
-    }
-
-    try {
-      if (!verifier->verify(hash, sig)) {
-        std::cout << "FAILURE: A signature with replica " << replicaID
-                  << "'s RSA private key could not be verified with"
-                     " replica "
-                  << replicaID << "'s RSA public key.\n";
-        return false;
-      }
-    } catch (std::exception& e) {
-      std::cout << invalidPublicKey;
-      return false;
-    }
-  }
-
-  return true;
-}
-
-// Test that the RSA key pairs given in the keyfiles work, that the keyfiles
-// agree on what the public keys are, and that there are no duplicates.
-static bool testRSAKeys(const std::vector<TestReplicaConfig>& configs) {
-  uint16_t numReplicas = configs.size();
-
-  std::cout << "Testing " << numReplicas << " RSA key pairs...\n";
-  std::unordered_map<uint16_t, std::string> expectedPublicKeys;
-  std::unordered_set<std::string> rsaPublicKeysSeen;
-
-  // Test that a signature produced with each replica's private key can be
-  // verified with that replica's public key.
-  for (uint16_t i = 0; i < numReplicas; ++i) {
-    std::string privateKey = configs[i].replicaPrivateKey;
-    std::string publicKey;
-
-    for (const auto& publicKeyEntry : configs[i].publicKeysOfReplicas) {
-      if (publicKeyEntry.first == i) {
-        publicKey = publicKeyEntry.second;
-      }
-    }
-
-    if (!testRSAKeyPair(privateKey, publicKey, i)) {
-      return false;
-    }
-
-    if (rsaPublicKeysSeen.count(publicKey) > 0) {
-      uint16_t existingKeyholder;
-      for (const auto& publicKeyEntry : expectedPublicKeys) {
-        if (publicKeyEntry.second == publicKey) {
-          existingKeyholder = publicKeyEntry.first;
-        }
-      }
-      std::cout << "FAILURE: Replicas " << existingKeyholder << " and " << i << " share the same RSA public key.\n";
-      return false;
-    }
-    expectedPublicKeys[i] = publicKey;
-
-    if (((i + 1) % kTestProgressReportingInterval) == 0) {
-      std::cout << "Tested " << (i + 1) << " out of " << numReplicas << " RSA key pairs...\n";
-    }
-  }
-
-  std::cout << "Verifying that all replicas agree on RSA public keys...\n";
-
-  // Verify that all replicas' keyfiles agree on the RSA public keys.
-  for (uint16_t i = 0; i < numReplicas; ++i) {
-    for (const auto& publicKeyEntry : configs[i].publicKeysOfReplicas) {
-      if (publicKeyEntry.second != expectedPublicKeys[publicKeyEntry.first]) {
-        std::cout << "FAILURE: Replica " << i
-                  << " has an"
-                     " incorrect RSA public key for replica "
-                  << publicKeyEntry.first << ".\n";
-        return false;
-      }
-    }
-  }
-
-  std::cout << "All RSA key tests were successful.\n";
-
-  return true;
-}
 #elif USE_EDDSA_SINGLE_SIGN
-// Helper function to test EdDSA keys to test the compatibility of a single key pair.
-static bool testEdDSAKeyPair(const std::string& privateKey, const std::string& publicKey, uint16_t replicaID) {
-  // The signer and verifier are stored with unique pointers rather than by
-  // value so that they can be constructed in try/catch statements without
-  // limiting their scope to those statements; declaring them by value is not
-  // possible in this case becuause they lack paramter-less default
-  // constructors.
-  std::unique_ptr<TransactionSigner> signer;
-  std::unique_ptr<TransactionVerifier> verifier;
-
-  const std::string invalidPrivateKey =
-      "FAILURE: Invalid EdDSA private key for replica " + std::to_string(replicaID) + ".\n";
-  const std::string invalidPublicKey =
-      "FAILURE: Invalid EdDSA public key for replica " + std::to_string(replicaID) + ".\n";
-
-  try {
     const auto signingKey =
         getByteArrayKeyClass<PrivateKeyClassType, PrivateKeyByteSize>(privateKey, KeyFormat::HexaDecimalStrippedFormat);
     signer.reset(new TransactionSigner(signingKey.getBytes()));
+#endif
   } catch (const std::exception& e) {
     std::cout << invalidPrivateKey;
     return false;
   }
   try {
+#ifdef USE_CRYPTOPP_RSA
+    verifier.reset(new TransactionVerifier(publicKey, KeyFormat::HexaDecimalStrippedFormat));
+#elif USE_EDDSA_SINGLE_SIGN
     const auto verificationKey =
         getByteArrayKeyClass<PublicKeyClassType, PublicKeyByteSize>(publicKey, KeyFormat::HexaDecimalStrippedFormat);
     verifier.reset(new TransactionVerifier(verificationKey.getBytes()));
+#endif
   } catch (const std::exception& e) {
     std::cout << invalidPublicKey;
     return false;
@@ -293,7 +177,7 @@ static bool testEdDSAKeyPair(const std::string& privateKey, const std::string& p
     try {
       sig = signer->sign(hash);
       if (sig.empty()) {
-        std::cout << "FAILURE: Failed to sign data with replica " << replicaID << "'s EdDSA private key.\n";
+        std::cout << "FAILURE: Failed to sign data with replica " << replicaID << "'s private key.\n";
         return false;
       }
     } catch (std::exception& e) {
@@ -304,8 +188,7 @@ static bool testEdDSAKeyPair(const std::string& privateKey, const std::string& p
     try {
       if (!verifier->verify(hash, sig)) {
         std::cout << "FAILURE: A signature with replica " << replicaID
-                  << "'s EdDSA private key could not be verified with replica " << replicaID
-                  << "'s EdDSA public key.\n";
+                  << "'s private key could not be verified with replica " << replicaID << "'s public key.\n";
         return false;
       }
     } catch (std::exception& e) {
@@ -316,14 +199,14 @@ static bool testEdDSAKeyPair(const std::string& privateKey, const std::string& p
   return true;
 }
 
-// Test that the EdDSA key pairs given in the keyfiles work, that the keyfiles
+// Test that the replica key pairs (could be RSA, or EdDSA key pair) given in the keyfiles work, that the keyfiles
 // agree on what the public keys are, and that there are no duplicates.
-static bool testEdDSAKeys(const std::vector<TestReplicaConfig>& configs) {
+static bool testReplicaKeys(const std::vector<TestReplicaConfig>& configs) {
   uint16_t numReplicas = configs.size();
 
-  std::cout << "Testing " << numReplicas << " EdDSA key pairs...\n";
+  std::cout << "Testing " << numReplicas << " replicas key pairs...\n";
   std::unordered_map<uint16_t, std::string> expectedPublicKeys;
-  std::unordered_set<std::string> eddsaPublicKeysSeen;
+  std::unordered_set<std::string> replicaPublicKeysSeen;
 
   // Test that a signature produced with each replica's private key can be
   // verified with that replica's public key.
@@ -337,45 +220,43 @@ static bool testEdDSAKeys(const std::vector<TestReplicaConfig>& configs) {
       }
     }
 
-    if (!testEdDSAKeyPair(privateKey, publicKey, i)) {
+    if (!testReplicaKeyPair(privateKey, publicKey, i)) {
       return false;
     }
 
-    if (eddsaPublicKeysSeen.count(publicKey) > 0) {
+    if (replicaPublicKeysSeen.count(publicKey) > 0) {
       uint16_t existingKeyholder;
       for (const auto& publicKeyEntry : expectedPublicKeys) {
         if (publicKeyEntry.second == publicKey) {
           existingKeyholder = publicKeyEntry.first;
         }
       }
-      std::cout << "FAILURE: Replicas " << existingKeyholder << " and " << i << " share the same EdDSA public key.\n";
+      std::cout << "FAILURE: Replicas " << existingKeyholder << " and " << i << " share the same replica public key.\n";
       return false;
     }
     expectedPublicKeys[i] = publicKey;
 
     if (((i + 1) % kTestProgressReportingInterval) == 0) {
-      std::cout << "Tested " << (i + 1) << " out of " << numReplicas << " EdDSA key pairs...\n";
+      std::cout << "Tested " << (i + 1) << " out of " << numReplicas << " replica key pairs...\n";
     }
   }
 
-  std::cout << "Verifying that all replicas agree on EdDSA public keys...\n";
+  std::cout << "Verifying that all replicas agree on replica public keys...\n";
 
-  // Verify that all replicas' keyfiles agree on the EdDSA public keys.
+  // Verify that all replicas' keyfiles agree on the replica public keys.
   for (uint16_t i = 0; i < numReplicas; ++i) {
     for (const auto& publicKeyEntry : configs[i].publicKeysOfReplicas) {
       if (publicKeyEntry.second != expectedPublicKeys[publicKeyEntry.first]) {
-        std::cout << "FAILURE: Replica " << i << " has an incorrect EdDSA public key for replica "
+        std::cout << "FAILURE: Replica " << i << " has an incorrect replica public key for replica "
                   << publicKeyEntry.first << ".\n";
         return false;
       }
     }
   }
 
-  std::cout << "All EdDSA key tests were successful.\n";
-
+  std::cout << "All replica key tests were successful.\n";
   return true;
 }
-#endif
 
 // Testing the threshold cryptosystem keys is not as straightforward as testing
 // the RSA keys because each signature may have multiple signers. Testing all
@@ -857,12 +738,7 @@ int main(int argc, char** argv) {
     std::cout << "Cryptographic configurations read appear to be sane.\n";
     std::cout << "Testing key functionality and agreement...\n";
 
-#ifdef USE_CRYPTOPP_RSA
-    if (!testRSAKeys(configs))
-#elif USE_EDDSA_SINGLE_SIGN
-    if (!testEdDSAKeys(configs))
-#endif
-    {
+    if (!testReplicaKeys(configs)) {
       return -1;
     }
     if (!testThresholdKeys(configs, cryptoSystems)) {

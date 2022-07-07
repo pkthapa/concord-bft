@@ -40,27 +40,25 @@ void outputReplicaKeyfile(uint16_t numReplicas,
          << "c_val: " << config.cVal << "\n"
          << "replica_id: " << config.replicaId << "\n"
          << "read-only: " << config.isReadOnly << "\n\n"
-#ifdef USE_CRYPTOPP_RSA
-         << "# RSA non-threshold replica public keys\n"
-         << "rsa_public_keys:\n";
-#elif USE_EDDSA_SINGLE_SIGN
-         << "# EdDSA non-threshold replica public keys\n"
-         << "eddsa_public_keys:\n";
-#endif
+         << "# Non-threshold replica public keys\n"
+         << "replica_public_keys:\n";
 
-  for (auto& v : config.publicKeysOfReplicas) output << "  - " << v.second << "\n";
+  for (auto& v : config.publicKeysOfReplicas) {
+    output << "  - " << v.second << "\n";
+  }
   output << "\n";
 
+  output << "main_key_algorithm: ";
 #ifdef USE_CRYPTOPP_RSA
-  output << "rsa_private_key: " << config.replicaPrivateKey << "\n";
+  output << "rsa\n";
 #elif USE_EDDSA_SINGLE_SIGN
-  output << "eddsa_private_key: " << config.replicaPrivateKey << "\n";
+  output << "eddsa\n";
 #endif
+  output << "replica_private_key: " << config.replicaPrivateKey << "\n";
 
   if (commonSys) commonSys->writeConfiguration(output, "common", config.replicaId);
 }
 
-#ifdef USE_CRYPTOPP_RSA
 static void validateRSAPublicKey(const std::string& key) {
   const size_t rsaPublicKeyHexadecimalLength = 584;
   if (!(key.length() == rsaPublicKeyHexadecimalLength) && (std::regex_match(key, std::regex("[0-9A-Fa-f]+"))))
@@ -74,7 +72,7 @@ static void validateRSAPrivateKey(const std::string& key) {
 
   if (!std::regex_match(key, std::regex("[0-9A-Fa-f]+"))) throw std::runtime_error("Invalid RSA private key: " + key);
 }
-#elif USE_EDDSA_SINGLE_SIGN
+
 static void validateEdDSAPublicKey(const std::string& key) {
   if (!(key.length() == EdDSAPublicKeyByteSize * 2) && (std::regex_match(key, std::regex("[0-9A-Fa-f]+")))) {
     throw std::runtime_error("Invalid EdDSA public key: " + key);
@@ -86,7 +84,6 @@ static void validateEdDSAPrivateKey(const std::string& key) {
     throw std::runtime_error("Invalid EdDSA private key: " + key);
   }
 }
-#endif
 
 Cryptosystem* inputReplicaKeyfileMultisig(const std::string& filename, bftEngine::ReplicaConfig& config) {
   using namespace concord::util;
@@ -110,36 +107,31 @@ Cryptosystem* inputReplicaKeyfileMultisig(const std::string& filename, bftEngine
   if (config.replicaId >= config.numReplicas + config.numRoReplicas)
     throw std::runtime_error("replica IDs must be in the range [0, num_replicas + num_ro_replicas]");
 
-#ifdef USE_CRYPTOPP_RSA
-  std::vector<std::string> rsaPublicKeys = yaml::readCollection<std::string>(input, "rsa_public_keys");
+  const std::vector<std::string> replicaPublicKeys(yaml::readCollection<std::string>(input, "replica_public_keys"));
 
-  if (rsaPublicKeys.size() != config.numReplicas + config.numRoReplicas)
-    throw std::runtime_error("number of public RSA keys must match num_replicas");
-#elif USE_EDDSA_SINGLE_SIGN
-  std::vector<std::string> eddsaPublicKeys = yaml::readCollection<std::string>(input, "eddsa_public_keys");
+  if (replicaPublicKeys.size() != config.numReplicas + config.numRoReplicas)
+    throw std::runtime_error("number of replica public keys must match num_replicas");
 
-  if (eddsaPublicKeys.size() != config.numReplicas + config.numRoReplicas)
-    throw std::runtime_error("number of public EdDSA keys must match num_replicas");
-#endif
+  const auto mainKeyAlgo = yaml::readValue<std::string>(input, "main_key_algorithm");
+  if (mainKeyAlgo.empty()) {
+    throw std::runtime_error("main_key_algorithm value is empty.");
+  }
 
   config.publicKeysOfReplicas.clear();
   for (size_t i = 0; i < config.numReplicas + config.numRoReplicas; ++i) {
-#ifdef USE_CRYPTOPP_RSA
-    validateRSAPublicKey(rsaPublicKeys[i]);
-    config.publicKeysOfReplicas.insert(std::pair<uint16_t, std::string>(i, rsaPublicKeys[i]));
-#elif USE_EDDSA_SINGLE_SIGN
-    validateEdDSAPublicKey(eddsaPublicKeys[i]);
-    config.publicKeysOfReplicas.insert(std::pair<uint16_t, std::string>(i, eddsaPublicKeys[i]));
-#endif
+    if ("rsa" == mainKeyAlgo) {
+      validateRSAPublicKey(replicaPublicKeys[i]);
+    } else if ("eddsa" == mainKeyAlgo) {
+      validateEdDSAPublicKey(replicaPublicKeys[i]);
+    }
+    config.publicKeysOfReplicas.insert(std::pair<uint16_t, std::string>(i, replicaPublicKeys[i]));
   }
-
-#ifdef USE_CRYPTOPP_RSA
-  config.replicaPrivateKey = yaml::readValue<std::string>(input, "rsa_private_key");
-  validateRSAPrivateKey(config.replicaPrivateKey);
-#elif USE_EDDSA_SINGLE_SIGN
-  config.replicaPrivateKey = yaml::readValue<std::string>(input, "eddsa_private_key");
-  validateEdDSAPrivateKey(config.replicaPrivateKey);
-#endif
+  config.replicaPrivateKey = yaml::readValue<std::string>(input, "replica_private_key");
+  if ("rsa" == mainKeyAlgo) {
+    validateRSAPrivateKey(config.replicaPrivateKey);
+  } else if ("eddsa" == mainKeyAlgo) {
+    validateEdDSAPrivateKey(config.replicaPrivateKey);
+  }
 
   if (config.isReadOnly) return nullptr;
 

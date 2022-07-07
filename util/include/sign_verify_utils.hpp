@@ -18,7 +18,7 @@
 #include "crypto/eddsa/EdDSASigner.hpp"
 #include "crypto/eddsa/EdDSAVerifier.hpp"
 
-namespace concord::signerverifier {
+namespace concord::crypto::signature {
 #ifdef USE_CRYPTOPP_RSA
 using TransactionSigner = concord::crypto::cryptopp::RSASigner;
 using TransactionVerifier = concord::crypto::cryptopp::RSAVerifier;
@@ -30,4 +30,4 @@ static constexpr const auto PublicKeyByteSize = EdDSAPublicKeyByteSize;
 using TransactionSigner = concord::crypto::openssl::eddsa::EdDSASigner<PrivateKeyClassType>;
 using TransactionVerifier = concord::crypto::openssl::eddsa::EdDSAVerifier<PublicKeyClassType>;
 #endif
-}  // namespace concord::signerverifier
+}  // namespace concord::crypto::signature

@@ -38,11 +38,7 @@ void IntegrityChecker::initKeysConfig(const fs::path& keys_file) {
   config.cVal = parser.get_value<std::uint16_t>("c_val");
   config.publicKeysOfReplicas.clear();
 
-#ifdef USE_CRYPTOPP_RSA
-  auto txnSignerPublicKeys = parser.get_values<std::string>("rsa_public_keys");
-#elif USE_EDDSA_SINGLE_SIGN
-  auto txnSignerPublicKeys = parser.get_values<std::string>("eddsa_public_keys");
-#endif
+  const auto txnSignerPublicKeys = parser.get_values<std::string>("replica_public_keys");
 
   if (txnSignerPublicKeys.size() < config.numReplicas)
     throw std::runtime_error("number of replicas and number of replicas don't match: " + keys_file.string());

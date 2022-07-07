@@ -43,9 +43,9 @@ using namespace bftEngine;
 using namespace placeholders;
 using namespace concord::secretsmanager;
 using concord::util::crypto::KeyFormat;
-using concord::signerverifier::TransactionVerifier;
-using concord::signerverifier::PublicKeyClassType;
-using concord::signerverifier::PublicKeyByteSize;
+using concord::crypto::signature::TransactionVerifier;
+using concord::crypto::signature::PublicKeyClassType;
+using concord::crypto::signature::PublicKeyByteSize;
 using namespace CryptoPP;
 
 using ReplicaId_t = bft::client::ReplicaId;

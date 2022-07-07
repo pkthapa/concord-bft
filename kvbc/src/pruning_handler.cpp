@@ -21,12 +21,12 @@
 namespace concord::kvbc::pruning {
 
 using concord::util::crypto::KeyFormat;
-using concord::signerverifier::PrivateKeyClassType;
-using concord::signerverifier::PrivateKeyByteSize;
-using concord::signerverifier::PublicKeyClassType;
-using concord::signerverifier::PublicKeyByteSize;
-using concord::signerverifier::TransactionSigner;
-using concord::signerverifier::TransactionVerifier;
+using concord::crypto::signature::PrivateKeyClassType;
+using concord::crypto::signature::PrivateKeyByteSize;
+using concord::crypto::signature::PublicKeyClassType;
+using concord::crypto::signature::PublicKeyByteSize;
+using concord::crypto::signature::TransactionSigner;
+using concord::crypto::signature::TransactionVerifier;
 
 void PruningSigner::sign(concord::messages::LatestPrunableBlock& block) {
   std::ostringstream oss;

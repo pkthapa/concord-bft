@@ -34,12 +34,12 @@ constexpr size_t RANDOM_DATA_SIZE = 1000U;
 
 std::default_random_engine generator;
 
-using concord::signerverifier::PrivateKeyClassType;
-using concord::signerverifier::PrivateKeyByteSize;
-using concord::signerverifier::PublicKeyClassType;
-using concord::signerverifier::PublicKeyByteSize;
-using concord::signerverifier::TransactionSigner;
-using concord::signerverifier::TransactionVerifier;
+using concord::crypto::signature::PrivateKeyClassType;
+using concord::crypto::signature::PrivateKeyByteSize;
+using concord::crypto::signature::PublicKeyClassType;
+using concord::crypto::signature::PublicKeyByteSize;
+using concord::crypto::signature::TransactionSigner;
+using concord::crypto::signature::TransactionVerifier;
 using concord::crypto::openssl::OpenSSLCryptoImpl;
 
 #ifdef USE_CRYPTOPP_RSA

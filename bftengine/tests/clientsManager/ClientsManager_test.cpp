@@ -48,9 +48,9 @@ using concord::crypto::cryptopp::Crypto;
 using concord::crypto::openssl::OpenSSLCryptoImpl;
 #endif
 
-using concord::signerverifier::PrivateKeyClassType;
-using concord::signerverifier::PrivateKeyByteSize;
-using concord::signerverifier::TransactionSigner;
+using concord::crypto::signature::PrivateKeyClassType;
+using concord::crypto::signature::PrivateKeyByteSize;
+using concord::crypto::signature::TransactionSigner;
 
 // Testing values to be used for certain Concord-BFT configuration that ClientsManager and/or its dependencies may
 // reference.

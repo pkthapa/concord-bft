@@ -45,9 +45,9 @@
 namespace concord::kvbc::tools::db_editor {
 
 using namespace categorization;
-using concord::signerverifier::TransactionVerifier;
-using concord::signerverifier::PublicKeyClassType;
-using concord::signerverifier::PublicKeyByteSize;
+using concord::crypto::signature::TransactionVerifier;
+using concord::crypto::signature::PublicKeyClassType;
+using concord::crypto::signature::PublicKeyByteSize;
 
 inline const auto kToolName = "kv_blockchain_db_editor"s;
 
