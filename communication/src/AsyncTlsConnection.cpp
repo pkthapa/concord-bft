@@ -414,7 +414,7 @@ bool AsyncTlsConnection::verifyCertificateClient(asio::ssl::verify_context& ctx,
     LOG_WARN(logger_, "No certificate from server at node " << expected_dest_id);
     return false;
   }
-  auto [valid, _] = checkCertificate(cert, expected_dest_id);
+  auto [valid, _] = checkCertificate(*cert, expected_dest_id);
   (void)_;  // unused variable hack
   return valid;
 }
@@ -428,12 +428,12 @@ bool AsyncTlsConnection::verifyCertificateServer(asio::ssl::verify_context& ctx)
     LOG_WARN(logger_, "No certificate from client");
     return false;
   }
-  auto [valid, peer_id] = checkCertificate(cert, std::nullopt);
+  auto [valid, peer_id] = checkCertificate(*cert, std::nullopt);
   peer_id_ = peer_id;
   return valid;
 }
 
-std::pair<bool, NodeNum> AsyncTlsConnection::checkCertificate(X509* received_cert,
+std::pair<bool, NodeNum> AsyncTlsConnection::checkCertificate(X509& received_cert,
                                                               std::optional<NodeNum> expected_peer_id) {
   uint32_t peerId = UINT32_MAX;
   std::string conn_type;
@@ -466,7 +466,7 @@ std::pair<bool, NodeNum> AsyncTlsConnection::checkCertificate(X509* received_cer
 
   // (3) If valid, exchange the stored certificate
   BIO* outbio = BIO_new(BIO_s_mem());
-  if (!PEM_write_bio_X509(outbio, received_cert)) {
+  if (!PEM_write_bio_X509(outbio, &received_cert)) {
     BIO_free(outbio);
     return std::make_pair(false, peerId);
   }

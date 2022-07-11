@@ -25,9 +25,9 @@ using concord::util::openssl_utils::UnexpectedOpenSSLCryptoFailureException;
 using concord::util::openssl_utils::UniquePKEY;
 using concord::util::openssl_utils::UniqueOpenSSLContext;
 using concord::util::openssl_utils::UniqueOpenSSLBIGNUM;
-using concord::util::openssl_utils::UniqueOpenSSLBN_CTX;
-using concord::util::openssl_utils::UniqueOpenSSLEC_KEY;
-using concord::util::openssl_utils::UniqueOpenSSLEC_POINT;
+using concord::util::openssl_utils::UniqueOpenSSLBNCTX;
+using concord::util::openssl_utils::UniqueOpenSSLECKEY;
+using concord::util::openssl_utils::UniqueOpenSSLECPOINT;
 using std::invalid_argument;
 using std::pair;
 using std::string;
@@ -178,7 +178,7 @@ class EVPPKEYPublicKey : public AsymmetricPublicKey {
             "OpenSSL Crypto unexpectedly failed to fetch the elliptic curve "
             "group from an elliptic curve key object.");
       }
-      UniqueOpenSSLBN_CTX big_num_context(BN_CTX_new());
+      UniqueOpenSSLBNCTX big_num_context(BN_CTX_new());
       if (!big_num_context) {
         throw UnexpectedOpenSSLCryptoFailureException(
             "OpenSSL Crypto unexpectedly failed to allocate a big number "
@@ -239,8 +239,8 @@ concord::util::openssl_utils::generateAsymmetricCryptoKeyPair(const string& sche
     // prime256v1 is an alternative name for the same curve parameters as
     // secp256r1; prime256v1 happens to be the name OpenSSL's Crypto library
     // uses for a possible parameter to EC_KEY_new_by_curve_name.
-    UniqueOpenSSLEC_KEY key_pair(EC_KEY_new_by_curve_name(NID_X9_62_prime256v1));
-    UniqueOpenSSLEC_KEY public_key(EC_KEY_new_by_curve_name(NID_X9_62_prime256v1));
+    UniqueOpenSSLECKEY key_pair(EC_KEY_new_by_curve_name(NID_X9_62_prime256v1));
+    UniqueOpenSSLECKEY public_key(EC_KEY_new_by_curve_name(NID_X9_62_prime256v1));
     if (!key_pair || !public_key) {
       throw UnexpectedOpenSSLCryptoFailureException(
           "OpenSSL Crypto unexpectedly failed to allocate and prepare an "
@@ -319,7 +319,7 @@ unique_ptr<AsymmetricPrivateKey> concord::util::openssl_utils::deserializePrivat
     // prime256v1 is an alternative name for the same curve parameters as
     // secp256r1; prime256v1 happens to be the name OpenSSL's Crypto library
     // uses for a possible parameter to EC_KEY_new_by_curve_name.
-    UniqueOpenSSLEC_KEY ec_key(EC_KEY_new_by_curve_name(NID_X9_62_prime256v1));
+    UniqueOpenSSLECKEY ec_key(EC_KEY_new_by_curve_name(NID_X9_62_prime256v1));
     if (nullptr == ec_key.get()) {
       throw UnexpectedOpenSSLCryptoFailureException(
           "OpenSSL Crypto unexpectedly failed to allocate and prepare an "
@@ -354,13 +354,13 @@ unique_ptr<AsymmetricPrivateKey> concord::util::openssl_utils::deserializePrivat
           "OpenSSL Crypto unexpectedly failed to fetch the elliptic curve "
           "group for an elliptic curve key object.");
     }
-    UniqueOpenSSLEC_POINT public_key(EC_POINT_new(ec_group));
+    UniqueOpenSSLECPOINT public_key(EC_POINT_new(ec_group));
     if (!public_key) {
       throw UnexpectedOpenSSLCryptoFailureException(
           "OpenSSL Crypto unexpectedly failed to allocate an elliptic curve "
           "point object.");
     }
-    UniqueOpenSSLBN_CTX public_key_derivation_context(BN_CTX_new());
+    UniqueOpenSSLBNCTX public_key_derivation_context(BN_CTX_new());
     if (!public_key_derivation_context) {
       throw UnexpectedOpenSSLCryptoFailureException(
           "OpenSSL Crypto unexpectedly failed to allocate a big number context "
@@ -414,7 +414,7 @@ std::unique_ptr<AsymmetricPrivateKey> concord::util::openssl_utils::deserializeP
   if (!fp) {
     return nullptr;
   }
-  UniqueOpenSSLEC_KEY pkey(EC_KEY_new());
+  UniqueOpenSSLECKEY pkey(EC_KEY_new());
 
   if (!PEM_read_ECPrivateKey(fp, reinterpret_cast<EC_KEY**>(pkey.get()), nullptr, nullptr)) {
     fclose(fp);
@@ -547,7 +547,7 @@ unique_ptr<AsymmetricPublicKey> concord::util::openssl_utils::deserializePublicK
     // prime256v1 is an alternative name for the same curve parameters as
     // secp256r1; prime256v1 happens to be the name OpenSSL's Crypto library
     // uses for a possible parameter to EC_KEY_new_by_curve_name.
-    UniqueOpenSSLEC_KEY ec_key(EC_KEY_new_by_curve_name(NID_X9_62_prime256v1));
+    UniqueOpenSSLECKEY ec_key(EC_KEY_new_by_curve_name(NID_X9_62_prime256v1));
     if (nullptr == ec_key.get()) {
       throw UnexpectedOpenSSLCryptoFailureException(
           "OpenSSL Crypto unexpectedly failed to allocate and prepare an "
@@ -559,13 +559,13 @@ unique_ptr<AsymmetricPublicKey> concord::util::openssl_utils::deserializePublicK
           "OpenSSL Crypto unexpectedly failed to fetch the elliptic curve "
           "group from an elliptic curve key object.");
     }
-    UniqueOpenSSLEC_POINT public_key(EC_POINT_new(ec_group));
+    UniqueOpenSSLECPOINT public_key(EC_POINT_new(ec_group));
     if (!public_key) {
       throw UnexpectedOpenSSLCryptoFailureException(
           "OpenSSL Crypto unexpectedly failed to allocate an elliptic curve "
           "point object.");
     }
-    UniqueOpenSSLBN_CTX big_num_context(BN_CTX_new());
+    UniqueOpenSSLBNCTX big_num_context(BN_CTX_new());
     if (!big_num_context) {
       throw UnexpectedOpenSSLCryptoFailureException(
           "OpenSSL Crypto unexpectedly failed to allocate a big number context "

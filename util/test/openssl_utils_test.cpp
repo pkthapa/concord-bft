@@ -20,7 +20,7 @@
 #include "crypto/eddsa/EdDSAVerifier.hpp"
 
 namespace {
-
+using concord::util::crypto::KeyFormat;
 using concord::crypto::openssl::OpenSSLCryptoImpl;
 
 using TestTxnSigner = concord::crypto::openssl::eddsa::EdDSASigner<EdDSAPrivateKey>;

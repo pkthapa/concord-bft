@@ -20,62 +20,36 @@
 #include <cstdlib>
 #include <iostream>
 #include <random>
-#include <boost/program_options.hpp>
+
 #include "thread_pool.hpp"
 #include "picobench.hpp"
 #include "cryptopp_utils.hpp"
 #include "crypto/eddsa/EdDSASigner.hpp"
 #include "crypto/eddsa/EdDSAVerifier.hpp"
+#include "util/filesystem.hpp"
+#include "openssl_utils.hpp"
+#include "crypto_utils.hpp"
 
+namespace concord::benchmark {
 using std::string;
 using std::unique_ptr;
+using concord::util::crypto::KeyFormat;
 using concord::crypto::cryptopp::RSASigner;
 using concord::crypto::cryptopp::RSAVerifier;
+using concord::crypto::cryptopp::Crypto;
+using concord::crypto::openssl::OpenSSLCryptoImpl;
 
-using TestTxnSigner = concord::crypto::openssl::eddsa::EdDSASigner<EdDSAPrivateKey>;
-using TestTxnVerifier = concord::crypto::openssl::eddsa::EdDSAVerifier<EdDSAPublicKey>;
+using TestSigner = concord::crypto::openssl::eddsa::EdDSASigner<EdDSAPrivateKey>;
+using TestVerifier = concord::crypto::openssl::eddsa::EdDSAVerifier<EdDSAPublicKey>;
 
 std::default_random_engine generator;
 
-constexpr char KEYS_BASE_PARENT_PATH[] = "/tmp/";
-constexpr char EDDSA_KEYS_BASE_PATH[] = "transaction_eddsa_signing_keys";
-constexpr char RSA_KEYS_BASE_PATH[] = "transaction_rsa_signing_keys";
-constexpr char PRIV_KEY_NAME[] = "privkey.pem";
-constexpr char PUB_KEY_NAME[] = "pubkey.pem";
-constexpr char EDDSA_ALGO[] = "eddsa";
-constexpr char RSA_ALGO[] = "rsa";
-constexpr char KEYS_GEN_SCRIPT_PATH[] =
-    "/concord-bft//scripts/linux/create_concord_clients_transaction_signing_keys.sh";
 constexpr size_t RANDOM_DATA_SIZE = 1000U;
-
 constexpr uint8_t RANDOM_DATA_ARRAY_SIZE = 100U;
 static string randomData[RANDOM_DATA_ARRAY_SIZE];
 
-/**
- * @brief Generates a EdDSA private-public key pair.
- * @param count Number of key pair.
- */
-void generateKeyPairs(size_t count, const char algo[]) {
-  std::ostringstream cmd;
-
-  cmd << "rm -rf " << RSA_KEYS_BASE_PATH;
-  ConcordAssertEQ(0, system(cmd.str().c_str()));
-  cmd << "rm -rf " << EDDSA_KEYS_BASE_PATH;
-  ConcordAssertEQ(0, system(cmd.str().c_str()));
-
-  cmd.str("");
-  cmd.clear();
-
-  if (0 == strcmp(algo, "rsa")) {
-    cmd << KEYS_GEN_SCRIPT_PATH << " -n " << count << " -r " << PRIV_KEY_NAME << " -u " << PUB_KEY_NAME << " -o "
-        << KEYS_BASE_PARENT_PATH << " -a " << algo << " -d " << RSA_KEYS_BASE_PATH;
-  } else if (0 == strcmp(algo, "eddsa")) {
-    cmd << KEYS_GEN_SCRIPT_PATH << " -n " << count << " -r " << PRIV_KEY_NAME << " -u " << PUB_KEY_NAME << " -o "
-        << KEYS_BASE_PARENT_PATH << " -a " << algo << " -d " << EDDSA_KEYS_BASE_PATH;
-  }
-
-  ConcordAssertEQ(0, system(cmd.str().c_str()));
-}
+const auto rsaKeysPair = Crypto::instance().generateRsaKeyPair(2048);
+const auto eddsaKeysPair = OpenSSLCryptoImpl::instance().generateEdDSAKeyPair();
 
 /**
  * Initializes 'randomData' with random bytes of size 'len'.
@@ -96,35 +70,14 @@ void generateRandomData(size_t len) {
 }
 
 /**
- * @brief Reads a file and outputs the content to 'keyOut' param.
- * @param path File path.
- * @param keyOut File content.
- */
-void readFile(std::string_view path, string& keyOut) {
-  std::stringstream stream;
-  std::ifstream file(path.data());
-  ConcordAssert(file.good());
-  stream << file.rdbuf();
-  keyOut = stream.str();
-}
-
-/**
  * A benchmark which measures the time it takes for EdDSA signer to sign a message.
  * @param s
  */
 void edDSASignerBenchmark(picobench::state& s) {
-  string publicKeyFullPath(
-      {string(KEYS_BASE_PARENT_PATH) + string(EDDSA_KEYS_BASE_PATH) + string("/1/") + PUB_KEY_NAME});
-  string privateKeyFullPath(
-      {string(KEYS_BASE_PARENT_PATH) + string(EDDSA_KEYS_BASE_PATH) + string("/1/") + PRIV_KEY_NAME});
-
-  string privKey, pubkey, sig;
-
-  readFile(privateKeyFullPath, privKey);
-  readFile(publicKeyFullPath, pubkey);
-
-  const auto signingKey = getByteArrayKeyClass<EdDSAPrivateKey, EdDSAPrivateKeyByteSize>(privKey, KeyFormat::PemFormat);
-  auto signer_ = unique_ptr<TestTxnSigner>(new TestTxnSigner(signingKey.getBytes()));
+  string sig;
+  const auto signingKey = getByteArrayKeyClass<EdDSAPrivateKey, EdDSAPrivateKeyByteSize>(
+      eddsaKeysPair.first, KeyFormat::HexaDecimalStrippedFormat);
+  auto signer_ = unique_ptr<TestSigner>(new TestSigner(signingKey.getBytes()));
 
   // Sign with EdDSASigner.
   size_t expectedSignerSigLen = signer_->signatureLength();
@@ -151,22 +104,14 @@ void edDSASignerBenchmark(picobench::state& s) {
  * @param s
  */
 void edDSAVerifierBenchmark(picobench::state& s) {
-  string publicKeyFullPath(
-      {string(KEYS_BASE_PARENT_PATH) + string(EDDSA_KEYS_BASE_PATH) + string("/1/") + PUB_KEY_NAME});
-  string privateKeyFullPath(
-      {string(KEYS_BASE_PARENT_PATH) + string(EDDSA_KEYS_BASE_PATH) + string("/1/") + PRIV_KEY_NAME});
+  string sig;
+  const auto signingKey = getByteArrayKeyClass<EdDSAPrivateKey, EdDSAPrivateKeyByteSize>(
+      eddsaKeysPair.first, KeyFormat::HexaDecimalStrippedFormat);
+  const auto verificationKey = getByteArrayKeyClass<EdDSAPublicKey, EdDSAPublicKeyByteSize>(
+      eddsaKeysPair.second, KeyFormat::HexaDecimalStrippedFormat);
 
-  string privKey, pubkey, sig;
-
-  readFile(privateKeyFullPath, privKey);
-  readFile(publicKeyFullPath, pubkey);
-
-  const auto signingKey = getByteArrayKeyClass<EdDSAPrivateKey, EdDSAPrivateKeyByteSize>(privKey, KeyFormat::PemFormat);
-  const auto verificationKey =
-      getByteArrayKeyClass<EdDSAPublicKey, EdDSAPublicKeyByteSize>(pubkey, KeyFormat::PemFormat);
-
-  auto signer_ = unique_ptr<TestTxnSigner>(new TestTxnSigner(signingKey.getBytes()));
-  auto verifier_ = unique_ptr<TestTxnVerifier>(new TestTxnVerifier(verificationKey.getBytes()));
+  auto signer_ = unique_ptr<TestSigner>(new TestSigner(signingKey.getBytes()));
+  auto verifier_ = unique_ptr<TestVerifier>(new TestVerifier(verificationKey.getBytes()));
 
   // Sign with EdDSASigner.
   size_t expectedSignerSigLen = signer_->signatureLength();
@@ -198,16 +143,8 @@ void edDSAVerifierBenchmark(picobench::state& s) {
  * @param s
  */
 void rsaSignerBenchmark(picobench::state& s) {
-  string publicKeyFullPath({string(KEYS_BASE_PARENT_PATH) + string(RSA_KEYS_BASE_PATH) + string("/1/") + PUB_KEY_NAME});
-  string privateKeyFullPath(
-      {string(KEYS_BASE_PARENT_PATH) + string(RSA_KEYS_BASE_PATH) + string("/1/") + PRIV_KEY_NAME});
-
-  string privKey, pubkey, sig;
-
-  readFile(privateKeyFullPath, privKey);
-  readFile(publicKeyFullPath, pubkey);
-
-  auto signer_ = unique_ptr<RSASigner>(new RSASigner(privKey, KeyFormat::PemFormat));
+  string sig;
+  auto signer_ = unique_ptr<RSASigner>(new RSASigner(rsaKeysPair.first, KeyFormat::HexaDecimalStrippedFormat));
 
   // Sign with RSA_Signer.
   size_t expectedSignerSigLen = signer_->signatureLength();
@@ -234,16 +171,9 @@ void rsaSignerBenchmark(picobench::state& s) {
  * @param s
  */
 void rsaVerifierBenchmark(picobench::state& s) {
-  string publicKeyFullPath({string(KEYS_BASE_PARENT_PATH) + string(RSA_KEYS_BASE_PATH) + string("/1/") + PUB_KEY_NAME});
-  string privateKeyFullPath(
-      {string(KEYS_BASE_PARENT_PATH) + string(RSA_KEYS_BASE_PATH) + string("/1/") + PRIV_KEY_NAME});
-
-  string privKey, pubkey, sig;
-
-  readFile(privateKeyFullPath, privKey);
-  readFile(publicKeyFullPath, pubkey);
-  auto verifier_ = unique_ptr<RSAVerifier>(new RSAVerifier(pubkey, KeyFormat::PemFormat));
-  auto signer_ = unique_ptr<RSASigner>(new RSASigner(privKey, KeyFormat::PemFormat));
+  string sig;
+  auto signer_ = unique_ptr<RSASigner>(new RSASigner(rsaKeysPair.first, KeyFormat::HexaDecimalStrippedFormat));
+  auto verifier_ = unique_ptr<RSAVerifier>(new RSAVerifier(rsaKeysPair.second, KeyFormat::HexaDecimalStrippedFormat));
 
   // Sign with RSASigner.
   size_t expectedSignerSigLen = signer_->signatureLength();
@@ -271,12 +201,13 @@ void rsaVerifierBenchmark(picobench::state& s) {
 
 /**
  * @brief Construct a new PICOBENCH object.
- * Take one of the fastest samples out of 3 samples.
+ * Take one of the fastest samples out of 2 samples.
  */
-PICOBENCH(edDSASignerBenchmark).label("EdDSA-Signer").samples(3).iterations({1, 10, 100, 1000, 10000, 50000});
-PICOBENCH(rsaSignerBenchmark).label("RSA-Signer").samples(3).iterations({1, 10, 100, 1000, 10000, 50000});
-PICOBENCH(edDSAVerifierBenchmark).label("EdDSA-Verifier").samples(3).iterations({1, 10, 100, 1000, 10000, 50000});
-PICOBENCH(rsaVerifierBenchmark).label("RSA-Verifier").samples(3).iterations({1, 10, 100, 1000, 10000, 50000});
+PICOBENCH(edDSASignerBenchmark).label("EdDSA-Signer").samples(2).iterations({1, 10, 100, 1000, 10000});
+PICOBENCH(rsaSignerBenchmark).label("RSA-Signer").samples(2).iterations({1, 10, 100, 1000, 10000});
+PICOBENCH(edDSAVerifierBenchmark).label("EdDSA-Verifier").samples(2).iterations({1, 10, 100, 1000, 10000});
+PICOBENCH(rsaVerifierBenchmark).label("RSA-Verifier").samples(2).iterations({1, 10, 100, 1000, 10000});
+}  // namespace concord::benchmark
 
 /**
  * @brief Entry function.
@@ -286,10 +217,7 @@ PICOBENCH(rsaVerifierBenchmark).label("RSA-Verifier").samples(3).iterations({1, 
  * @return int
  */
 int main(int argc, char* argv[]) {
-  generateKeyPairs(1, EDDSA_ALGO);
-  generateKeyPairs(1, RSA_ALGO);
-
-  generateRandomData(RANDOM_DATA_SIZE);
+  concord::benchmark::generateRandomData(concord::benchmark::RANDOM_DATA_SIZE);
 
   constexpr const uint64_t picobenchSeed = 20222022;
   picobench::runner runner;

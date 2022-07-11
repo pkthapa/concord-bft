@@ -15,17 +15,12 @@
 #include "EdDSA.h"
 #include "openssl_crypto.hpp"
 #include "crypto_utils.hpp"
-#include "crypto/interface/verifier_interface.hpp"
+#include "crypto/interface/verifier.hpp"
 
 // OpenSSL includes.
 #include <openssl/pem.h>
 
 namespace concord::crypto::openssl::eddsa {
-
-using concord::util::crypto::KeyFormat;
-using concord::crypto::IVerifier;
-using concord::util::openssl_utils::UniquePKEY;
-using concord::util::openssl_utils::OPENSSL_SUCCESS;
 
 /**
  * @tparam PublicKeyType The type of the public key, expected to be a SerializableByteArray.
@@ -51,6 +46,8 @@ class EdDSAVerifier : public IVerifier {
   }
 
   bool verify(const uint8_t *msg, size_t msgLen, const uint8_t *sig, size_t sigLen) const {
+    using concord::util::openssl_utils::UniquePKEY;
+    using concord::util::openssl_utils::OPENSSL_SUCCESS;
     ConcordAssertEQ(sigLen, EdDSASignatureByteSize);
     UniquePKEY pkey{
         EVP_PKEY_new_raw_public_key(NID_ED25519, nullptr, publicKey_.getBytes().data(), publicKey_.getBytes().size())};

@@ -15,17 +15,12 @@
 #include "EdDSA.h"
 #include "openssl_crypto.hpp"
 #include "crypto_utils.hpp"
-#include "crypto/interface/signer_interface.hpp"
+#include "crypto/interface/signer.hpp"
 
 // OpenSSL includes.
 #include <openssl/pem.h>
 
 namespace concord::crypto::openssl::eddsa {
-
-using concord::util::crypto::KeyFormat;
-using concord::crypto::ISigner;
-using concord::util::openssl_utils::UniquePKEY;
-using concord::util::openssl_utils::OPENSSL_SUCCESS;
 
 /**
  * @tparam PrivateKeyType The type of the private key, expected to be a SerializableByteArray.
@@ -56,6 +51,7 @@ class EdDSASigner : public ISigner {
   }
 
   void sign(const uint8_t *msg, size_t len, uint8_t *signature, size_t &signatureLength) const {
+    using concord::util::openssl_utils::OPENSSL_SUCCESS;
     concord::util::openssl_utils::UniqueOpenSSLContext ctx{EVP_MD_CTX_new()};
     ConcordAssertEQ(EVP_DigestSignInit(ctx.get(), nullptr, nullptr, nullptr, pkey_.get()), OPENSSL_SUCCESS);
     ConcordAssertEQ(EVP_DigestSign(ctx.get(), signature, &signatureLength, msg, len), OPENSSL_SUCCESS);
@@ -75,6 +71,6 @@ class EdDSASigner : public ISigner {
 
  private:
   PrivateKeyType privateKey_;
-  UniquePKEY pkey_;
+  concord::util::openssl_utils::UniquePKEY pkey_;
 };
 }  // namespace concord::crypto::openssl::eddsa

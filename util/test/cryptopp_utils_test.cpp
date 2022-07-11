@@ -15,8 +15,11 @@
 #include "gtest/gtest.h"
 #include "cryptopp_utils.hpp"
 #include "Logger.hpp"
-using namespace concord::crypto::cryptopp;
+
 namespace {
+using namespace concord::crypto::cryptopp;
+using concord::util::crypto::KeyFormat;
+
 TEST(cryptopp_utils, generate_rsa_keys_hex_format) {
   ASSERT_NO_THROW(Crypto::instance().generateRsaKeyPair(2048, KeyFormat::HexaDecimalStrippedFormat));
   auto keys = Crypto::instance().generateRsaKeyPair(2048, KeyFormat::HexaDecimalStrippedFormat);

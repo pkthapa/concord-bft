@@ -17,16 +17,22 @@
 #include "hex_tools.h"
 #include "openssl_crypto.hpp"
 #include "crypto/eddsa/EdDSA.h"
+#include "io.hpp"
 
 #include <regex>
 #include <utility>
 
 namespace concord::crypto::openssl {
-
+using std::pair;
+using std::rewind;
+using std::string;
+using std::unique_ptr;
+using concord::util::crypto::KeyFormat;
 using concord::util::openssl_utils::UniquePKEY;
 using concord::util::openssl_utils::UniqueOpenSSLPKEYContext;
 using concord::util::openssl_utils::UniqueOpenSSLX509;
 using concord::util::openssl_utils::UniqueOpenSSLBIO;
+using concord::util::openssl_utils::OPENSSL_SUCCESS;
 
 string CertificateUtils::generateSelfSignedCert(const string& origin_cert_path,
                                                 const string& public_key,
@@ -40,7 +46,7 @@ string CertificateUtils::generateSelfSignedCert(const string& origin_cert_path,
     return string();
   }
 
-  UniqueOpenSSLX509 cert(PEM_read_X509(fp.get(), NULL, NULL, NULL));
+  UniqueOpenSSLX509 cert(PEM_read_X509(fp.get(), nullptr, nullptr, nullptr));
   if (!cert) {
     LOG_ERROR(OPENSSL_LOG, "Cannot parse certificate, path: " << origin_cert_path);
     return string();
@@ -54,7 +60,7 @@ string CertificateUtils::generateSelfSignedCert(const string& origin_cert_path,
     return string();
   }
 
-  if (!PEM_read_bio_PrivateKey(priv_bio.get(), reinterpret_cast<EVP_PKEY**>(&priv_key), NULL, NULL)) {
+  if (!PEM_read_bio_PrivateKey(priv_bio.get(), reinterpret_cast<EVP_PKEY**>(&priv_key), nullptr, nullptr)) {
     LOG_ERROR(OPENSSL_LOG, "Unable to create private key object");
     return string();
   }
@@ -65,7 +71,7 @@ string CertificateUtils::generateSelfSignedCert(const string& origin_cert_path,
     LOG_ERROR(OPENSSL_LOG, "Unable to create public key object");
     return string();
   }
-  if (!PEM_read_bio_PUBKEY(pub_bio.get(), reinterpret_cast<EVP_PKEY**>(&pub_key), NULL, NULL)) {
+  if (!PEM_read_bio_PUBKEY(pub_bio.get(), reinterpret_cast<EVP_PKEY**>(&pub_key), nullptr, nullptr)) {
     LOG_ERROR(OPENSSL_LOG, "Unable to create public key object");
     return string();
   }
@@ -85,7 +91,7 @@ string CertificateUtils::generateSelfSignedCert(const string& origin_cert_path,
   return certStr;
 }
 
-bool CertificateUtils::verifyCertificate(X509* cert, const string& public_key) {
+bool CertificateUtils::verifyCertificate(X509& cert, const string& public_key) {
   UniquePKEY pub_key(EVP_PKEY_new());
   UniqueOpenSSLBIO pub_bio(BIO_new(BIO_s_mem()));
 
@@ -95,10 +101,10 @@ bool CertificateUtils::verifyCertificate(X509* cert, const string& public_key) {
   if (!PEM_read_bio_PUBKEY(pub_bio.get(), reinterpret_cast<EVP_PKEY**>(&pub_key), nullptr, nullptr)) {
     return false;
   }
-  return (bool)X509_verify(cert, pub_key.get());
+  return (bool)X509_verify(&cert, pub_key.get());
 }
 
-bool CertificateUtils::verifyCertificate(X509* cert_to_verify,
+bool CertificateUtils::verifyCertificate(const X509& cert_to_verify,
                                          const string& cert_root_directory,
                                          uint32_t& remote_peer_id,
                                          string& conn_type,
@@ -106,7 +112,7 @@ bool CertificateUtils::verifyCertificate(X509* cert_to_verify,
   // First get the source ID
   static constexpr size_t SIZE = 512;
   string subject(SIZE, 0);
-  X509_NAME_oneline(X509_get_subject_name(cert_to_verify), subject.data(), SIZE);
+  X509_NAME_oneline(X509_get_subject_name(&cert_to_verify), subject.data(), SIZE);
 
   int peerIdPrefixLength = 3;
   std::regex r("OU=\\d*", std::regex_constants::icase);
@@ -136,9 +142,11 @@ bool CertificateUtils::verifyCertificate(X509* cert_to_verify,
   remote_peer_id = remotePeerId;
   string CN;
   CN.resize(SIZE);
-  X509_NAME_get_text_by_NID(X509_get_subject_name(cert_to_verify), NID_commonName, CN.data(), SIZE);
+  X509_NAME_get_text_by_NID(X509_get_subject_name(&cert_to_verify), NID_commonName, CN.data(), SIZE);
   string cert_type = "server";
-  if (CN.find("cli") != string::npos) cert_type = "client";
+  if (CN.find("cli") != string::npos) {
+    cert_type = "client";
+  }
   conn_type = cert_type;
 
   // Get the local stored certificate for this peer
@@ -147,7 +155,9 @@ bool CertificateUtils::verifyCertificate(X509* cert_to_verify,
           ? cert_root_directory + "/" + std::to_string(remotePeerId) + "/" + "node.cert"
           : cert_root_directory + "/" + std::to_string(remotePeerId) + "/" + cert_type + "/" + cert_type + ".cert";
   auto deleter = [](FILE* fp) {
-    if (fp) fclose(fp);
+    if (nullptr != fp) {
+      fclose(fp);
+    }
   };
   std::unique_ptr<FILE, decltype(deleter)> fp(fopen(local_cert_path.c_str(), "r"), deleter);
   if (!fp) {
@@ -155,14 +165,14 @@ bool CertificateUtils::verifyCertificate(X509* cert_to_verify,
     return false;
   }
 
-  UniqueOpenSSLX509 localCert(PEM_read_X509(fp.get(), NULL, NULL, NULL));
+  UniqueOpenSSLX509 localCert(PEM_read_X509(fp.get(), nullptr, nullptr, nullptr));
   if (!localCert) {
     LOG_ERROR(OPENSSL_LOG, "Cannot parse certificate, path: " << local_cert_path);
     return false;
   }
 
   // this is actual comparison, compares hash of 2 certs
-  bool res = (X509_cmp(cert_to_verify, localCert.get()) == 0);
+  bool res = (X509_cmp(&cert_to_verify, localCert.get()) == 0);
   return res;
 }
 
@@ -172,17 +182,18 @@ pair<string, string> OpenSSLCryptoImpl::generateEdDSAKeyPair(const KeyFormat fmt
 
   ConcordAssertNE(edPkeyCtx, nullptr);
 
-  ConcordAssertEQ(1, EVP_PKEY_keygen_init(edPkeyCtx.get()));
+  ConcordAssertEQ(OPENSSL_SUCCESS, EVP_PKEY_keygen_init(edPkeyCtx.get()));
   ConcordAssertEQ(
-      1, EVP_PKEY_keygen(edPkeyCtx.get(), reinterpret_cast<EVP_PKEY**>(&edPkey)));  // Generate EdDSA key 'edPkey'.
+      OPENSSL_SUCCESS,
+      EVP_PKEY_keygen(edPkeyCtx.get(), reinterpret_cast<EVP_PKEY**>(&edPkey)));  // Generate EdDSA key 'edPkey'.
 
   unsigned char privKey[EdDSASignatureByteSize]{};
   unsigned char pubKey[EdDSASignatureByteSize]{};
   size_t privlen{EdDSASignatureByteSize};
   size_t publen{EdDSASignatureByteSize};
 
-  ConcordAssertEQ(1, EVP_PKEY_get_raw_private_key(edPkey.get(), privKey, &privlen));
-  ConcordAssertEQ(1, EVP_PKEY_get_raw_public_key(edPkey.get(), pubKey, &publen));
+  ConcordAssertEQ(OPENSSL_SUCCESS, EVP_PKEY_get_raw_private_key(edPkey.get(), privKey, &privlen));
+  ConcordAssertEQ(OPENSSL_SUCCESS, EVP_PKEY_get_raw_public_key(edPkey.get(), pubKey, &publen));
 
   pair<string, string> keyPair;
   keyPair.first = concordUtils::bufferToHex(reinterpret_cast<const char*>(privKey), (const size_t)privlen, false);
@@ -197,6 +208,7 @@ pair<string, string> OpenSSLCryptoImpl::generateEdDSAKeyPair(const KeyFormat fmt
 pair<string, string> OpenSSLCryptoImpl::EdDSAHexToPem(const std::pair<std::string, std::string>& hex_key_pair) const {
   string privPemString;
   string pubPemString;
+  constexpr uint64_t maxBytesToRead = 1024U;
 
   if (!hex_key_pair.first.empty()) {  // Proceed with private key pem file generation.
     const auto privKey = concordUtils::unhex(hex_key_pair.first);
@@ -206,13 +218,11 @@ pair<string, string> OpenSSLCryptoImpl::EdDSAHexToPem(const std::pair<std::strin
     ConcordAssertNE(nullptr, ed_privKey);
 
     auto fp = tmpfile();
+    ConcordAssertNE(nullptr, fp);
     PEM_write_PrivateKey(fp, ed_privKey.get(), nullptr, nullptr, 0, nullptr, nullptr);
-    std::rewind(fp);
+    rewind(fp);
 
-    char ch{'\0'};
-    while (((ch = fgetc(fp)) != EOF)) {
-      privPemString += ch;
-    }
+    privPemString = concord::io::readFile(fp, maxBytesToRead);
     fclose(fp);
   }
 
@@ -224,19 +234,17 @@ pair<string, string> OpenSSLCryptoImpl::EdDSAHexToPem(const std::pair<std::strin
     ConcordAssertNE(nullptr, ed_pubKey);
 
     auto fp = tmpfile();
+    ConcordAssertNE(nullptr, fp);
     PEM_write_PUBKEY(fp, ed_pubKey.get());
-    std::rewind(fp);
+    rewind(fp);
 
-    char ch{'\0'};
-    while (((ch = fgetc(fp)) != EOF)) {
-      pubPemString += ch;
-    }
+    pubPemString = concord::io::readFile(fp, maxBytesToRead);
     fclose(fp);
   }
   return make_pair(privPemString, pubPemString);
 }
 
-KeyFormat OpenSSLCryptoImpl::getFormat(const std::string& key) const {
-  return (key.find("BEGIN") != std::string::npos) ? KeyFormat::PemFormat : KeyFormat::HexaDecimalStrippedFormat;
+KeyFormat OpenSSLCryptoImpl::getFormat(const string& key) const {
+  return (key.find("BEGIN") != string::npos) ? KeyFormat::PemFormat : KeyFormat::HexaDecimalStrippedFormat;
 }
 }  // namespace concord::crypto::openssl

@@ -205,9 +205,9 @@ using UniqueOpenSSLX509 = custom_deleter_unique_ptr<X509, X509_free>;
 using UniqueOpenSSLBIO = custom_deleter_unique_ptr<BIO, BIO_free_all>;
 using UniqueOpenSSLCipherContext = custom_deleter_unique_ptr<EVP_CIPHER_CTX, EVP_CIPHER_CTX_free>;
 using UniqueOpenSSLBIGNUM = custom_deleter_unique_ptr<BIGNUM, BN_clear_free>;
-using UniqueOpenSSLBN_CTX = custom_deleter_unique_ptr<BN_CTX, BN_CTX_free>;
-using UniqueOpenSSLEC_KEY = custom_deleter_unique_ptr<EC_KEY, EC_KEY_free>;
-using UniqueOpenSSLEC_POINT = custom_deleter_unique_ptr<EC_POINT, EC_POINT_clear_free>;
+using UniqueOpenSSLBNCTX = custom_deleter_unique_ptr<BN_CTX, BN_CTX_free>;
+using UniqueOpenSSLECKEY = custom_deleter_unique_ptr<EC_KEY, EC_KEY_free>;
+using UniqueOpenSSLECPOINT = custom_deleter_unique_ptr<EC_POINT, EC_POINT_clear_free>;
 
 constexpr int OPENSSL_SUCCESS = 1;
 

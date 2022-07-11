@@ -14,8 +14,8 @@
 #include "assertUtils.hpp"
 #include "Metrics.hpp"
 #include "crypto_utils.hpp"
-#include "crypto/interface/signer_interface.hpp"
-#include "crypto/interface/verifier_interface.hpp"
+#include "crypto/interface/signer.hpp"
+#include "crypto/interface/verifier.hpp"
 
 #include <utility>
 #include <vector>

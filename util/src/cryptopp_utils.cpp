@@ -23,9 +23,11 @@
 
 #include "Logger.hpp"
 
-using namespace CryptoPP;
-
 namespace concord::crypto::cryptopp {
+
+using namespace CryptoPP;
+using concord::util::crypto::KeyFormat;
+using concord::util::crypto::CurveType;
 
 class ECDSAVerifier::Impl {
   std::unique_ptr<ECDSA<ECP, CryptoPP::SHA256>::Verifier> verifier_;

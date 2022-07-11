@@ -24,13 +24,6 @@
 
 #include "crypto_utils.hpp"
 
-using std::pair;
-using std::make_pair;
-using std::string;
-using std::unique_ptr;
-using std::ofstream;
-using concord::util::crypto::KeyFormat;
-
 namespace concord::crypto::openssl {
 
 class CertificateUtils {
@@ -38,8 +31,26 @@ class CertificateUtils {
   static std::string generateSelfSignedCert(const std::string& origin_cert_path,
                                             const std::string& pub_key,
                                             const std::string& signing_key);
-  static bool verifyCertificate(X509* cert, const std::string& pub_key);
-  static bool verifyCertificate(X509* cert_to_verify,
+  /**
+   * @brief Verifies the signature of certificate 'cert' using public key 'pub_key'.
+   *
+   * @param cert [input] Certificate to be validated.
+   * @param pub_key [input] Public key to be used to validate the certificate.
+   * @return bool Verification result.
+   */
+  static bool verifyCertificate(X509& cert, const std::string& pub_key);
+
+  /**
+   * @brief Verifies the certificate 'cert_to_verify' with another certificate present in 'cert_root_directory'.
+   *
+   * @param cert_to_verify [input] Certificate to be validated.
+   * @param cert_root_directory [input] Location of the other certificate to be verified.
+   * @param remote_peer_id [output]
+   * @param conn_type [output] Certificate type (server or client).
+   * @param use_unified_certs [input]
+   * @return Verification result.
+   */
+  static bool verifyCertificate(const X509& cert_to_verify,
                                 const std::string& cert_root_directory,
                                 uint32_t& remote_peer_id,
                                 std::string& conn_type,
@@ -62,7 +73,8 @@ class OpenSSLCryptoImpl {
    * @param fmt Output key format.
    * @return pair<string, string> Private-Public key pair.
    */
-  pair<string, string> generateEdDSAKeyPair(const KeyFormat fmt = KeyFormat::HexaDecimalStrippedFormat) const;
+  std::pair<std::string, std::string> generateEdDSAKeyPair(
+      const concord::util::crypto::KeyFormat fmt = concord::util::crypto::KeyFormat::HexaDecimalStrippedFormat) const;
 
   /**
    * @brief Generates an EdDSA PEM file from hexadecimal key pair (private-public key pair).
@@ -70,7 +82,7 @@ class OpenSSLCryptoImpl {
    * @param key_pair Key pair in hexa-decimal format.
    * @return pair<string, string>
    */
-  pair<string, string> EdDSAHexToPem(const std::pair<std::string, std::string>& hex_key_pair) const;
+  std::pair<std::string, std::string> EdDSAHexToPem(const std::pair<std::string, std::string>& hex_key_pair) const;
 
   /**
    * @brief Returns the key's format.
@@ -78,6 +90,6 @@ class OpenSSLCryptoImpl {
    * @param key
    * @return KeyFormat
    */
-  KeyFormat getFormat(const std::string& key) const;
+  concord::util::crypto::KeyFormat getFormat(const std::string& key) const;
 };
 }  // namespace concord::crypto::openssl

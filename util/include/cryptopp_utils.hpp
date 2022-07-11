@@ -14,20 +14,15 @@
 
 #include <memory>
 
-#include "crypto/interface/signer_interface.hpp"
-#include "crypto/interface/verifier_interface.hpp"
+#include "crypto/interface/signer.hpp"
+#include "crypto/interface/verifier.hpp"
 #include "crypto_utils.hpp"
-
-using concord::util::crypto::KeyFormat;
-using concord::util::crypto::CurveType;
-using concord::crypto::ISigner;
-using concord::crypto::IVerifier;
 
 namespace concord::crypto::cryptopp {
 
 class ECDSAVerifier : public IVerifier {
  public:
-  ECDSAVerifier(const std::string& str_pub_key, KeyFormat fmt);
+  ECDSAVerifier(const std::string& str_pub_key, concord::util::crypto::KeyFormat fmt);
   bool verify(const std::string& data, const std::string& sig) const override;
   uint32_t signatureLength() const override;
   std::string getPubKey() const override { return key_str_; }
@@ -41,7 +36,7 @@ class ECDSAVerifier : public IVerifier {
 
 class ECDSASigner : public ISigner {
  public:
-  ECDSASigner(const std::string& str_priv_key, KeyFormat fmt);
+  ECDSASigner(const std::string& str_priv_key, concord::util::crypto::KeyFormat fmt);
   std::string sign(const std::string& data) override;
   uint32_t signatureLength() const override;
   std::string getPrivKey() const override { return key_str_; }
@@ -55,7 +50,7 @@ class ECDSASigner : public ISigner {
 
 class RSAVerifier : public IVerifier {
  public:
-  RSAVerifier(const std::string& str_pub_key, KeyFormat fmt);
+  RSAVerifier(const std::string& str_pub_key, concord::util::crypto::KeyFormat fmt);
   bool verify(const std::string& data, const std::string& sig) const override;
   uint32_t signatureLength() const override;
   std::string getPubKey() const override { return key_str_; }
@@ -69,7 +64,7 @@ class RSAVerifier : public IVerifier {
 
 class RSASigner : public ISigner {
  public:
-  RSASigner(const std::string& str_priv_key, KeyFormat fmt);
+  RSASigner(const std::string& str_priv_key, concord::util::crypto::KeyFormat fmt);
   std::string sign(const std::string& data) override;
   uint32_t signatureLength() const override;
   std::string getPrivKey() const override { return key_str_; }
@@ -90,12 +85,15 @@ class Crypto {
 
   Crypto();
   ~Crypto();
-  std::pair<std::string, std::string> generateRsaKeyPair(const uint32_t sig_length, const KeyFormat fmt) const;
-  std::pair<std::string, std::string> generateECDSAKeyPair(const KeyFormat fmt,
-                                                           CurveType curve_type = CurveType::secp256k1) const;
+  std::pair<std::string, std::string> generateRsaKeyPair(
+      const uint32_t sig_length,
+      const concord::util::crypto::KeyFormat fmt = concord::util::crypto::KeyFormat::HexaDecimalStrippedFormat) const;
+  std::pair<std::string, std::string> generateECDSAKeyPair(
+      const concord::util::crypto::KeyFormat fmt,
+      concord::util::crypto::CurveType curve_type = concord::util::crypto::CurveType::secp256k1) const;
   std::pair<std::string, std::string> RsaHexToPem(const std::pair<std::string, std::string>& key_pair) const;
   std::pair<std::string, std::string> ECDSAHexToPem(const std::pair<std::string, std::string>& key_pair) const;
-  KeyFormat getFormat(const std::string& key_str) const;
+  concord::util::crypto::KeyFormat getFormat(const std::string& key_str) const;
 
  private:
   class Impl;

@@ -70,11 +70,9 @@ vector<uint8_t> AES_CBC::encrypt(const string& input) const {
   ConcordAssert(OPENSSL_SUCCESS == EVP_EncryptFinal_ex(ctx.get(), ciphertext.get() + c_len, &f_len));
 
   const int encryptedMsgLen = c_len + f_len;
-  vector<uint8_t> cipher(encryptedMsgLen);
-  for (int i = 0; i < encryptedMsgLen; ++i) {
-    cipher[i] = ciphertext.get()[i];  // Copy one character at a time.
-  }
-  return cipher;
+  vector<uint8_t> ciphertxt(encryptedMsgLen);
+  memcpy(&ciphertxt[0], ciphertext.get(), encryptedMsgLen);
+  return ciphertxt;
 #endif
 }
 
@@ -101,11 +99,12 @@ string AES_CBC::decrypt(const vector<uint8_t>& cipher) const {
       EVP_DecryptUpdate(ctx.get(), plaintext.get(), &c_len, (const unsigned char*)cipher.data(), cipherLength));
   ConcordAssert(OPENSSL_SUCCESS == EVP_DecryptFinal_ex(ctx.get(), plaintext.get() + c_len, &f_len));
 
-  plaintext.get()[c_len + f_len] = 0;
+  const int plainMsgLen = c_len + f_len;
+  plaintext.get()[plainMsgLen] = 0;
 
-  vector<uint8_t> temp(c_len + f_len);
-  memcpy(&temp[0], plaintext.get(), c_len + f_len);
-  return string(temp.begin(), temp.end());
+  vector<uint8_t> plaintxt(plainMsgLen);
+  memcpy(&plaintxt[0], plaintext.get(), plainMsgLen);
+  return string(plaintxt.begin(), plaintxt.end());
 #endif
 }
 }  // namespace concord::secretsmanager

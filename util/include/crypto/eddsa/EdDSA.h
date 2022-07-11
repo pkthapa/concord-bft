@@ -16,10 +16,6 @@
 #include "openssl_crypto.hpp"
 #include "hex_tools.h"
 
-using concord::util::crypto::KeyFormat;
-using concord::util::openssl_utils::UniquePKEY;
-using concord::util::openssl_utils::OPENSSL_SUCCESS;
-
 static constexpr const size_t EdDSAPrivateKeyByteSize = 32UL;
 static constexpr const size_t EdDSAPublicKeyByteSize = 32UL;
 static constexpr const size_t EdDSASignatureByteSize = 64UL;
@@ -38,47 +34,41 @@ class EdDSAPublicKey : public SerializableByteArray<EdDSAPublicKeyByteSize> {
  * @brief Generate hex format key from pem file.
  *
  * @tparam ByteArrayKeyClass
- * @tparam KeyLength
  * @param pemKey
+ * @param KeyLength
  * @return std::vector<uint8_t> Generated key.
  */
-template <typename ByteArrayKeyClass, size_t KeyLength>
-static std::vector<uint8_t> extractHexKeyFromPem(const std::string& pemKey) {
+
+template <typename ByteArrayKeyClass>
+static std::vector<uint8_t> extractHexKeyFromPem(const std::string& pemKey, size_t KeyLength) {
+  using concord::util::openssl_utils::UniquePKEY;
+  using concord::util::openssl_utils::OPENSSL_SUCCESS;
+
   UniquePKEY pkey;
-  const std::string temp{"/tmp/concordTempKey.pem"};
-
-  std::ofstream out(temp.data());
-  out << pemKey;
-  out.close();
-
   auto deleter = [](FILE* fp) {
     if (nullptr != fp) {
       fclose(fp);
     }
   };
-  std::unique_ptr<FILE, decltype(deleter)> fp(fopen(temp.data(), "r"), deleter);
+  std::unique_ptr<FILE, decltype(deleter)> fp(tmpfile(), deleter);
   if (nullptr == fp) {
-    LOG_ERROR(EDDSA_SIG_LOG, "Unable to open private key file to initialize signer." << KVLOG(fp.get(), pemKey));
+    LOG_ERROR(EDDSA_SIG_LOG, "Unable to open replica key file." << KVLOG(fp.get(), pemKey));
     std::terminate();
   }
 
+  fputs(pemKey.data(), fp.get());
+  rewind(fp.get());
+
   size_t keyLen{KeyLength};
-  unsigned char extractedKey[KeyLength]{'\0'};
+  std::vector<uint8_t> key(KeyLength);
 
   if constexpr (std::is_same_v<ByteArrayKeyClass, EdDSAPrivateKey>) {
     pkey.reset(PEM_read_PrivateKey(fp.get(), nullptr, nullptr, nullptr));
-    ConcordAssertEQ(
-        EVP_PKEY_get_raw_private_key(pkey.get(), extractedKey, &keyLen),  // Extract private key in 'extractedKey'.
-        OPENSSL_SUCCESS);
+    ConcordAssertEQ(EVP_PKEY_get_raw_private_key(pkey.get(), &key[0], &keyLen), OPENSSL_SUCCESS);
   } else if constexpr (std::is_same_v<ByteArrayKeyClass, EdDSAPublicKey>) {
     pkey.reset(PEM_read_PUBKEY(fp.get(), nullptr, nullptr, nullptr));
-    ConcordAssertEQ(
-        EVP_PKEY_get_raw_public_key(pkey.get(), extractedKey, &keyLen),  // Extract public key in 'extractedKey'.
-        OPENSSL_SUCCESS);
+    ConcordAssertEQ(EVP_PKEY_get_raw_public_key(pkey.get(), &key[0], &keyLen), OPENSSL_SUCCESS);
   }
-
-  const std::vector<uint8_t> key(extractedKey, extractedKey + keyLen);
-  remove(temp.data());
   return key;
 }
 
@@ -92,17 +82,15 @@ static std::vector<uint8_t> extractHexKeyFromPem(const std::string& pemKey) {
  * @return ByteArrayKeyClass
  */
 template <typename ByteArrayKeyClass, size_t KeyLength>
-static ByteArrayKeyClass getByteArrayKeyClass(const std::string& key, KeyFormat format) {
-  std::vector<uint8_t> extractedKey;
-
-  if (KeyFormat::PemFormat == format) {
-    extractedKey = extractHexKeyFromPem<ByteArrayKeyClass, KeyLength>(key);
-  } else if (KeyFormat::HexaDecimalStrippedFormat == format) {
-    extractedKey = concordUtils::unhex(key);
-  }
-  ConcordAssertEQ(extractedKey.size(), KeyLength);
+static ByteArrayKeyClass getByteArrayKeyClass(const std::string& key, concord::util::crypto::KeyFormat format) {
+  using concord::util::crypto::KeyFormat;
 
   typename ByteArrayKeyClass::ByteArray resultBytes;
-  std::memcpy(resultBytes.data(), extractedKey.data(), extractedKey.size());
+
+  if (KeyFormat::PemFormat == format) {
+    std::memcpy(resultBytes.data(), extractHexKeyFromPem<ByteArrayKeyClass>(key, KeyLength).data(), KeyLength);
+  } else if (KeyFormat::HexaDecimalStrippedFormat == format) {
+    std::memcpy(resultBytes.data(), concordUtils::unhex(key).data(), KeyLength);
+  }
   return ByteArrayKeyClass{resultBytes};
 }
