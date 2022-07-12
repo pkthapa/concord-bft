@@ -20,7 +20,7 @@
 #include <exception>
 #include "KeyfileIOUtils.hpp"
 #include "yaml_utils.hpp"
-#include "crypto/eddsa/EdDSA.h"
+#include "crypto/eddsa/EdDSA.hpp"
 
 void outputReplicaKeyfile(uint16_t numReplicas,
                           uint16_t numRoReplicas,

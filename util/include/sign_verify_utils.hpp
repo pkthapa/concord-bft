@@ -14,7 +14,7 @@
 #pragma once
 
 #include "openssl_utils.hpp"
-#include "crypto/eddsa/EdDSA.h"
+#include "crypto/eddsa/EdDSA.hpp"
 #include "crypto/eddsa/EdDSASigner.hpp"
 #include "crypto/eddsa/EdDSAVerifier.hpp"
 

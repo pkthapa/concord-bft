@@ -15,7 +15,7 @@
 #include "gtest/gtest.h"
 #include "Logger.hpp"
 #include "sign_verify_utils.hpp"
-#include "crypto/eddsa/EdDSA.h"
+#include "crypto/eddsa/EdDSA.hpp"
 #include "crypto/eddsa/EdDSASigner.hpp"
 #include "crypto/eddsa/EdDSAVerifier.hpp"
 
@@ -52,10 +52,9 @@ TEST(openssl_utils, generate_eddsa_keys_pem_format) {
 TEST(openssl_utils, test_eddsa_keys_hex_ok) {
   auto hexKeys = OpenSSLCryptoImpl::instance().generateEdDSAKeyPair();
 
-  const auto signingKey = getByteArrayKeyClass<EdDSAPrivateKey, EdDSAPrivateKeyByteSize>(
-      hexKeys.first, KeyFormat::HexaDecimalStrippedFormat);
-  const auto verificationKey = getByteArrayKeyClass<EdDSAPublicKey, EdDSAPublicKeyByteSize>(
-      hexKeys.second, KeyFormat::HexaDecimalStrippedFormat);
+  const auto signingKey = getByteArrayKeyClass<EdDSAPrivateKey>(hexKeys.first, KeyFormat::HexaDecimalStrippedFormat);
+  const auto verificationKey =
+      getByteArrayKeyClass<EdDSAPublicKey>(hexKeys.second, KeyFormat::HexaDecimalStrippedFormat);
 
   TestTxnSigner signer(signingKey.getBytes());
   TestTxnVerifier verifier(verificationKey.getBytes());
@@ -68,10 +67,9 @@ TEST(openssl_utils, test_eddsa_keys_hex_ok) {
 TEST(openssl_utils, test_eddsa_keys_hex_nok) {
   const auto hexKeys = OpenSSLCryptoImpl::instance().generateEdDSAKeyPair();
 
-  const auto signingKey = getByteArrayKeyClass<EdDSAPrivateKey, EdDSAPrivateKeyByteSize>(
-      hexKeys.first, KeyFormat::HexaDecimalStrippedFormat);
-  const auto verificationKey = getByteArrayKeyClass<EdDSAPublicKey, EdDSAPublicKeyByteSize>(
-      hexKeys.second, KeyFormat::HexaDecimalStrippedFormat);
+  const auto signingKey = getByteArrayKeyClass<EdDSAPrivateKey>(hexKeys.first, KeyFormat::HexaDecimalStrippedFormat);
+  const auto verificationKey =
+      getByteArrayKeyClass<EdDSAPublicKey>(hexKeys.second, KeyFormat::HexaDecimalStrippedFormat);
 
   TestTxnSigner signer(signingKey.getBytes());
   TestTxnVerifier verifier(verificationKey.getBytes());
@@ -88,10 +86,8 @@ TEST(openssl_utils, test_eddsa_keys_hex_nok) {
 TEST(openssl_utils, test_eddsa_keys_pem_ok) {
   const auto pemKeys = OpenSSLCryptoImpl::instance().generateEdDSAKeyPair(KeyFormat::PemFormat);
 
-  const auto signingKey =
-      getByteArrayKeyClass<EdDSAPrivateKey, EdDSAPrivateKeyByteSize>(pemKeys.first, KeyFormat::PemFormat);
-  const auto verificationKey =
-      getByteArrayKeyClass<EdDSAPublicKey, EdDSAPublicKeyByteSize>(pemKeys.second, KeyFormat::PemFormat);
+  const auto signingKey = getByteArrayKeyClass<EdDSAPrivateKey>(pemKeys.first, KeyFormat::PemFormat);
+  const auto verificationKey = getByteArrayKeyClass<EdDSAPublicKey>(pemKeys.second, KeyFormat::PemFormat);
 
   TestTxnSigner signer(signingKey.getBytes());
   TestTxnVerifier verifier(verificationKey.getBytes());
@@ -104,10 +100,8 @@ TEST(openssl_utils, test_eddsa_keys_pem_ok) {
 TEST(openssl_utils, test_eddsa_keys_pem_nok) {
   const auto pemKeys = OpenSSLCryptoImpl::instance().generateEdDSAKeyPair(KeyFormat::PemFormat);
 
-  const auto signingKey =
-      getByteArrayKeyClass<EdDSAPrivateKey, EdDSAPrivateKeyByteSize>(pemKeys.first, KeyFormat::PemFormat);
-  const auto verificationKey =
-      getByteArrayKeyClass<EdDSAPublicKey, EdDSAPublicKeyByteSize>(pemKeys.second, KeyFormat::PemFormat);
+  const auto signingKey = getByteArrayKeyClass<EdDSAPrivateKey>(pemKeys.first, KeyFormat::PemFormat);
+  const auto verificationKey = getByteArrayKeyClass<EdDSAPublicKey>(pemKeys.second, KeyFormat::PemFormat);
 
   TestTxnSigner signer(signingKey.getBytes());
   TestTxnVerifier verifier(verificationKey.getBytes());
@@ -125,10 +119,8 @@ TEST(openssl_utils, test_eddsa_keys_combined_a_ok) {
   const auto hexKeys = OpenSSLCryptoImpl::instance().generateEdDSAKeyPair();
   const auto pemKeys = OpenSSLCryptoImpl::instance().EdDSAHexToPem(hexKeys);
 
-  const auto signingKey = getByteArrayKeyClass<EdDSAPrivateKey, EdDSAPrivateKeyByteSize>(
-      hexKeys.first, KeyFormat::HexaDecimalStrippedFormat);
-  const auto verificationKey =
-      getByteArrayKeyClass<EdDSAPublicKey, EdDSAPublicKeyByteSize>(pemKeys.second, KeyFormat::PemFormat);
+  const auto signingKey = getByteArrayKeyClass<EdDSAPrivateKey>(hexKeys.first, KeyFormat::HexaDecimalStrippedFormat);
+  const auto verificationKey = getByteArrayKeyClass<EdDSAPublicKey>(pemKeys.second, KeyFormat::PemFormat);
 
   TestTxnSigner signer(signingKey.getBytes());
   TestTxnVerifier verifier(verificationKey.getBytes());
@@ -142,10 +134,8 @@ TEST(openssl_utils, test_eddsa_keys_combined_a_nok) {
   const auto hexKeys = OpenSSLCryptoImpl::instance().generateEdDSAKeyPair();
   const auto pemKeys = OpenSSLCryptoImpl::instance().EdDSAHexToPem(hexKeys);
 
-  const auto signingKey = getByteArrayKeyClass<EdDSAPrivateKey, EdDSAPrivateKeyByteSize>(
-      hexKeys.first, KeyFormat::HexaDecimalStrippedFormat);
-  const auto verificationKey =
-      getByteArrayKeyClass<EdDSAPublicKey, EdDSAPublicKeyByteSize>(pemKeys.second, KeyFormat::PemFormat);
+  const auto signingKey = getByteArrayKeyClass<EdDSAPrivateKey>(hexKeys.first, KeyFormat::HexaDecimalStrippedFormat);
+  const auto verificationKey = getByteArrayKeyClass<EdDSAPublicKey>(pemKeys.second, KeyFormat::PemFormat);
 
   TestTxnSigner signer(signingKey.getBytes());
   TestTxnVerifier verifier(verificationKey.getBytes());
@@ -163,10 +153,9 @@ TEST(openssl_utils, test_eddsa_keys_combined_b_ok) {
   const auto hexKeys = OpenSSLCryptoImpl::instance().generateEdDSAKeyPair();
   const auto pemKeys = OpenSSLCryptoImpl::instance().EdDSAHexToPem(hexKeys);
 
-  const auto signingKey =
-      getByteArrayKeyClass<EdDSAPrivateKey, EdDSAPrivateKeyByteSize>(pemKeys.first, KeyFormat::PemFormat);
-  const auto verificationKey = getByteArrayKeyClass<EdDSAPublicKey, EdDSAPublicKeyByteSize>(
-      hexKeys.second, KeyFormat::HexaDecimalStrippedFormat);
+  const auto signingKey = getByteArrayKeyClass<EdDSAPrivateKey>(pemKeys.first, KeyFormat::PemFormat);
+  const auto verificationKey =
+      getByteArrayKeyClass<EdDSAPublicKey>(hexKeys.second, KeyFormat::HexaDecimalStrippedFormat);
 
   TestTxnSigner signer(signingKey.getBytes());
   TestTxnVerifier verifier(verificationKey.getBytes());
@@ -180,10 +169,9 @@ TEST(openssl_utils, test_eddsa_keys_combined_b_nok) {
   const auto hexKeys = OpenSSLCryptoImpl::instance().generateEdDSAKeyPair();
   const auto pemKeys = OpenSSLCryptoImpl::instance().EdDSAHexToPem(hexKeys);
 
-  const auto signingKey =
-      getByteArrayKeyClass<EdDSAPrivateKey, EdDSAPrivateKeyByteSize>(pemKeys.first, KeyFormat::PemFormat);
-  const auto verificationKey = getByteArrayKeyClass<EdDSAPublicKey, EdDSAPublicKeyByteSize>(
-      hexKeys.second, KeyFormat::HexaDecimalStrippedFormat);
+  const auto signingKey = getByteArrayKeyClass<EdDSAPrivateKey>(pemKeys.first, KeyFormat::PemFormat);
+  const auto verificationKey =
+      getByteArrayKeyClass<EdDSAPublicKey>(hexKeys.second, KeyFormat::HexaDecimalStrippedFormat);
 
   TestTxnSigner signer(signingKey.getBytes());
   TestTxnVerifier verifier(verificationKey.getBytes());

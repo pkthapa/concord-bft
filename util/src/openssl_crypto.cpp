@@ -410,20 +410,23 @@ std::unique_ptr<AsymmetricPrivateKey> concord::util::openssl_utils::deserializeP
                            "(which could be because it does not meet them, or could simply be "
                            "because we have not assessed this particular scheme).");
   }
-  FILE* fp = fopen(path_to_file.c_str(), "r");
-  if (!fp) {
+  auto deleter = [](FILE* fp) {
+    if (nullptr != fp) {
+      fclose(fp);
+    }
+  };
+  unique_ptr<FILE, decltype(deleter)> fp(fopen(path_to_file.c_str(), "r"), deleter);
+  if (nullptr == fp) {
     return nullptr;
   }
   UniqueOpenSSLECKEY pkey(EC_KEY_new());
 
-  if (!PEM_read_ECPrivateKey(fp, reinterpret_cast<EC_KEY**>(pkey.get()), nullptr, nullptr)) {
-    fclose(fp);
+  if (!PEM_read_ECPrivateKey(fp.get(), reinterpret_cast<EC_KEY**>(pkey.get()), nullptr, nullptr)) {
     throw UnexpectedOpenSSLCryptoFailureException(
         "OpenSSL Crypto unexpectedly failed to parse the private key file "
         "for " +
         path_to_file);
   }
-  fclose(fp);
 
   UniquePKEY private_pkey(EVP_PKEY_new());
   if (!EVP_PKEY_set1_EC_KEY(private_pkey.get(), pkey.get())) {
@@ -496,27 +499,28 @@ std::unique_ptr<AsymmetricPublicKey> concord::util::openssl_utils::deserializePu
                            "(which could be because it does not meet them, or could simply be "
                            "because we have not assessed this particular scheme).");
   }
-  FILE* fp = fopen(path_to_file.c_str(), "r");
-  if (!fp) {
+  auto deleter = [](FILE* fp) {
+    if (nullptr != fp) {
+      fclose(fp);
+    }
+  };
+  unique_ptr<FILE, decltype(deleter)> fp(fopen(path_to_file.c_str(), "r"), deleter);
+  if (nullptr == fp) {
     return nullptr;
   }
-  EC_KEY* pkey = EC_KEY_new();
+  UniqueOpenSSLECKEY pkey(EC_KEY_new());
 
-  if (!PEM_read_EC_PUBKEY(fp, &pkey, nullptr, nullptr)) {
-    fclose(fp);
-    EC_KEY_free(pkey);
+  if (!PEM_read_EC_PUBKEY(fp.get(), reinterpret_cast<EC_KEY**>(pkey.get()), nullptr, nullptr)) {
     throw UnexpectedOpenSSLCryptoFailureException(
         "OpenSSL Crypto unexpectedly failed to parse the public key file for " + path_to_file);
   }
-  fclose(fp);
+
   UniquePKEY public_pkey(EVP_PKEY_new());
-  if (!EVP_PKEY_set1_EC_KEY(public_pkey.get(), pkey)) {
-    EC_KEY_free(pkey);
+  if (!EVP_PKEY_set1_EC_KEY(public_pkey.get(), pkey.get())) {
     throw UnexpectedOpenSSLCryptoFailureException(
         "OpenSSL Crypto unexpectedly failed to initialize a high-level key "
         "object given an elliptic curve key object.");
   }
-  EC_KEY_free(pkey);
   return std::make_unique<EVPPKEYPublicKey>(std::move(public_pkey), "secp256r1");
 }
 

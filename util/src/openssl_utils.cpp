@@ -16,7 +16,7 @@
 #include "assertUtils.hpp"
 #include "hex_tools.h"
 #include "openssl_crypto.hpp"
-#include "crypto/eddsa/EdDSA.h"
+#include "crypto/eddsa/EdDSA.hpp"
 #include "io.hpp"
 
 #include <regex>
@@ -33,12 +33,16 @@ using concord::util::openssl_utils::UniqueOpenSSLPKEYContext;
 using concord::util::openssl_utils::UniqueOpenSSLX509;
 using concord::util::openssl_utils::UniqueOpenSSLBIO;
 using concord::util::openssl_utils::OPENSSL_SUCCESS;
+using concord::util::openssl_utils::OPENSSL_FAILURE;
+using concord::util::openssl_utils::OPENSSL_ERROR;
 
 string CertificateUtils::generateSelfSignedCert(const string& origin_cert_path,
                                                 const string& public_key,
                                                 const string& signing_key) {
   auto deleter = [](FILE* fp) {
-    if (fp) fclose(fp);
+    if (nullptr != fp) {
+      fclose(fp);
+    }
   };
   unique_ptr<FILE, decltype(deleter)> fp(fopen(origin_cert_path.c_str(), "r"), deleter);
   if (!fp) {
@@ -68,7 +72,7 @@ string CertificateUtils::generateSelfSignedCert(const string& origin_cert_path,
   UniqueOpenSSLBIO pub_bio(BIO_new(BIO_s_mem()));
 
   if (BIO_write(pub_bio.get(), static_cast<const char*>(public_key.c_str()), public_key.size()) <= 0) {
-    LOG_ERROR(OPENSSL_LOG, "Unable to create public key object");
+    LOG_ERROR(OPENSSL_LOG, "Unable to write public key object");
     return string();
   }
   if (!PEM_read_bio_PUBKEY(pub_bio.get(), reinterpret_cast<EVP_PKEY**>(&pub_key), nullptr, nullptr)) {
@@ -76,8 +80,15 @@ string CertificateUtils::generateSelfSignedCert(const string& origin_cert_path,
     return string();
   }
 
-  X509_set_pubkey(cert.get(), pub_key.get());
-  X509_sign(cert.get(), priv_key.get(), EVP_sha256());
+  if (OPENSSL_FAILURE == X509_set_pubkey(cert.get(), pub_key.get())) {
+    LOG_ERROR(OPENSSL_LOG, "Failed to set public key for certificate.");
+    return {};
+  }
+
+  if (OPENSSL_FAILURE == X509_sign(cert.get(), priv_key.get(), EVP_sha256())) {
+    LOG_ERROR(OPENSSL_LOG, "Failed to sign certificate using private key.");
+    return {};
+  }
 
   UniqueOpenSSLBIO outbio(BIO_new(BIO_s_mem()));
   if (!PEM_write_bio_X509(outbio.get(), cert.get())) {
@@ -87,7 +98,11 @@ string CertificateUtils::generateSelfSignedCert(const string& origin_cert_path,
   string certStr;
   int certLen = BIO_pending(outbio.get());
   certStr.resize(certLen);
-  BIO_read(outbio.get(), (void*)&(certStr.front()), certLen);
+  const auto res = BIO_read(outbio.get(), (void*)&(certStr.front()), certLen);
+  if (OPENSSL_FAILURE == res or OPENSSL_ERROR == res) {
+    LOG_ERROR(OPENSSL_LOG, "Failed to read data from the BIO certifiate object.");
+    return {};
+  }
   return certStr;
 }
 
@@ -195,9 +210,8 @@ pair<string, string> OpenSSLCryptoImpl::generateEdDSAKeyPair(const KeyFormat fmt
   ConcordAssertEQ(OPENSSL_SUCCESS, EVP_PKEY_get_raw_private_key(edPkey.get(), privKey, &privlen));
   ConcordAssertEQ(OPENSSL_SUCCESS, EVP_PKEY_get_raw_public_key(edPkey.get(), pubKey, &publen));
 
-  pair<string, string> keyPair;
-  keyPair.first = concordUtils::bufferToHex(reinterpret_cast<const char*>(privKey), (const size_t)privlen, false);
-  keyPair.second = concordUtils::bufferToHex(reinterpret_cast<const char*>(pubKey), (const size_t)publen, false);
+  pair<string, string> keyPair(boost::algorithm::hex(string(reinterpret_cast<const char*>(privKey), privlen)),
+                               boost::algorithm::hex(string(reinterpret_cast<const char*>(pubKey), publen)));
 
   if (KeyFormat::PemFormat == fmt) {
     keyPair = EdDSAHexToPem(keyPair);
@@ -211,9 +225,10 @@ pair<string, string> OpenSSLCryptoImpl::EdDSAHexToPem(const std::pair<std::strin
   constexpr uint64_t maxBytesToRead = 1024U;
 
   if (!hex_key_pair.first.empty()) {  // Proceed with private key pem file generation.
-    const auto privKey = concordUtils::unhex(hex_key_pair.first);
+    const auto privKey = boost::algorithm::unhex(hex_key_pair.first);
 
-    UniquePKEY ed_privKey(EVP_PKEY_new_raw_private_key(NID_ED25519, nullptr, privKey.data(), privKey.size()));
+    UniquePKEY ed_privKey(EVP_PKEY_new_raw_private_key(
+        NID_ED25519, nullptr, reinterpret_cast<const unsigned char*>(privKey.data()), privKey.size()));
 
     ConcordAssertNE(nullptr, ed_privKey);
 
@@ -227,9 +242,10 @@ pair<string, string> OpenSSLCryptoImpl::EdDSAHexToPem(const std::pair<std::strin
   }
 
   if (!hex_key_pair.second.empty()) {  // Proceed with public key pem file generation.
-    const auto pubKey = concordUtils::unhex(hex_key_pair.second);
+    const auto pubKey = boost::algorithm::unhex(hex_key_pair.second);
 
-    UniquePKEY ed_pubKey(EVP_PKEY_new_raw_public_key(NID_ED25519, nullptr, pubKey.data(), pubKey.size()));
+    UniquePKEY ed_pubKey(EVP_PKEY_new_raw_public_key(
+        NID_ED25519, nullptr, reinterpret_cast<const unsigned char*>(pubKey.data()), pubKey.size()));
 
     ConcordAssertNE(nullptr, ed_pubKey);
 

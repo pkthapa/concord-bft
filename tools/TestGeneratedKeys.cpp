@@ -26,9 +26,7 @@
 using concord::crypto::ISigner;
 using concord::crypto::IVerifier;
 using concord::crypto::signature::PrivateKeyClassType;
-using concord::crypto::signature::PrivateKeyByteSize;
 using concord::crypto::signature::PublicKeyClassType;
-using concord::crypto::signature::PublicKeyByteSize;
 using concord::crypto::signature::TransactionSigner;
 using concord::crypto::signature::TransactionVerifier;
 using concord::util::crypto::KeyFormat;
@@ -149,8 +147,7 @@ static bool testReplicaKeyPair(const std::string& privateKey, const std::string&
 #ifdef USE_CRYPTOPP_RSA
     signer.reset(new TransactionSigner(privateKey, KeyFormat::HexaDecimalStrippedFormat));
 #elif USE_EDDSA_SINGLE_SIGN
-    const auto signingKey =
-        getByteArrayKeyClass<PrivateKeyClassType, PrivateKeyByteSize>(privateKey, KeyFormat::HexaDecimalStrippedFormat);
+    const auto signingKey = getByteArrayKeyClass<PrivateKeyClassType>(privateKey, KeyFormat::HexaDecimalStrippedFormat);
     signer.reset(new TransactionSigner(signingKey.getBytes()));
 #endif
   } catch (const std::exception& e) {
@@ -162,7 +159,7 @@ static bool testReplicaKeyPair(const std::string& privateKey, const std::string&
     verifier.reset(new TransactionVerifier(publicKey, KeyFormat::HexaDecimalStrippedFormat));
 #elif USE_EDDSA_SINGLE_SIGN
     const auto verificationKey =
-        getByteArrayKeyClass<PublicKeyClassType, PublicKeyByteSize>(publicKey, KeyFormat::HexaDecimalStrippedFormat);
+        getByteArrayKeyClass<PublicKeyClassType>(publicKey, KeyFormat::HexaDecimalStrippedFormat);
     verifier.reset(new TransactionVerifier(verificationKey.getBytes()));
 #endif
   } catch (const std::exception& e) {

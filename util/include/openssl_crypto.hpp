@@ -210,5 +210,7 @@ using UniqueOpenSSLECKEY = custom_deleter_unique_ptr<EC_KEY, EC_KEY_free>;
 using UniqueOpenSSLECPOINT = custom_deleter_unique_ptr<EC_POINT, EC_POINT_clear_free>;
 
 constexpr int OPENSSL_SUCCESS = 1;
+constexpr int OPENSSL_FAILURE = 0;
+constexpr int OPENSSL_ERROR = -1;
 
 }  // namespace concord::util::openssl_utils

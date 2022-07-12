@@ -12,7 +12,7 @@
 //
 #pragma once
 
-#include "EdDSA.h"
+#include "EdDSA.hpp"
 #include "openssl_crypto.hpp"
 #include "crypto_utils.hpp"
 #include "crypto/interface/signer.hpp"

@@ -45,7 +45,6 @@ using namespace concord::secretsmanager;
 using concord::util::crypto::KeyFormat;
 using concord::crypto::signature::TransactionVerifier;
 using concord::crypto::signature::PublicKeyClassType;
-using concord::crypto::signature::PublicKeyByteSize;
 using namespace CryptoPP;
 
 using ReplicaId_t = bft::client::ReplicaId;
@@ -189,8 +188,7 @@ TEST_P(ClientApiTestParametrizedFixture, print_received_messages_and_timeout) {
     stream << file.rdbuf();
     auto pub_key_str = stream.str();
 
-    const auto verificationKey =
-        getByteArrayKeyClass<PublicKeyClassType, PublicKeyByteSize>(pub_key_str, KeyFormat::PemFormat);
+    const auto verificationKey = getByteArrayKeyClass<PublicKeyClassType>(pub_key_str, KeyFormat::PemFormat);
     transaction_verifier_.reset(new TransactionVerifier(verificationKey.getBytes()));
   }
   unique_ptr<FakeCommunication> comm;

@@ -76,21 +76,21 @@ static std::vector<uint8_t> extractHexKeyFromPem(const std::string& pemKey, size
  * @brief Get the ByteArray Key Class object
  *
  * @tparam ByteArrayKeyClass
- * @tparam KeyLength
  * @param key
  * @param format
  * @return ByteArrayKeyClass
  */
-template <typename ByteArrayKeyClass, size_t KeyLength>
+template <typename ByteArrayKeyClass>
 static ByteArrayKeyClass getByteArrayKeyClass(const std::string& key, concord::util::crypto::KeyFormat format) {
   using concord::util::crypto::KeyFormat;
 
   typename ByteArrayKeyClass::ByteArray resultBytes;
+  constexpr size_t keyLength = ByteArrayKeyClass::ByteSize;
 
   if (KeyFormat::PemFormat == format) {
-    std::memcpy(resultBytes.data(), extractHexKeyFromPem<ByteArrayKeyClass>(key, KeyLength).data(), KeyLength);
+    std::memcpy(resultBytes.data(), extractHexKeyFromPem<ByteArrayKeyClass>(key, keyLength).data(), keyLength);
   } else if (KeyFormat::HexaDecimalStrippedFormat == format) {
-    std::memcpy(resultBytes.data(), concordUtils::unhex(key).data(), KeyLength);
+    std::memcpy(resultBytes.data(), concordUtils::unhex(key).data(), keyLength);
   }
   return ByteArrayKeyClass{resultBytes};
 }

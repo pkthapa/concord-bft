@@ -47,7 +47,6 @@ namespace concord::kvbc::tools::db_editor {
 using namespace categorization;
 using concord::crypto::signature::TransactionVerifier;
 using concord::crypto::signature::PublicKeyClassType;
-using concord::crypto::signature::PublicKeyByteSize;
 
 inline const auto kToolName = "kv_blockchain_db_editor"s;
 
@@ -368,7 +367,7 @@ struct VerifyBlockRequests {
       out << "\t\t\"signature_digest\": \"" << hex_digest << "\",\n";
       out << "\t\t\"persistency_type\": \"" << persistencyType(req.requestPersistencyType) << "\",\n";
       std::string verification_result;
-      const auto verificationKey = getByteArrayKeyClass<PublicKeyClassType, PublicKeyByteSize>(
+      const auto verificationKey = getByteArrayKeyClass<PublicKeyClassType>(
           client_keys.ids_to_keys[req.clientId].key,
           (concord::util::crypto::KeyFormat)client_keys.ids_to_keys[req.clientId].format);
       auto verifier = std::make_unique<TransactionVerifier>(verificationKey.getBytes());
@@ -1110,8 +1109,7 @@ struct VerifyDbCheckpoint {
               transform(format.begin(), format.end(), format.begin(), ::tolower);
               auto key_format = ((format == "hex") ? KeyFormat::HexaDecimalStrippedFormat : KeyFormat::PemFormat);
 
-              const auto verificationKey =
-                  getByteArrayKeyClass<PublicKeyClassType, PublicKeyByteSize>(cmd.key, key_format);
+              const auto verificationKey = getByteArrayKeyClass<PublicKeyClassType>(cmd.key, key_format);
               replica_keys.emplace(repId, std::make_unique<TransactionVerifier>(verificationKey.getBytes()));
             },
             *val);
