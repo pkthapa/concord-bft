@@ -90,7 +90,7 @@ static ByteArrayKeyClass getByteArrayKeyClass(const std::string& key, concord::u
   if (KeyFormat::PemFormat == format) {
     std::memcpy(resultBytes.data(), extractHexKeyFromPem<ByteArrayKeyClass>(key, keyLength).data(), keyLength);
   } else if (KeyFormat::HexaDecimalStrippedFormat == format) {
-    std::memcpy(resultBytes.data(), concordUtils::unhex(key).data(), keyLength);
+    std::memcpy(resultBytes.data(), boost::algorithm::unhex(key).data(), keyLength);
   }
   return ByteArrayKeyClass{resultBytes};
 }
