@@ -51,6 +51,7 @@ using concord::util::digest::DigestGenerator;
 
 namespace bftEngine {
 namespace bcst {
+using concord::util::digest::BlockDigest;
 
 void computeBlockDigest(const uint64_t blockId,
                         const char *block,

@@ -49,7 +49,7 @@ using concord::crypto::openssl::OpenSSLCryptoImpl;
 #endif
 
 using concord::crypto::signature::PrivateKeyClassType;
-using concord::crypto::signature::TransactionSigner;
+using concord::crypto::signature::MainReplicaSigner;
 
 // Testing values to be used for certain Concord-BFT configuration that ClientsManager and/or its dependencies may
 // reference.
@@ -240,7 +240,7 @@ static bool verifyClientPublicKeyLoadedToKEM(NodeIdType client_id, const pair<st
   }
 
   const auto signingKey = getByteArrayKeyClass<PrivateKeyClassType>(expected_key.first, kKeyFormatForTesting);
-  TransactionSigner signer(signingKey.getBytes());
+  MainReplicaSigner signer(signingKey.getBytes());
   string signature = signer.sign(kArbitraryMessageForTestingKeyAgreement);
   return SigManager::instance()->verifySig(client_id,
                                            kArbitraryMessageForTestingKeyAgreement.data(),

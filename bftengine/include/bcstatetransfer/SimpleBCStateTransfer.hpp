@@ -23,8 +23,6 @@
 #include "kvstream.h"
 #include "digest.hpp"
 
-using concord::util::digest::BlockDigest;
-
 namespace concord {
 namespace storage {
 class IDBClient;
@@ -60,7 +58,9 @@ void computeBlockDigest(const uint64_t blockId,
                         const uint32_t blockSize,
                         StateTransferDigest *outDigest);
 
-BlockDigest computeBlockDigest(const uint64_t blockId, const char *block, const uint32_t blockSize);
+concord::util::digest::BlockDigest computeBlockDigest(const uint64_t blockId,
+                                                      const char *block,
+                                                      const uint32_t blockSize);
 
 // This interface should be implemented by the application/storage layer.
 // It is used by the state transfer module.

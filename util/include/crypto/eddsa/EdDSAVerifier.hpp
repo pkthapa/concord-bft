@@ -20,7 +20,7 @@
 // OpenSSL includes.
 #include <openssl/pem.h>
 
-namespace concord::crypto::openssl::eddsa {
+namespace concord::crypto::openssl {
 
 /**
  * @tparam PublicKeyType The type of the public key, expected to be a SerializableByteArray.
@@ -56,15 +56,13 @@ class EdDSAVerifier : public IVerifier {
     return (OPENSSL_SUCCESS == EVP_DigestVerify(ctx.get(), sig, sigLen, msg, msgLen));
   }
 
-  const PublicKeyType &getPublicKey() const { return publicKey_; }
-
   uint32_t signatureLength() const override { return EdDSASignatureByteSize; }
 
   std::string getPubKey() const override { return publicKey_.toString(); }
 
   virtual ~EdDSAVerifier() = default;
 
- private:
-  PublicKeyType publicKey_;
+ public:
+  const PublicKeyType publicKey_;
 };
-}  // namespace concord::crypto::openssl::eddsa
+}  // namespace concord::crypto::openssl

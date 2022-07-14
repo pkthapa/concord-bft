@@ -36,8 +36,8 @@ std::default_random_engine generator;
 
 using concord::crypto::signature::PrivateKeyClassType;
 using concord::crypto::signature::PublicKeyClassType;
-using concord::crypto::signature::TransactionSigner;
-using concord::crypto::signature::TransactionVerifier;
+using concord::crypto::signature::MainReplicaSigner;
+using concord::crypto::signature::MainReplicaVerifier;
 using concord::crypto::openssl::OpenSSLCryptoImpl;
 
 #ifdef USE_CRYPTOPP_RSA
@@ -93,8 +93,8 @@ TEST(SignerAndVerifierTest, LoadSignVerifyFromHexKeyPair) {
   const auto verificationKey =
       getByteArrayKeyClass<PublicKeyClassType>(keyPair.second, KeyFormat::HexaDecimalStrippedFormat);
 
-  const auto signer_ = unique_ptr<TransactionSigner>(new TransactionSigner(signingKey.getBytes()));
-  auto verifier_ = unique_ptr<TransactionVerifier>(new TransactionVerifier(verificationKey.getBytes()));
+  const auto signer_ = unique_ptr<MainReplicaSigner>(new MainReplicaSigner(signingKey.getBytes()));
+  auto verifier_ = unique_ptr<MainReplicaVerifier>(new MainReplicaVerifier(verificationKey.getBytes()));
 
   // sign with RSASigner/EdDSASigner
   std::string sig;
@@ -137,8 +137,8 @@ TEST(SignerAndVerifierTest, LoadSignVerifyFromPemfiles) {
   const auto signingKey = getByteArrayKeyClass<PrivateKeyClassType>(privKey, KeyFormat::PemFormat);
   const auto verificationKey = getByteArrayKeyClass<PublicKeyClassType>(pubkey, KeyFormat::PemFormat);
 
-  auto verifier_ = unique_ptr<TransactionVerifier>(new TransactionVerifier(verificationKey.getBytes()));
-  const auto signer_ = unique_ptr<TransactionSigner>(new TransactionSigner(signingKey.getBytes()));
+  auto verifier_ = unique_ptr<MainReplicaVerifier>(new MainReplicaVerifier(verificationKey.getBytes()));
+  const auto signer_ = unique_ptr<MainReplicaSigner>(new MainReplicaSigner(signingKey.getBytes()));
 
   // sign with RSASigner/EdDSASigner
   size_t expectedSignerSigLen = signer_->signatureLength();
@@ -169,7 +169,7 @@ TEST(SigManagerTest, ReplicasOnlyCheckVerify) {
   constexpr size_t numReplicas{4};
   constexpr PrincipalId myId{0};
   string myPrivKey;
-  unique_ptr<TransactionSigner> signers[numReplicas];
+  unique_ptr<MainReplicaSigner> signers[numReplicas];
   set<pair<PrincipalId, const string>> publicKeysOfReplicas;
 
   generateKeyPairs(numReplicas, ALGO_NAME);
@@ -186,7 +186,7 @@ TEST(SigManagerTest, ReplicasOnlyCheckVerify) {
       continue;
     }
     const auto signingKey = getByteArrayKeyClass<PrivateKeyClassType>(privKey, KeyFormat::PemFormat);
-    signers[pid].reset(new TransactionSigner(signingKey.getBytes()));
+    signers[pid].reset(new MainReplicaSigner(signingKey.getBytes()));
     string pubKeyFullPath({string(KEYS_BASE_PATH) + string("/") + to_string(i) + string("/") + PUB_KEY_NAME});
     readFile(pubKeyFullPath, pubKey);
     publicKeysOfReplicas.insert(make_pair(pid, pubKey));
@@ -234,7 +234,7 @@ TEST(SigManagerTest, ReplicasOnlyCheckSign) {
   constexpr size_t numReplicas{4};
   constexpr PrincipalId myId{0};
   string myPrivKey, privKey, pubKey, sig;
-  unique_ptr<TransactionVerifier> verifier;
+  unique_ptr<MainReplicaVerifier> verifier;
   set<pair<PrincipalId, const string>> publicKeysOfReplicas;
   char data[RANDOM_DATA_SIZE]{0};
   size_t expectedSignerSigLen;
@@ -250,7 +250,7 @@ TEST(SigManagerTest, ReplicasOnlyCheckSign) {
   readFile(pubKeyFullPath, pubKey);
 
   const auto verificationKey = getByteArrayKeyClass<PublicKeyClassType>(pubKey, KeyFormat::PemFormat);
-  verifier.reset(new TransactionVerifier(verificationKey.getBytes()));
+  verifier.reset(new MainReplicaVerifier(verificationKey.getBytes()));
 
   // load public key of other replicas, must be done for SigManager ctor
   for (size_t i{2}; i <= numReplicas; ++i) {
@@ -296,7 +296,7 @@ TEST(SigManagerTest, ReplicasAndClientsCheckVerify) {
   constexpr PrincipalId myId{0};
   string myPrivKey;
   size_t i, signerIndex{0};
-  unique_ptr<TransactionSigner>
+  unique_ptr<MainReplicaSigner>
       signers[numReplicas + numParticipantNodes];  // only external clients and consensus replicas sign
 
   set<pair<PrincipalId, const string>> publicKeysOfReplicas;
@@ -317,7 +317,7 @@ TEST(SigManagerTest, ReplicasAndClientsCheckVerify) {
       continue;
     }
     const auto signingKey = getByteArrayKeyClass<PrivateKeyClassType>(privKey, KeyFormat::PemFormat);
-    signers[signerIndex].reset(new TransactionSigner(signingKey.getBytes()));
+    signers[signerIndex].reset(new MainReplicaSigner(signingKey.getBytes()));
 
     string pubKeyFullPath({string(KEYS_BASE_PATH) + string("/") + to_string(i) + string("/") + PUB_KEY_NAME});
     readFile(pubKeyFullPath, pubKey);
@@ -333,7 +333,7 @@ TEST(SigManagerTest, ReplicasAndClientsCheckVerify) {
     string privateKeyFullPath({string(KEYS_BASE_PATH) + string("/") + to_string(i) + string("/") + PRIV_KEY_NAME});
     readFile(privateKeyFullPath, privKey);
     const auto signingKey = getByteArrayKeyClass<PrivateKeyClassType>(privKey, KeyFormat::PemFormat);
-    signers[signerIndex].reset(new TransactionSigner(signingKey.getBytes()));
+    signers[signerIndex].reset(new MainReplicaSigner(signingKey.getBytes()));
     string pubKeyFullPath({string(KEYS_BASE_PATH) + string("/") + to_string(i) + string("/") + PUB_KEY_NAME});
     set<PrincipalId> principalIds;
     for (size_t j{0}; j < numBftClientsInParticipantNodes; ++j) {

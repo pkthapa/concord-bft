@@ -20,14 +20,12 @@
 
 namespace concord::crypto::signature {
 #ifdef USE_CRYPTOPP_RSA
-using TransactionSigner = concord::crypto::cryptopp::RSASigner;
-using TransactionVerifier = concord::crypto::cryptopp::RSAVerifier;
+using MainReplicaSigner = concord::crypto::cryptopp::RSASigner;
+using MainReplicaVerifier = concord::crypto::cryptopp::RSAVerifier;
 #elif USE_EDDSA_SINGLE_SIGN
 using PrivateKeyClassType = EdDSAPrivateKey;
 using PublicKeyClassType = EdDSAPublicKey;
-static constexpr const auto PrivateKeyByteSize = EdDSAPrivateKeyByteSize;
-static constexpr const auto PublicKeyByteSize = EdDSAPublicKeyByteSize;
-using TransactionSigner = concord::crypto::openssl::eddsa::EdDSASigner<PrivateKeyClassType>;
-using TransactionVerifier = concord::crypto::openssl::eddsa::EdDSAVerifier<PublicKeyClassType>;
+using MainReplicaSigner = concord::crypto::openssl::EdDSASigner<PrivateKeyClassType>;
+using MainReplicaVerifier = concord::crypto::openssl::EdDSAVerifier<PublicKeyClassType>;
 #endif
 }  // namespace concord::crypto::signature

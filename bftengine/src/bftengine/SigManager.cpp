@@ -27,8 +27,8 @@ namespace impl {
 
 using concord::crypto::signature::PrivateKeyClassType;
 using concord::crypto::signature::PublicKeyClassType;
-using concord::crypto::signature::TransactionSigner;
-using concord::crypto::signature::TransactionVerifier;
+using concord::crypto::signature::MainReplicaSigner;
+using concord::crypto::signature::MainReplicaVerifier;
 
 concord::messages::keys_and_signatures::ClientsPublicKeys clientsPublicKeys_;
 
@@ -144,7 +144,7 @@ SigManager::SigManager(PrincipalId myId,
   ConcordAssert(publicKeysMapping.size() >= numPublickeys);
   if (!mySigPrivateKey.first.empty()) {
     const auto signingKey = getByteArrayKeyClass<PrivateKeyClassType>(mySigPrivateKey.first, mySigPrivateKey.second);
-    mySigner_.reset(new TransactionSigner(signingKey.getBytes()));
+    mySigner_.reset(new MainReplicaSigner(signingKey.getBytes()));
   }
   for (const auto& p : publicKeysMapping) {
     ConcordAssert(verifiers_.count(p.first) == 0);
@@ -154,7 +154,7 @@ SigManager::SigManager(PrincipalId myId,
     const auto& [key, format] = publickeys[p.second];
     if (iter == publicKeyIndexToVerifier.end()) {
       const auto verificationKey = getByteArrayKeyClass<PublicKeyClassType>(key, format);
-      verifiers_[p.first] = std::make_shared<TransactionVerifier>(verificationKey.getBytes());
+      verifiers_[p.first] = std::make_shared<MainReplicaVerifier>(verificationKey.getBytes());
       publicKeyIndexToVerifier[p.second] = verifiers_[p.first];
     } else {
       verifiers_[p.first] = iter->second;
@@ -262,7 +262,7 @@ void SigManager::setClientPublicKey(const std::string& key, PrincipalId id, KeyF
     try {
       std::unique_lock lock(mutex_);
       const auto verificationKey = getByteArrayKeyClass<PublicKeyClassType>(key, format);
-      verifiers_.insert_or_assign(id, std::make_shared<TransactionVerifier>(verificationKey.getBytes()));
+      verifiers_.insert_or_assign(id, std::make_shared<MainReplicaVerifier>(verificationKey.getBytes()));
     } catch (const std::exception& e) {
       LOG_ERROR(KEY_EX_LOG, "failed to add a key for client: " << id << " reason: " << e.what());
       throw;

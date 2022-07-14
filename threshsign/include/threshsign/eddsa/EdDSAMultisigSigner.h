@@ -15,9 +15,8 @@
 #include "EdDSAThreshsignKeys.h"
 #include "crypto/eddsa/EdDSASigner.hpp"
 
-using concord::crypto::openssl::eddsa::EdDSASigner;
-
-class EdDSAMultisigSigner : public IThresholdSigner, public EdDSASigner<EdDSAThreshsignPrivateKey> {
+class EdDSAMultisigSigner : public IThresholdSigner,
+                            public concord::crypto::openssl::EdDSASigner<EdDSAThreshsignPrivateKey> {
  public:
   EdDSAMultisigSigner(const EdDSAThreshsignPrivateKey &privateKey, const uint32_t id);
   int requiredLengthForSignedData() const override;

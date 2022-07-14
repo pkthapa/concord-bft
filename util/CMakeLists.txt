@@ -16,7 +16,8 @@ set(util_source_files
     src/RawMemoryPool.cpp
     src/config_file_parser.cpp
     src/cryptopp_digest_creator.cpp
-    src/io.cpp)
+    src/io.cpp
+    src/crypto_utils.cpp)
 add_library(util        STATIC ${util_source_files})
 add_library(util_shared SHARED ${util_source_files})
 

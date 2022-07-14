@@ -11,23 +11,17 @@
 // terms and conditions of the sub-component's license, as noted in the LICENSE
 // file.
 
-#pragma once
-
-#include <stdint.h>
-#include <string>
+#include "crypto_utils.hpp"
+#include "string.hpp"
 
 namespace concord::util::crypto {
-enum class KeyFormat : uint16_t { HexaDecimalStrippedFormat, PemFormat };
-enum class CurveType : uint16_t { secp256k1, secp384r1 };
 
-/**
- * @brief Validates the key.
- *
- * @param keyType Key type to be validated.
- * @param key Key to be validate.
- * @param expectedSize Size of the key to be validated.
- * @return Validation result.
- */
-bool isValidKey(const std::string& keyType, const std::string& key, size_t expectedSize);
-
+bool isValidKey(const std::string& keyName, const std::string& key, size_t expectedSize) {
+  auto isValidHex = isValidHexString(key);
+  if ((expectedSize == 0 or (key.length() == expectedSize)) and isValidHex) {
+    return true;
+  }
+  throw std::runtime_error("Invalid " + keyName + " key (" + key + ") of size " + std::to_string(expectedSize) +
+                           " bytes.");
+}
 }  // namespace concord::util::crypto

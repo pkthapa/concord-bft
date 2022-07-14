@@ -39,8 +39,8 @@ using concord::crypto::cryptopp::RSAVerifier;
 using concord::crypto::cryptopp::Crypto;
 using concord::crypto::openssl::OpenSSLCryptoImpl;
 
-using TestSigner = concord::crypto::openssl::eddsa::EdDSASigner<EdDSAPrivateKey>;
-using TestVerifier = concord::crypto::openssl::eddsa::EdDSAVerifier<EdDSAPublicKey>;
+using TestSigner = concord::crypto::openssl::EdDSASigner<EdDSAPrivateKey>;
+using TestVerifier = concord::crypto::openssl::EdDSAVerifier<EdDSAPublicKey>;
 
 std::default_random_engine generator;
 

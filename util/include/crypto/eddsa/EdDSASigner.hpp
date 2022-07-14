@@ -20,7 +20,7 @@
 // OpenSSL includes.
 #include <openssl/pem.h>
 
-namespace concord::crypto::openssl::eddsa {
+namespace concord::crypto::openssl {
 
 /**
  * @tparam PrivateKeyType The type of the private key, expected to be a SerializableByteArray.
@@ -65,12 +65,12 @@ class EdDSASigner : public ISigner {
 
   std::string getPrivKey() const override { return privateKey_.toString(); }
 
-  const PrivateKeyType &getPrivateKey() const { return privateKey_; }
-
   virtual ~EdDSASigner() = default;
 
  private:
-  PrivateKeyType privateKey_;
   concord::util::openssl_utils::UniquePKEY pkey_;
+
+ protected:
+  const PrivateKeyType privateKey_;
 };
-}  // namespace concord::crypto::openssl::eddsa
+}  // namespace concord::crypto::openssl

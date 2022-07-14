@@ -43,7 +43,7 @@ using namespace bftEngine;
 using namespace placeholders;
 using namespace concord::secretsmanager;
 using concord::util::crypto::KeyFormat;
-using concord::crypto::signature::TransactionVerifier;
+using concord::crypto::signature::MainReplicaVerifier;
 using concord::crypto::signature::PublicKeyClassType;
 using namespace CryptoPP;
 
@@ -189,7 +189,7 @@ TEST_P(ClientApiTestParametrizedFixture, print_received_messages_and_timeout) {
     auto pub_key_str = stream.str();
 
     const auto verificationKey = getByteArrayKeyClass<PublicKeyClassType>(pub_key_str, KeyFormat::PemFormat);
-    transaction_verifier_.reset(new TransactionVerifier(verificationKey.getBytes()));
+    transaction_verifier_.reset(new MainReplicaVerifier(verificationKey.getBytes()));
   }
   unique_ptr<FakeCommunication> comm;
   if (sign_transaction) {

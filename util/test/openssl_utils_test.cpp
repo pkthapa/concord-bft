@@ -23,8 +23,8 @@ namespace {
 using concord::util::crypto::KeyFormat;
 using concord::crypto::openssl::OpenSSLCryptoImpl;
 
-using TestTxnSigner = concord::crypto::openssl::eddsa::EdDSASigner<EdDSAPrivateKey>;
-using TestTxnVerifier = concord::crypto::openssl::eddsa::EdDSAVerifier<EdDSAPublicKey>;
+using TestTxnSigner = concord::crypto::openssl::EdDSASigner<EdDSAPrivateKey>;
+using TestTxnVerifier = concord::crypto::openssl::EdDSAVerifier<EdDSAPublicKey>;
 
 TEST(openssl_utils, check_eddsa_keys_hex_format_length) {
   const auto hexKeys = OpenSSLCryptoImpl::instance().generateEdDSAKeyPair(KeyFormat::HexaDecimalStrippedFormat);

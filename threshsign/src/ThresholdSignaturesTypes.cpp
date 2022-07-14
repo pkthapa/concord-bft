@@ -18,8 +18,10 @@
 #include "yaml_utils.hpp"
 #include "Logger.hpp"
 #include "string.hpp"
+#include "crypto_utils.hpp"
 
 using concord::util::isValidHexString;
+using concord::util::crypto::isValidKey;
 
 Cryptosystem::Cryptosystem(const std::string& sysType,
                            const std::string& sysSubtype,
@@ -223,24 +225,14 @@ IThresholdSigner* Cryptosystem::createThresholdSigner() {
   return factory->newSigner(signerID_, privateKeys_.front().c_str());
 }
 
-void Cryptosystem::validateKey(const std::string& key, size_t expectedSize) const {
-  auto isValidHex = isValidHexString(key);
-  if ((expectedSize == 0 || (key.length() == expectedSize)) && isValidHex) {
-    return;
-  }
-
-  throw std::runtime_error("Invalid key for this cryptosystem (type " + type_ + " and subtype " + subtype_ +
-                           "): " + key + " expected key size: " + std::to_string(expectedSize) + ", Actual key size: " +
-                           std::to_string(key.length()) + ", IsValidHex: " + std::to_string(isValidHex));
-}
-
 void Cryptosystem::validatePublicKey(const std::string& key) const {
 #ifdef USE_EDDSA_OPENSSL
   UNUSED(key);
   return;
 #else
   constexpr const size_t expectedKeyLength = 130u;
-  validateKey(key, expectedKeyLength);
+  auto keyType = type_ + " " + subtype_ + " public";
+  isValidKey(keyType, key, expectedKeyLength);
 #endif
 }
 
@@ -250,7 +242,8 @@ void Cryptosystem::validateVerificationKey(const std::string& key) const {
 #else
   constexpr const size_t expectedKeyLength = 130u;
 #endif
-  validateKey(key, expectedKeyLength);
+  auto keyType = type_ + " " + subtype_ + " verification";
+  isValidKey(keyType, key, expectedKeyLength);
 }
 
 void Cryptosystem::validatePrivateKey(const std::string& key) const {
@@ -261,7 +254,8 @@ void Cryptosystem::validatePrivateKey(const std::string& key) const {
   // representation because the length of its serialization varies slightly.
   constexpr const size_t expectedKeyLength = 0;
 #endif
-  validateKey(key, expectedKeyLength);
+  auto keyType = type_ + " " + subtype_ + " private";
+  isValidKey(keyType, key, expectedKeyLength);
 }
 
 bool Cryptosystem::isValidCryptosystemSelection(const std::string& type, const std::string& subtype) {

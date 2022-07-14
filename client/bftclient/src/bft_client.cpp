@@ -24,7 +24,7 @@ using namespace bftEngine;
 using namespace bftEngine::impl;
 using concord::util::crypto::KeyFormat;
 using concord::crypto::signature::PrivateKeyClassType;
-using concord::crypto::signature::TransactionSigner;
+using concord::crypto::signature::MainReplicaSigner;
 
 namespace bft::client {
 
@@ -63,7 +63,7 @@ Client::Client(SharedCommPtr comm, const ClientConfig& config, std::shared_ptr<c
       throw InvalidPrivateKeyException(file_path, config.secrets_manager_config != std::nullopt);
     }
     const auto signingKey = getByteArrayKeyClass<PrivateKeyClassType>(key_plaintext.value(), KeyFormat::PemFormat);
-    transaction_signer_ = std::make_unique<TransactionSigner>(signingKey.getBytes());
+    transaction_signer_ = std::make_unique<MainReplicaSigner>(signingKey.getBytes());
   }
   communication_->setReceiver(config_.id.val, &receiver_);
   communication_->start();

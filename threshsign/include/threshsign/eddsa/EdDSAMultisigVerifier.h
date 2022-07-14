@@ -17,8 +17,6 @@
 
 class EdDSAMultisigVerifier;
 
-using concord::crypto::openssl::eddsa::EdDSAVerifier;
-
 bool isSignatureValid(const SingleEdDSASignature &signature);
 
 class EdDSASignatureAccumulator : public IThresholdAccumulator {
@@ -47,7 +45,7 @@ class EdDSASignatureAccumulator : public IThresholdAccumulator {
 
 class EdDSAMultisigVerifier : public IThresholdVerifier {
  public:
-  using SingleVerifier = EdDSAVerifier<EdDSAThreshsignPublicKey>;
+  using SingleVerifier = concord::crypto::openssl::EdDSAVerifier<EdDSAThreshsignPublicKey>;
   EdDSAMultisigVerifier(const std::vector<SingleVerifier> &verifiers,
                         const size_t signersCount,
                         const size_t threshold);

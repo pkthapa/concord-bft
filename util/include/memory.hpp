@@ -12,7 +12,6 @@
 //
 #pragma once
 #include <memory>
-#include <openssl/crypto.h>
 
 template <auto delete_function>
 struct deleter_from_fn {

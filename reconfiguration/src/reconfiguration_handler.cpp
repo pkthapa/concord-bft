@@ -35,7 +35,7 @@ namespace concord::reconfiguration {
 using namespace concord::messages;
 using concord::util::crypto::KeyFormat;
 using concord::crypto::signature::PublicKeyClassType;
-using concord::crypto::signature::TransactionVerifier;
+using concord::crypto::signature::MainReplicaVerifier;
 
 bool ReconfigurationHandler::handle(const WedgeCommand& cmd,
                                     uint64_t bft_seq_num,
@@ -343,7 +343,7 @@ BftReconfigurationHandler::BftReconfigurationHandler() {
   verifier_.reset(new ECDSAVerifier(key_str, KeyFormat::PemFormat));
 #else
   const auto verificationKey = getByteArrayKeyClass<PublicKeyClassType>(key_str, KeyFormat::PemFormat);
-  verifier_.reset(new TransactionVerifier(verificationKey.getBytes()));
+  verifier_.reset(new MainReplicaVerifier(verificationKey.getBytes()));
 #endif
 }
 

@@ -38,7 +38,6 @@ class EdDSAPublicKey : public SerializableByteArray<EdDSAPublicKeyByteSize> {
  * @param KeyLength
  * @return std::vector<uint8_t> Generated key.
  */
-
 template <typename ByteArrayKeyClass>
 static std::vector<uint8_t> extractHexKeyFromPem(const std::string& pemKey, size_t KeyLength) {
   using concord::util::openssl_utils::UniquePKEY;
@@ -51,10 +50,7 @@ static std::vector<uint8_t> extractHexKeyFromPem(const std::string& pemKey, size
     }
   };
   std::unique_ptr<FILE, decltype(deleter)> fp(tmpfile(), deleter);
-  if (nullptr == fp) {
-    LOG_ERROR(EDDSA_SIG_LOG, "Unable to open replica key file." << KVLOG(fp.get(), pemKey));
-    std::terminate();
-  }
+  ConcordAssert(nullptr != fp);
 
   fputs(pemKey.data(), fp.get());
   rewind(fp.get());
@@ -84,13 +80,12 @@ template <typename ByteArrayKeyClass>
 static ByteArrayKeyClass getByteArrayKeyClass(const std::string& key, concord::util::crypto::KeyFormat format) {
   using concord::util::crypto::KeyFormat;
 
-  typename ByteArrayKeyClass::ByteArray resultBytes;
   constexpr size_t keyLength = ByteArrayKeyClass::ByteSize;
 
   if (KeyFormat::PemFormat == format) {
+    typename ByteArrayKeyClass::ByteArray resultBytes;
     std::memcpy(resultBytes.data(), extractHexKeyFromPem<ByteArrayKeyClass>(key, keyLength).data(), keyLength);
-  } else if (KeyFormat::HexaDecimalStrippedFormat == format) {
-    std::memcpy(resultBytes.data(), boost::algorithm::unhex(key).data(), keyLength);
+    return ByteArrayKeyClass{resultBytes};
   }
-  return ByteArrayKeyClass{resultBytes};
+  return fromHexString<ByteArrayKeyClass>(key);
 }
