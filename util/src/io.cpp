@@ -22,11 +22,11 @@ string readFile(FILE* file, uint64_t maxBytes) {
 
   while (true) {
     auto ch = std::fgetc(file);
-    result += static_cast<char>(ch);
 
     if ((ch == EOF) or (result.size() == maxBytes)) {
       break;
     }
+    result += static_cast<char>(ch);
   }
   return result;
 }

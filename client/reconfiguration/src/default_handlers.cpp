@@ -167,6 +167,8 @@ bool ClientMasterKeyExchangeHandler::execute(const State& state, WriteState& out
   auto pem_keys = OpenSSLCryptoImpl::instance().EdDSAHexToPem(hex_keys);
 #endif
 
+  LOG_INFO(getLogger(), "Generated pem keys:" << KVLOG(pem_keys.first, pem_keys.second));
+
   concord::messages::ReconfigurationRequest rreq;
   concord::messages::ClientExchangePublicKey creq;
   concord::secretsmanager::ISecretsManagerImpl& sm = master_key_path_.find(".enc") != std::string::npos ? *sm_ : psm_;
