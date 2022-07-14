@@ -20,7 +20,6 @@
 #include "string.hpp"
 #include "crypto_utils.hpp"
 
-using concord::util::isValidHexString;
 using concord::util::crypto::isValidKey;
 
 Cryptosystem::Cryptosystem(const std::string& sysType,
