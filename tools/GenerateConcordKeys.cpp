@@ -24,8 +24,10 @@
 #include "KeyfileIOUtils.hpp"
 #include "util/filesystem.hpp"
 #include "openssl_utils.hpp"
+#include "cryptopp_utils.hpp"
 
 using concord::crypto::openssl::OpenSSLCryptoImpl;
+using concord::crypto::cryptopp::RSA_SIGNATURE_LENGTH;
 
 // Helper functions and static state to this executable's main function.
 
@@ -37,29 +39,6 @@ static bool containsHelpOption(int argc, char** argv) {
   }
   return false;
 }
-
-#ifdef USE_CRYPTOPP_RSA
-static CryptoPP::RandomPool sGlobalRandGen;
-const unsigned int rsaKeyLength = 2048;
-
-static std::pair<std::string, std::string> generateRsaKey() {
-  // Uses CryptoPP implementation of RSA key generation.
-
-  std::pair<std::string, std::string> keyPair;
-
-  CryptoPP::RSAES<CryptoPP::OAEP<CryptoPP::SHA256>>::Decryptor priv(sGlobalRandGen, rsaKeyLength);
-  CryptoPP::HexEncoder privEncoder(new CryptoPP::StringSink(keyPair.first));
-  priv.AccessMaterial().Save(privEncoder);
-  privEncoder.MessageEnd();
-
-  CryptoPP::RSAES<CryptoPP::OAEP<CryptoPP::SHA256>>::Encryptor pub(priv);
-  CryptoPP::HexEncoder pubEncoder(new CryptoPP::StringSink(keyPair.second));
-  pub.AccessMaterial().Save(pubEncoder);
-  pubEncoder.MessageEnd();
-
-  return keyPair;
-}
-#endif
 
 /**
  * Main function for the GenerateConcordKeys executable. Pseudorandomly
@@ -211,7 +190,7 @@ int main(int argc, char** argv) {
 
     for (uint16_t i = 0; i < n + ro; ++i) {
 #ifdef USE_CRYPTOPP_RSA
-      replicaKeyPairs.push_back(generateRsaKey());
+      replicaKeyPairs.push_back(Crypto::instance().generateRsaKeyPair(RSA_SIGNATURE_LENGTH));
 #elif USE_EDDSA_SINGLE_SIGN
       replicaKeyPairs.push_back(OpenSSLCryptoImpl::instance().generateEdDSAKeyPair());
 #endif

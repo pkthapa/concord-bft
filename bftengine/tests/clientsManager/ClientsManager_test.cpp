@@ -50,6 +50,7 @@ using concord::crypto::openssl::OpenSSLCryptoImpl;
 
 using concord::crypto::signature::PrivateKeyClassType;
 using concord::crypto::signature::MainReplicaSigner;
+using concord::crypto::cryptopp::RSA_SIGNATURE_LENGTH;
 
 // Testing values to be used for certain Concord-BFT configuration that ClientsManager and/or its dependencies may
 // reference.
@@ -57,9 +58,7 @@ const ReplicaId kReplicaIdForTesting = 0;
 const KeyFormat kKeyFormatForTesting = KeyFormat::HexaDecimalStrippedFormat;
 
 #ifdef USE_CRYPTOPP_RSA
-const uint32_t kRSASigLengthForTesting = 2048;
-const SigManager::Key kReplicaPrivateKeyForTesting(
-    Crypto::instance().generateRsaKeyPair(kRSASigLengthForTesting, kKeyFormatForTesting).first);
+const SigManager::Key kReplicaPrivateKeyForTesting(Crypto::instance().generateRsaKeyPair(RSA_SIGNATURE_LENGTH).first);
 #elif USE_EDDSA_SINGLE_SIGN
 const SigManager::Key kReplicaPrivateKeyForTesting(OpenSSLCryptoImpl::instance().generateEdDSAKeyPair().first);
 #endif
@@ -328,7 +327,7 @@ TEST(ClientsManager, loadInfoFromReservedPagesLoadsCorrectInfo) {
   map<NodeIdType, pair<string, string>> client_keys;
 
 #ifdef USE_CRYPTOPP_RSA
-  client_keys[2] = Crypto::instance().generateRsaKeyPair(kRSASigLengthForTesting, kKeyFormatForTesting);
+  client_keys[2] = Crypto::instance().generateRsaKeyPair(RSA_SIGNATURE_LENGTH);
 #elif USE_EDDSA_SINGLE_SIGN
   client_keys[2] = OpenSSLCryptoImpl::instance().generateEdDSAKeyPair();
 #endif
@@ -450,8 +449,7 @@ TEST(ClientsManager, loadInfoFromReservedPagesHandlesNoInfoAvailable) {
 
 TEST(ClientsManager, loadInfoFromReservedPagesHandlesSingleClientClientsManager) {
 #ifdef USE_CRYPTOPP_RSA
-  pair<string, string> client_key_pair =
-      Crypto::instance().generateRsaKeyPair(kRSASigLengthForTesting, kKeyFormatForTesting);
+  pair<string, string> client_key_pair = Crypto::instance().generateRsaKeyPair(RSA_SIGNATURE_LENGTH);
 #elif USE_EDDSA_SINGLE_SIGN
   pair<string, string> client_key_pair = OpenSSLCryptoImpl::instance().generateEdDSAKeyPair();
 #endif
@@ -1333,10 +1331,8 @@ TEST(ClientsManager, setClientPublicKey) {
   map<NodeIdType, pair<string, string>> client_keys;
 
 #ifdef USE_CRYPTOPP_RSA
-  pair<string, string> client_2_key =
-      Crypto::instance().generateRsaKeyPair(kRSASigLengthForTesting, kKeyFormatForTesting);
-  pair<string, string> client_7_key =
-      Crypto::instance().generateRsaKeyPair(kRSASigLengthForTesting, kKeyFormatForTesting);
+  pair<string, string> client_2_key = Crypto::instance().generateRsaKeyPair(RSA_SIGNATURE_LENGTH);
+  pair<string, string> client_7_key = Crypto::instance().generateRsaKeyPair(RSA_SIGNATURE_LENGTH);
 #elif USE_EDDSA_SINGLE_SIGN
   pair<string, string> client_2_key = OpenSSLCryptoImpl::instance().generateEdDSAKeyPair();
   pair<string, string> client_7_key = OpenSSLCryptoImpl::instance().generateEdDSAKeyPair();

@@ -20,6 +20,8 @@
 
 namespace concord::crypto::cryptopp {
 
+constexpr static uint16_t RSA_SIGNATURE_LENGTH = 2048;
+
 class ECDSAVerifier : public IVerifier {
  public:
   ECDSAVerifier(const std::string& str_pub_key, concord::util::crypto::KeyFormat fmt);

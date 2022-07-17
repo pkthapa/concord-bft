@@ -159,8 +159,7 @@ bool ClientMasterKeyExchangeHandler::execute(const State& state, WriteState& out
   LOG_INFO(getLogger(), "execute transaction signing key exchange request");
 // Generate new key pair
 #ifdef USE_CRYPTOPP_RSA
-  auto hex_keys =
-      Crypto::instance().generateRsaKeyPair(2048, concord::util::crypto::KeyFormat::HexaDecimalStrippedFormat);
+  auto hex_keys = Crypto::instance().generateRsaKeyPair(concord::crypto::cryptopp::RSA_SIGNATURE_LENGTH);
   auto pem_keys = Crypto::instance().RsaHexToPem(hex_keys);
 #elif USE_EDDSA_SINGLE_SIGN
   auto hex_keys = OpenSSLCryptoImpl::instance().generateEdDSAKeyPair();

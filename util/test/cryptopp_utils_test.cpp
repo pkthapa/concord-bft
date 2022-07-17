@@ -19,16 +19,17 @@
 namespace {
 using namespace concord::crypto::cryptopp;
 using concord::util::crypto::KeyFormat;
+using concord::crypto::cryptopp::RSA_SIGNATURE_LENGTH;
 
 TEST(cryptopp_utils, generate_rsa_keys_hex_format) {
-  ASSERT_NO_THROW(Crypto::instance().generateRsaKeyPair(2048, KeyFormat::HexaDecimalStrippedFormat));
-  auto keys = Crypto::instance().generateRsaKeyPair(2048, KeyFormat::HexaDecimalStrippedFormat);
+  ASSERT_NO_THROW(Crypto::instance().generateRsaKeyPair(RSA_SIGNATURE_LENGTH, KeyFormat::HexaDecimalStrippedFormat));
+  auto keys = Crypto::instance().generateRsaKeyPair(RSA_SIGNATURE_LENGTH, KeyFormat::HexaDecimalStrippedFormat);
   LOG_INFO(GL, keys.first << " | " << keys.second);
 }
 
 TEST(cryptopp_utils, generate_rsa_keys_pem_format) {
-  ASSERT_NO_THROW(Crypto::instance().generateRsaKeyPair(2048, KeyFormat::PemFormat));
-  auto keys = Crypto::instance().generateRsaKeyPair(2048, KeyFormat::PemFormat);
+  ASSERT_NO_THROW(Crypto::instance().generateRsaKeyPair(RSA_SIGNATURE_LENGTH, KeyFormat::PemFormat));
+  auto keys = Crypto::instance().generateRsaKeyPair(RSA_SIGNATURE_LENGTH, KeyFormat::PemFormat);
   LOG_INFO(GL, keys.first << " | " << keys.second);
 }
 
@@ -45,7 +46,7 @@ TEST(cryptopp_utils, generate_ECDSA_keys_hex_format) {
 }
 
 TEST(cryptopp_utils, test_rsa_keys_hex) {
-  auto keys = Crypto::instance().generateRsaKeyPair(2048, KeyFormat::HexaDecimalStrippedFormat);
+  auto keys = Crypto::instance().generateRsaKeyPair(RSA_SIGNATURE_LENGTH, KeyFormat::HexaDecimalStrippedFormat);
   RSASigner signer(keys.first, KeyFormat::HexaDecimalStrippedFormat);
   RSAVerifier verifier(keys.second, KeyFormat::HexaDecimalStrippedFormat);
   std::string data = "Hello world";
@@ -54,7 +55,7 @@ TEST(cryptopp_utils, test_rsa_keys_hex) {
 }
 
 TEST(cryptopp_utils, test_rsa_keys_pem) {
-  auto keys = Crypto::instance().generateRsaKeyPair(2048, KeyFormat::PemFormat);
+  auto keys = Crypto::instance().generateRsaKeyPair(RSA_SIGNATURE_LENGTH, KeyFormat::PemFormat);
   RSASigner signer(keys.first, KeyFormat::PemFormat);
   RSAVerifier verifier(keys.second, KeyFormat::PemFormat);
   std::string data = "Hello world";
@@ -63,7 +64,7 @@ TEST(cryptopp_utils, test_rsa_keys_pem) {
 }
 
 TEST(cryptopp_utils, test_rsa_keys_combined_a) {
-  auto keys = Crypto::instance().generateRsaKeyPair(2048, KeyFormat::HexaDecimalStrippedFormat);
+  auto keys = Crypto::instance().generateRsaKeyPair(RSA_SIGNATURE_LENGTH, KeyFormat::HexaDecimalStrippedFormat);
   auto pemKeys = Crypto::instance().RsaHexToPem(keys);
   RSASigner signer(keys.first, KeyFormat::HexaDecimalStrippedFormat);
   RSAVerifier verifier(pemKeys.second, KeyFormat::PemFormat);
@@ -73,7 +74,7 @@ TEST(cryptopp_utils, test_rsa_keys_combined_a) {
 }
 
 TEST(cryptopp_utils, test_rsa_keys_combined_b) {
-  auto keys = Crypto::instance().generateRsaKeyPair(2048, KeyFormat::HexaDecimalStrippedFormat);
+  auto keys = Crypto::instance().generateRsaKeyPair(RSA_SIGNATURE_LENGTH, KeyFormat::HexaDecimalStrippedFormat);
   auto pemKeys = Crypto::instance().RsaHexToPem(keys);
   RSASigner signer(pemKeys.first, KeyFormat::PemFormat);
   RSAVerifier verifier(keys.second, KeyFormat::HexaDecimalStrippedFormat);
