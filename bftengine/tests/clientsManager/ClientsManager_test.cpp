@@ -44,13 +44,13 @@ using std::vector;
 
 #ifdef USE_CRYPTOPP_RSA
 using concord::crypto::cryptopp::Crypto;
+using concord::crypto::cryptopp::RSA_SIGNATURE_LENGTH;
 #elif USE_EDDSA_SINGLE_SIGN
 using concord::crypto::openssl::OpenSSLCryptoImpl;
 #endif
 
 using concord::crypto::signature::PrivateKeyClassType;
 using concord::crypto::signature::MainReplicaSigner;
-using concord::crypto::cryptopp::RSA_SIGNATURE_LENGTH;
 
 // Testing values to be used for certain Concord-BFT configuration that ClientsManager and/or its dependencies may
 // reference.

@@ -26,9 +26,10 @@
 #include "openssl_utils.hpp"
 #include "cryptopp_utils.hpp"
 
-using concord::crypto::openssl::OpenSSLCryptoImpl;
+#ifdef USE_CRYPTOPP_RSA
 using concord::crypto::cryptopp::RSA_SIGNATURE_LENGTH;
-
+#endif
+using concord::crypto::openssl::OpenSSLCryptoImpl;
 // Helper functions and static state to this executable's main function.
 
 static bool containsHelpOption(int argc, char** argv) {

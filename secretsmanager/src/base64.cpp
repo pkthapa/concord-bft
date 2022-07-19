@@ -22,6 +22,7 @@ namespace concord::secretsmanager {
 
 using std::string;
 using std::vector;
+using std::string_view;
 
 string base64Enc(const vector<uint8_t>& msgBytes) {
 #ifdef USE_CRYPTOPP_RSA
@@ -62,16 +63,18 @@ vector<uint8_t> base64Dec(const string& b64message) {
   CryptoPP::StringSource ss(b64message, true, new CryptoPP::Base64Decoder(new CryptoPP::VectorSink(dec)));
   return dec;
 #elif USE_EDDSA_SINGLE_SIGN
-  if (b64message.empty()) {
+  const string b64msg(stripPemHeaderFooter(b64message, "-----BEGIN PRIVATE KEY-----", "-----END PRIVATE KEY-----"));
+
+  if (b64msg.empty()) {
     return {};
   }
-  vector<uint8_t> decodedOutput(calcDecodeLength(b64message.data()));
+  vector<uint8_t> decodedOutput(calcDecodeLength(b64msg.data()));
 
-  BIO* bio = BIO_new_mem_buf(b64message.data(), -1);
+  BIO* bio = BIO_new_mem_buf(b64msg.data(), -1);
   BIO* b64 = BIO_new(BIO_f_base64());
   bio = BIO_push(b64, bio);
 
-  const int outputLen = BIO_read(bio, decodedOutput.data(), b64message.size());
+  const int outputLen = BIO_read(bio, decodedOutput.data(), b64msg.size());
   vector<uint8_t> dec(outputLen);
   memcpy(&dec[0], decodedOutput.data(), outputLen);
   BIO_free_all(bio);
@@ -89,5 +92,20 @@ size_t calcDecodeLength(const char* b64message) {
     padding = 1;
   }
   return (((len * 3) / 4) - padding);
+}
+
+string stripPemHeaderFooter(const string_view b64message, const string_view header, const string_view footer) {
+  string strippedPemMsg(b64message);
+  auto pos1 = b64message.find(header);
+
+  if (pos1 != string::npos) {
+    auto pos2 = b64message.find(footer, pos1 + 1);
+
+    // Start position and header's length.
+    pos1 = pos1 + header.length();
+    pos2 = pos2 - pos1 - 1;
+    strippedPemMsg = b64message.substr(pos1 + 1, pos2 - 1);
+  }
+  return strippedPemMsg;
 }
 }  // namespace concord::secretsmanager

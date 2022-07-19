@@ -64,7 +64,7 @@ string CertificateUtils::generateSelfSignedCert(const string& origin_cert_path,
     return string();
   }
 
-  if (!PEM_read_bio_PrivateKey(priv_bio.get(), reinterpret_cast<EVP_PKEY**>(&priv_key), nullptr, nullptr)) {
+  if (nullptr == PEM_read_bio_PrivateKey(priv_bio.get(), reinterpret_cast<EVP_PKEY**>(&priv_key), nullptr, nullptr)) {
     LOG_ERROR(OPENSSL_LOG, "Unable to create private key object");
     return string();
   }
@@ -75,7 +75,7 @@ string CertificateUtils::generateSelfSignedCert(const string& origin_cert_path,
     LOG_ERROR(OPENSSL_LOG, "Unable to write public key object");
     return string();
   }
-  if (!PEM_read_bio_PUBKEY(pub_bio.get(), reinterpret_cast<EVP_PKEY**>(&pub_key), nullptr, nullptr)) {
+  if (nullptr == PEM_read_bio_PUBKEY(pub_bio.get(), reinterpret_cast<EVP_PKEY**>(&pub_key), nullptr, nullptr)) {
     LOG_ERROR(OPENSSL_LOG, "Unable to create public key object");
     return string();
   }
@@ -85,13 +85,19 @@ string CertificateUtils::generateSelfSignedCert(const string& origin_cert_path,
     return {};
   }
 
+#ifdef USE_CRYPTOPP_RSA
   if (OPENSSL_FAILURE == X509_sign(cert.get(), priv_key.get(), EVP_sha256())) {
+    LOG_ERROR(OPENSSL_LOG, "Failed to sign certificate using private key.");
+    return {};
+  }
+#endif
+  if (OPENSSL_FAILURE == X509_sign(cert.get(), priv_key.get(), nullptr)) {
     LOG_ERROR(OPENSSL_LOG, "Failed to sign certificate using private key.");
     return {};
   }
 
   UniqueOpenSSLBIO outbio(BIO_new(BIO_s_mem()));
-  if (!PEM_write_bio_X509(outbio.get(), cert.get())) {
+  if (OPENSSL_FAILURE == PEM_write_bio_X509(outbio.get(), cert.get())) {
     LOG_ERROR(OPENSSL_LOG, "Unable to create certificate object");
     return string();
   }
@@ -116,7 +122,7 @@ bool CertificateUtils::verifyCertificate(X509& cert, const string& public_key) {
   if (!PEM_read_bio_PUBKEY(pub_bio.get(), reinterpret_cast<EVP_PKEY**>(&pub_key), nullptr, nullptr)) {
     return false;
   }
-  return (bool)X509_verify(&cert, pub_key.get());
+  return (OPENSSL_SUCCESS == X509_verify(&cert, pub_key.get()));
 }
 
 bool CertificateUtils::verifyCertificate(const X509& cert_to_verify,
@@ -187,8 +193,7 @@ bool CertificateUtils::verifyCertificate(const X509& cert_to_verify,
   }
 
   // this is actual comparison, compares hash of 2 certs
-  bool res = (X509_cmp(&cert_to_verify, localCert.get()) == 0);
-  return res;
+  return (X509_cmp(&cert_to_verify, localCert.get()) == 0);
 }
 
 pair<string, string> OpenSSLCryptoImpl::generateEdDSAKeyPair(const KeyFormat fmt) const {
