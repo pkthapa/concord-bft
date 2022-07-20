@@ -62,7 +62,7 @@ Client::Client(SharedCommPtr comm, const ClientConfig& config, std::shared_ptr<c
     if (!key_plaintext) {
       throw InvalidPrivateKeyException(file_path, config.secrets_manager_config != std::nullopt);
     }
-    const auto signingKey = getByteArrayKeyClass<PrivateKeyClassType>(key_plaintext.value(), KeyFormat::PemFormat);
+    const auto signingKey = deserializeKey<PrivateKeyClassType>(key_plaintext.value(), KeyFormat::PemFormat);
     transaction_signer_ = std::make_unique<MainReplicaSigner>(signingKey.getBytes());
   }
   communication_->setReceiver(config_.id.val, &receiver_);

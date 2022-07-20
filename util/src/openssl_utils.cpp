@@ -18,6 +18,7 @@
 #include "openssl_crypto.hpp"
 #include "crypto/eddsa/EdDSA.hpp"
 #include "io.hpp"
+#include "util/filesystem.hpp"
 
 #include <regex>
 #include <utility>
@@ -39,12 +40,7 @@ using concord::util::openssl_utils::OPENSSL_ERROR;
 string CertificateUtils::generateSelfSignedCert(const string& origin_cert_path,
                                                 const string& public_key,
                                                 const string& signing_key) {
-  auto deleter = [](FILE* fp) {
-    if (nullptr != fp) {
-      fclose(fp);
-    }
-  };
-  unique_ptr<FILE, decltype(deleter)> fp(fopen(origin_cert_path.c_str(), "r"), deleter);
+  unique_ptr<FILE, decltype(&fclose)> fp(fopen(origin_cert_path.c_str(), "r"), fclose);
   if (!fp) {
     LOG_ERROR(OPENSSL_LOG, "Certificate file not found, path: " << origin_cert_path);
     return string();
@@ -105,7 +101,7 @@ string CertificateUtils::generateSelfSignedCert(const string& origin_cert_path,
   int certLen = BIO_pending(outbio.get());
   certStr.resize(certLen);
   const auto res = BIO_read(outbio.get(), (void*)&(certStr.front()), certLen);
-  if (OPENSSL_FAILURE == res or OPENSSL_ERROR == res) {
+  if (OPENSSL_FAILURE == res || OPENSSL_ERROR == res) {
     LOG_ERROR(OPENSSL_LOG, "Failed to read data from the BIO certifiate object.");
     return {};
   }
@@ -171,24 +167,19 @@ bool CertificateUtils::verifyCertificate(const X509& cert_to_verify,
   conn_type = cert_type;
 
   // Get the local stored certificate for this peer
-  string local_cert_path =
-      (use_unified_certs)
-          ? cert_root_directory + "/" + std::to_string(remotePeerId) + "/" + "node.cert"
-          : cert_root_directory + "/" + std::to_string(remotePeerId) + "/" + cert_type + "/" + cert_type + ".cert";
-  auto deleter = [](FILE* fp) {
-    if (nullptr != fp) {
-      fclose(fp);
-    }
-  };
-  std::unique_ptr<FILE, decltype(deleter)> fp(fopen(local_cert_path.c_str(), "r"), deleter);
+  const fs::path local_cert_path = (use_unified_certs)
+                                       ? (fs::path(cert_root_directory) / std::to_string(remotePeerId) / "node.cert")
+                                       : (fs::path(cert_root_directory) / std::to_string(remotePeerId) /
+                                          fs::path(cert_type) / fs::path(cert_type + ".cert"));
+  std::unique_ptr<FILE, decltype(&fclose)> fp(fopen(local_cert_path.c_str(), "r"), fclose);
   if (!fp) {
-    LOG_ERROR(OPENSSL_LOG, "Certificate file not found, path: " << local_cert_path);
+    LOG_ERROR(OPENSSL_LOG, "Certificate file not found, path: " << local_cert_path.string());
     return false;
   }
 
   UniqueOpenSSLX509 localCert(PEM_read_X509(fp.get(), nullptr, nullptr, nullptr));
   if (!localCert) {
-    LOG_ERROR(OPENSSL_LOG, "Cannot parse certificate, path: " << local_cert_path);
+    LOG_ERROR(OPENSSL_LOG, "Cannot parse certificate, path: " << local_cert_path.string());
     return false;
   }
 
@@ -237,13 +228,12 @@ pair<string, string> OpenSSLCryptoImpl::EdDSAHexToPem(const std::pair<std::strin
 
     ConcordAssertNE(nullptr, ed_privKey);
 
-    auto fp = tmpfile();
+    std::unique_ptr<FILE, decltype(&fclose)> fp(tmpfile(), fclose);
     ConcordAssertNE(nullptr, fp);
-    PEM_write_PrivateKey(fp, ed_privKey.get(), nullptr, nullptr, 0, nullptr, nullptr);
-    rewind(fp);
+    PEM_write_PrivateKey(fp.get(), ed_privKey.get(), nullptr, nullptr, 0, nullptr, nullptr);
+    rewind(fp.get());
 
-    privPemString = concord::io::readFile(fp, maxBytesToRead);
-    fclose(fp);
+    privPemString = concord::io::readFile(fp.get(), maxBytesToRead);
   }
 
   if (!hex_key_pair.second.empty()) {  // Proceed with public key pem file generation.
@@ -254,13 +244,12 @@ pair<string, string> OpenSSLCryptoImpl::EdDSAHexToPem(const std::pair<std::strin
 
     ConcordAssertNE(nullptr, ed_pubKey);
 
-    auto fp = tmpfile();
+    std::unique_ptr<FILE, decltype(&fclose)> fp(tmpfile(), fclose);
     ConcordAssertNE(nullptr, fp);
-    PEM_write_PUBKEY(fp, ed_pubKey.get());
-    rewind(fp);
+    PEM_write_PUBKEY(fp.get(), ed_pubKey.get());
+    rewind(fp.get());
 
-    pubPemString = concord::io::readFile(fp, maxBytesToRead);
-    fclose(fp);
+    pubPemString = concord::io::readFile(fp.get(), maxBytesToRead);
   }
   return make_pair(privPemString, pubPemString);
 }

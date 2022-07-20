@@ -147,7 +147,7 @@ static bool testReplicaKeyPair(const std::string& privateKey, const std::string&
 #ifdef USE_CRYPTOPP_RSA
     signer.reset(new MainReplicaSigner(privateKey, KeyFormat::HexaDecimalStrippedFormat));
 #elif USE_EDDSA_SINGLE_SIGN
-    const auto signingKey = getByteArrayKeyClass<PrivateKeyClassType>(privateKey, KeyFormat::HexaDecimalStrippedFormat);
+    const auto signingKey = deserializeKey<PrivateKeyClassType>(privateKey, KeyFormat::HexaDecimalStrippedFormat);
     signer.reset(new MainReplicaSigner(signingKey.getBytes()));
 #endif
   } catch (const std::exception& e) {
@@ -158,8 +158,7 @@ static bool testReplicaKeyPair(const std::string& privateKey, const std::string&
 #ifdef USE_CRYPTOPP_RSA
     verifier.reset(new MainReplicaVerifier(publicKey, KeyFormat::HexaDecimalStrippedFormat));
 #elif USE_EDDSA_SINGLE_SIGN
-    const auto verificationKey =
-        getByteArrayKeyClass<PublicKeyClassType>(publicKey, KeyFormat::HexaDecimalStrippedFormat);
+    const auto verificationKey = deserializeKey<PublicKeyClassType>(publicKey, KeyFormat::HexaDecimalStrippedFormat);
     verifier.reset(new MainReplicaVerifier(verificationKey.getBytes()));
 #endif
   } catch (const std::exception& e) {

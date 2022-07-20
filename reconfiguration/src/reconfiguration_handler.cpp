@@ -342,7 +342,7 @@ BftReconfigurationHandler::BftReconfigurationHandler() {
 #ifdef USE_CRYPTOPP_RSA
   verifier_.reset(new ECDSAVerifier(key_str, KeyFormat::PemFormat));
 #else
-  const auto verificationKey = getByteArrayKeyClass<PublicKeyClassType>(key_str, KeyFormat::PemFormat);
+  const auto verificationKey = deserializeKey<PublicKeyClassType>(key_str, KeyFormat::PemFormat);
   verifier_.reset(new MainReplicaVerifier(verificationKey.getBytes()));
 #endif
 }

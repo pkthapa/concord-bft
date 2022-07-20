@@ -76,8 +76,7 @@ void generateRandomData(size_t len) {
  */
 void edDSASignerBenchmark(picobench::state& s) {
   string sig;
-  const auto signingKey =
-      getByteArrayKeyClass<EdDSAPrivateKey>(eddsaKeysPair.first, KeyFormat::HexaDecimalStrippedFormat);
+  const auto signingKey = deserializeKey<EdDSAPrivateKey>(eddsaKeysPair.first, KeyFormat::HexaDecimalStrippedFormat);
   auto signer_ = unique_ptr<TestSigner>(new TestSigner(signingKey.getBytes()));
 
   // Sign with EdDSASigner.
@@ -106,10 +105,9 @@ void edDSASignerBenchmark(picobench::state& s) {
  */
 void edDSAVerifierBenchmark(picobench::state& s) {
   string sig;
-  const auto signingKey =
-      getByteArrayKeyClass<EdDSAPrivateKey>(eddsaKeysPair.first, KeyFormat::HexaDecimalStrippedFormat);
+  const auto signingKey = deserializeKey<EdDSAPrivateKey>(eddsaKeysPair.first, KeyFormat::HexaDecimalStrippedFormat);
   const auto verificationKey =
-      getByteArrayKeyClass<EdDSAPublicKey>(eddsaKeysPair.second, KeyFormat::HexaDecimalStrippedFormat);
+      deserializeKey<EdDSAPublicKey>(eddsaKeysPair.second, KeyFormat::HexaDecimalStrippedFormat);
 
   auto signer_ = unique_ptr<TestSigner>(new TestSigner(signingKey.getBytes()));
   auto verifier_ = unique_ptr<TestVerifier>(new TestVerifier(verificationKey.getBytes()));

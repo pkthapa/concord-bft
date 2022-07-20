@@ -410,12 +410,7 @@ std::unique_ptr<AsymmetricPrivateKey> concord::util::openssl_utils::deserializeP
                            "(which could be because it does not meet them, or could simply be "
                            "because we have not assessed this particular scheme).");
   }
-  auto deleter = [](FILE* fp) {
-    if (nullptr != fp) {
-      fclose(fp);
-    }
-  };
-  unique_ptr<FILE, decltype(deleter)> fp(fopen(path_to_file.c_str(), "r"), deleter);
+  unique_ptr<FILE, decltype(&fclose)> fp(fopen(path_to_file.c_str(), "r"), fclose);
   if (nullptr == fp) {
     return nullptr;
   }
@@ -499,14 +494,10 @@ std::unique_ptr<AsymmetricPublicKey> concord::util::openssl_utils::deserializePu
                            "(which could be because it does not meet them, or could simply be "
                            "because we have not assessed this particular scheme).");
   }
-  auto deleter = [](FILE* fp) {
-    if (nullptr != fp) {
-      fclose(fp);
-    }
-  };
-  unique_ptr<FILE, decltype(deleter)> fp(fopen(path_to_file.c_str(), "r"), deleter);
+  unique_ptr<FILE, decltype(&fclose)> fp(fopen(path_to_file.c_str(), "r"), fclose);
   if (nullptr == fp) {
-    return nullptr;
+    throw UnexpectedOpenSSLCryptoFailureException(
+        "OpenSSL Crypto unexpectedly failed to open the public key file for " + path_to_file);
   }
   UniqueOpenSSLECKEY pkey(EC_KEY_new());
 

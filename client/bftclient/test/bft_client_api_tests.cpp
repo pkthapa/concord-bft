@@ -188,7 +188,7 @@ TEST_P(ClientApiTestParametrizedFixture, print_received_messages_and_timeout) {
     stream << file.rdbuf();
     auto pub_key_str = stream.str();
 
-    const auto verificationKey = getByteArrayKeyClass<PublicKeyClassType>(pub_key_str, KeyFormat::PemFormat);
+    const auto verificationKey = deserializeKey<PublicKeyClassType>(pub_key_str, KeyFormat::PemFormat);
     transaction_verifier_.reset(new MainReplicaVerifier(verificationKey.getBytes()));
   }
   unique_ptr<FakeCommunication> comm;

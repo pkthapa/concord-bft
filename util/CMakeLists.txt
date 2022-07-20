@@ -46,10 +46,14 @@ else()
     find_package(cryptopp REQUIRED)
 endif()
 
-target_link_libraries(util PUBLIC Threads::Threads ${CRYPTOPP_LIBRARIES})
+target_link_libraries(util PUBLIC
+        Threads::Threads ${CRYPTOPP_LIBRARIES}
+        stdc++fs)
 target_include_directories(util PUBLIC include ${CRYPTOPP_INCLUDE_DIRS})
 
-target_link_libraries(util_shared PUBLIC Threads::Threads ${CRYPTOPP_LIBRARIES})
+target_link_libraries(util_shared PUBLIC
+        Threads::Threads ${CRYPTOPP_LIBRARIES}
+        stdc++fs)
 target_include_directories(util_shared PUBLIC include ${CRYPTOPP_INCLUDE_DIRS})
 
 if(USE_OPENTRACING)

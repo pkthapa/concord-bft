@@ -85,10 +85,10 @@ class OpenSSLCryptoImpl {
   std::pair<std::string, std::string> EdDSAHexToPem(const std::pair<std::string, std::string>& hex_key_pair) const;
 
   /**
-   * @brief Returns the key's format.
+   * @brief If the key string contains 'BEGIN' token, then it is PEM format, else HEX format.
    *
    * @param key
-   * @return KeyFormat
+   * @return KeyFormat Returns the key's format.
    */
   concord::util::crypto::KeyFormat getFormat(const std::string& key) const;
 };

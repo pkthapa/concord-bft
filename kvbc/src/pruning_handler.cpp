@@ -36,14 +36,14 @@ void PruningSigner::sign(concord::messages::LatestPrunableBlock& block) {
 }
 
 PruningSigner::PruningSigner(const std::string& key) {
-  const auto signingKey = getByteArrayKeyClass<PrivateKeyClassType>(key, KeyFormat::HexaDecimalStrippedFormat);
+  const auto signingKey = deserializeKey<PrivateKeyClassType>(key, KeyFormat::HexaDecimalStrippedFormat);
   signer_.reset(new MainReplicaSigner(signingKey.getBytes()));
 }
 
 PruningVerifier::PruningVerifier(const std::set<std::pair<uint16_t, const std::string>>& replicasPublicKeys) {
   auto i = 0u;
   for (auto& [idx, pkey] : replicasPublicKeys) {
-    const auto verificationKey = getByteArrayKeyClass<PublicKeyClassType>(pkey, KeyFormat::HexaDecimalStrippedFormat);
+    const auto verificationKey = deserializeKey<PublicKeyClassType>(pkey, KeyFormat::HexaDecimalStrippedFormat);
     replicas_.push_back(Replica{idx, std::make_unique<MainReplicaVerifier>(verificationKey.getBytes())});
     const auto ins_res = replica_ids_.insert(replicas_.back().principal_id);
     if (!ins_res.second) {

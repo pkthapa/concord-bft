@@ -17,7 +17,6 @@
 
 #include <string>
 #include <vector>
-#include <memory>
 
 #include <openssl/ec.h>
 #include <openssl/evp.h>

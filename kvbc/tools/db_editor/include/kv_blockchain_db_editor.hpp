@@ -367,7 +367,7 @@ struct VerifyBlockRequests {
       out << "\t\t\"signature_digest\": \"" << hex_digest << "\",\n";
       out << "\t\t\"persistency_type\": \"" << persistencyType(req.requestPersistencyType) << "\",\n";
       std::string verification_result;
-      const auto verificationKey = getByteArrayKeyClass<PublicKeyClassType>(
+      const auto verificationKey = deserializeKey<PublicKeyClassType>(
           client_keys.ids_to_keys[req.clientId].key,
           (concord::util::crypto::KeyFormat)client_keys.ids_to_keys[req.clientId].format);
       auto verifier = std::make_unique<MainReplicaVerifier>(verificationKey.getBytes());
@@ -1109,7 +1109,7 @@ struct VerifyDbCheckpoint {
               transform(format.begin(), format.end(), format.begin(), ::tolower);
               auto key_format = ((format == "hex") ? KeyFormat::HexaDecimalStrippedFormat : KeyFormat::PemFormat);
 
-              const auto verificationKey = getByteArrayKeyClass<PublicKeyClassType>(cmd.key, key_format);
+              const auto verificationKey = deserializeKey<PublicKeyClassType>(cmd.key, key_format);
               replica_keys.emplace(repId, std::make_unique<MainReplicaVerifier>(verificationKey.getBytes()));
             },
             *val);

@@ -17,9 +17,6 @@
 #include "crypto_utils.hpp"
 #include "crypto/interface/signer.hpp"
 
-// OpenSSL includes.
-#include <openssl/pem.h>
-
 namespace concord::crypto::openssl {
 
 /**

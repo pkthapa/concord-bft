@@ -44,12 +44,7 @@ static std::vector<uint8_t> extractHexKeyFromPem(const std::string& pemKey, size
   using concord::util::openssl_utils::OPENSSL_SUCCESS;
 
   UniquePKEY pkey;
-  auto deleter = [](FILE* fp) {
-    if (nullptr != fp) {
-      fclose(fp);
-    }
-  };
-  std::unique_ptr<FILE, decltype(deleter)> fp(tmpfile(), deleter);
+  std::unique_ptr<FILE, decltype(&fclose)> fp(tmpfile(), fclose);
   ConcordAssert(nullptr != fp);
 
   fputs(pemKey.data(), fp.get());
@@ -69,7 +64,7 @@ static std::vector<uint8_t> extractHexKeyFromPem(const std::string& pemKey, size
 }
 
 /**
- * @brief Get the ByteArray Key Class object
+ * @brief Get the ByteArray Key Class object. It deserializes the key passed in the first parameter.
  *
  * @tparam ByteArrayKeyClass
  * @param key
@@ -77,7 +72,7 @@ static std::vector<uint8_t> extractHexKeyFromPem(const std::string& pemKey, size
  * @return ByteArrayKeyClass
  */
 template <typename ByteArrayKeyClass>
-static ByteArrayKeyClass getByteArrayKeyClass(const std::string& key, concord::util::crypto::KeyFormat format) {
+static ByteArrayKeyClass deserializeKey(const std::string& key, concord::util::crypto::KeyFormat format) {
   using concord::util::crypto::KeyFormat;
 
   constexpr size_t keyLength = ByteArrayKeyClass::ByteSize;

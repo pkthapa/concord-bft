@@ -143,7 +143,7 @@ SigManager::SigManager(PrincipalId myId,
 
   ConcordAssert(publicKeysMapping.size() >= numPublickeys);
   if (!mySigPrivateKey.first.empty()) {
-    const auto signingKey = getByteArrayKeyClass<PrivateKeyClassType>(mySigPrivateKey.first, mySigPrivateKey.second);
+    const auto signingKey = deserializeKey<PrivateKeyClassType>(mySigPrivateKey.first, mySigPrivateKey.second);
     mySigner_.reset(new MainReplicaSigner(signingKey.getBytes()));
   }
   for (const auto& p : publicKeysMapping) {
@@ -153,7 +153,7 @@ SigManager::SigManager(PrincipalId myId,
     auto iter = publicKeyIndexToVerifier.find(p.second);
     const auto& [key, format] = publickeys[p.second];
     if (iter == publicKeyIndexToVerifier.end()) {
-      const auto verificationKey = getByteArrayKeyClass<PublicKeyClassType>(key, format);
+      const auto verificationKey = deserializeKey<PublicKeyClassType>(key, format);
       verifiers_[p.first] = std::make_shared<MainReplicaVerifier>(verificationKey.getBytes());
       publicKeyIndexToVerifier[p.second] = verifiers_[p.first];
     } else {
@@ -261,7 +261,7 @@ void SigManager::setClientPublicKey(const std::string& key, PrincipalId id, KeyF
   if (replicasInfo_.isIdOfExternalClient(id) || replicasInfo_.isIdOfClientService(id)) {
     try {
       std::unique_lock lock(mutex_);
-      const auto verificationKey = getByteArrayKeyClass<PublicKeyClassType>(key, format);
+      const auto verificationKey = deserializeKey<PublicKeyClassType>(key, format);
       verifiers_.insert_or_assign(id, std::make_shared<MainReplicaVerifier>(verificationKey.getBytes()));
     } catch (const std::exception& e) {
       LOG_ERROR(KEY_EX_LOG, "failed to add a key for client: " << id << " reason: " << e.what());

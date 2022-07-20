@@ -88,10 +88,8 @@ TEST(SignerAndVerifierTest, LoadSignVerifyFromHexKeyPair) {
   const auto keyPair = OpenSSLCryptoImpl::instance().generateEdDSAKeyPair();
   generateRandomData(data, RANDOM_DATA_SIZE);
 
-  const auto signingKey =
-      getByteArrayKeyClass<PrivateKeyClassType>(keyPair.first, KeyFormat::HexaDecimalStrippedFormat);
-  const auto verificationKey =
-      getByteArrayKeyClass<PublicKeyClassType>(keyPair.second, KeyFormat::HexaDecimalStrippedFormat);
+  const auto signingKey = deserializeKey<PrivateKeyClassType>(keyPair.first, KeyFormat::HexaDecimalStrippedFormat);
+  const auto verificationKey = deserializeKey<PublicKeyClassType>(keyPair.second, KeyFormat::HexaDecimalStrippedFormat);
 
   const auto signer_ = unique_ptr<MainReplicaSigner>(new MainReplicaSigner(signingKey.getBytes()));
   auto verifier_ = unique_ptr<MainReplicaVerifier>(new MainReplicaVerifier(verificationKey.getBytes()));
@@ -134,8 +132,8 @@ TEST(SignerAndVerifierTest, LoadSignVerifyFromPemfiles) {
   readFile(privateKeyFullPath, privKey);
   readFile(publicKeyFullPath, pubkey);
 
-  const auto signingKey = getByteArrayKeyClass<PrivateKeyClassType>(privKey, KeyFormat::PemFormat);
-  const auto verificationKey = getByteArrayKeyClass<PublicKeyClassType>(pubkey, KeyFormat::PemFormat);
+  const auto signingKey = deserializeKey<PrivateKeyClassType>(privKey, KeyFormat::PemFormat);
+  const auto verificationKey = deserializeKey<PublicKeyClassType>(pubkey, KeyFormat::PemFormat);
 
   auto verifier_ = unique_ptr<MainReplicaVerifier>(new MainReplicaVerifier(verificationKey.getBytes()));
   const auto signer_ = unique_ptr<MainReplicaSigner>(new MainReplicaSigner(signingKey.getBytes()));
@@ -185,7 +183,7 @@ TEST(SigManagerTest, ReplicasOnlyCheckVerify) {
       myPrivKey = privKey;
       continue;
     }
-    const auto signingKey = getByteArrayKeyClass<PrivateKeyClassType>(privKey, KeyFormat::PemFormat);
+    const auto signingKey = deserializeKey<PrivateKeyClassType>(privKey, KeyFormat::PemFormat);
     signers[pid].reset(new MainReplicaSigner(signingKey.getBytes()));
     string pubKeyFullPath({string(KEYS_BASE_PATH) + string("/") + to_string(i) + string("/") + PUB_KEY_NAME});
     readFile(pubKeyFullPath, pubKey);
@@ -249,7 +247,7 @@ TEST(SigManagerTest, ReplicasOnlyCheckSign) {
   string pubKeyFullPath({string(KEYS_BASE_PATH) + string("/") + to_string(1) + string("/") + PUB_KEY_NAME});
   readFile(pubKeyFullPath, pubKey);
 
-  const auto verificationKey = getByteArrayKeyClass<PublicKeyClassType>(pubKey, KeyFormat::PemFormat);
+  const auto verificationKey = deserializeKey<PublicKeyClassType>(pubKey, KeyFormat::PemFormat);
   verifier.reset(new MainReplicaVerifier(verificationKey.getBytes()));
 
   // load public key of other replicas, must be done for SigManager ctor
@@ -316,7 +314,7 @@ TEST(SigManagerTest, ReplicasAndClientsCheckVerify) {
       myPrivKey = privKey;
       continue;
     }
-    const auto signingKey = getByteArrayKeyClass<PrivateKeyClassType>(privKey, KeyFormat::PemFormat);
+    const auto signingKey = deserializeKey<PrivateKeyClassType>(privKey, KeyFormat::PemFormat);
     signers[signerIndex].reset(new MainReplicaSigner(signingKey.getBytes()));
 
     string pubKeyFullPath({string(KEYS_BASE_PATH) + string("/") + to_string(i) + string("/") + PUB_KEY_NAME});
@@ -332,7 +330,7 @@ TEST(SigManagerTest, ReplicasAndClientsCheckVerify) {
     string privKey, pubKey;
     string privateKeyFullPath({string(KEYS_BASE_PATH) + string("/") + to_string(i) + string("/") + PRIV_KEY_NAME});
     readFile(privateKeyFullPath, privKey);
-    const auto signingKey = getByteArrayKeyClass<PrivateKeyClassType>(privKey, KeyFormat::PemFormat);
+    const auto signingKey = deserializeKey<PrivateKeyClassType>(privKey, KeyFormat::PemFormat);
     signers[signerIndex].reset(new MainReplicaSigner(signingKey.getBytes()));
     string pubKeyFullPath({string(KEYS_BASE_PATH) + string("/") + to_string(i) + string("/") + PUB_KEY_NAME});
     set<PrincipalId> principalIds;

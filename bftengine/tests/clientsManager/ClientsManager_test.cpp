@@ -238,7 +238,7 @@ static bool verifyClientPublicKeyLoadedToKEM(NodeIdType client_id, const pair<st
     return false;
   }
 
-  const auto signingKey = getByteArrayKeyClass<PrivateKeyClassType>(expected_key.first, kKeyFormatForTesting);
+  const auto signingKey = deserializeKey<PrivateKeyClassType>(expected_key.first, kKeyFormatForTesting);
   MainReplicaSigner signer(signingKey.getBytes());
   string signature = signer.sign(kArbitraryMessageForTestingKeyAgreement);
   return SigManager::instance()->verifySig(client_id,
