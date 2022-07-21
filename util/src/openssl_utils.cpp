@@ -25,7 +25,7 @@
 
 namespace concord::crypto::openssl {
 using std::pair;
-using std::rewind;
+using std::array;
 using std::string;
 using std::unique_ptr;
 using concord::util::crypto::KeyFormat;
@@ -198,16 +198,16 @@ pair<string, string> OpenSSLCryptoImpl::generateEdDSAKeyPair(const KeyFormat fmt
       OPENSSL_SUCCESS,
       EVP_PKEY_keygen(edPkeyCtx.get(), reinterpret_cast<EVP_PKEY**>(&edPkey)));  // Generate EdDSA key 'edPkey'.
 
-  unsigned char privKey[EdDSASignatureByteSize]{};
-  unsigned char pubKey[EdDSASignatureByteSize]{};
+  array<unsigned char, EdDSASignatureByteSize> privKey;
+  array<unsigned char, EdDSASignatureByteSize> pubKey;
   size_t privlen{EdDSASignatureByteSize};
   size_t publen{EdDSASignatureByteSize};
 
-  ConcordAssertEQ(OPENSSL_SUCCESS, EVP_PKEY_get_raw_private_key(edPkey.get(), privKey, &privlen));
-  ConcordAssertEQ(OPENSSL_SUCCESS, EVP_PKEY_get_raw_public_key(edPkey.get(), pubKey, &publen));
+  ConcordAssertEQ(OPENSSL_SUCCESS, EVP_PKEY_get_raw_private_key(edPkey.get(), privKey.data(), &privlen));
+  ConcordAssertEQ(OPENSSL_SUCCESS, EVP_PKEY_get_raw_public_key(edPkey.get(), pubKey.data(), &publen));
 
-  pair<string, string> keyPair(boost::algorithm::hex(string(reinterpret_cast<const char*>(privKey), privlen)),
-                               boost::algorithm::hex(string(reinterpret_cast<const char*>(pubKey), publen)));
+  pair<string, string> keyPair(boost::algorithm::hex(string(reinterpret_cast<char*>(privKey.data()), privlen)),
+                               boost::algorithm::hex(string(reinterpret_cast<char*>(pubKey.data()), publen)));
 
   if (KeyFormat::PemFormat == fmt) {
     keyPair = EdDSAHexToPem(keyPair);
@@ -218,22 +218,24 @@ pair<string, string> OpenSSLCryptoImpl::generateEdDSAKeyPair(const KeyFormat fmt
 pair<string, string> OpenSSLCryptoImpl::EdDSAHexToPem(const std::pair<std::string, std::string>& hex_key_pair) const {
   string privPemString;
   string pubPemString;
-  constexpr uint64_t maxBytesToRead = 1024U;
 
   if (!hex_key_pair.first.empty()) {  // Proceed with private key pem file generation.
     const auto privKey = boost::algorithm::unhex(hex_key_pair.first);
 
     UniquePKEY ed_privKey(EVP_PKEY_new_raw_private_key(
         NID_ED25519, nullptr, reinterpret_cast<const unsigned char*>(privKey.data()), privKey.size()));
-
     ConcordAssertNE(nullptr, ed_privKey);
 
-    std::unique_ptr<FILE, decltype(&fclose)> fp(tmpfile(), fclose);
-    ConcordAssertNE(nullptr, fp);
-    PEM_write_PrivateKey(fp.get(), ed_privKey.get(), nullptr, nullptr, 0, nullptr, nullptr);
-    rewind(fp.get());
+    UniqueOpenSSLBIO bio(BIO_new(BIO_s_mem()));
+    ConcordAssertNE(nullptr, bio);
 
-    privPemString = concord::io::readFile(fp.get(), maxBytesToRead);
+    ConcordAssertEQ(OPENSSL_SUCCESS,
+                    PEM_write_bio_PrivateKey(bio.get(), ed_privKey.get(), nullptr, nullptr, 0, nullptr, nullptr));
+
+    const auto lenToRead = BIO_pending(bio.get());
+    std::vector<uint8_t> output(lenToRead);
+    ConcordAssertGT(BIO_read(bio.get(), output.data(), lenToRead), 0);
+    privPemString = string(output.begin(), output.end());
   }
 
   if (!hex_key_pair.second.empty()) {  // Proceed with public key pem file generation.
@@ -241,15 +243,17 @@ pair<string, string> OpenSSLCryptoImpl::EdDSAHexToPem(const std::pair<std::strin
 
     UniquePKEY ed_pubKey(EVP_PKEY_new_raw_public_key(
         NID_ED25519, nullptr, reinterpret_cast<const unsigned char*>(pubKey.data()), pubKey.size()));
-
     ConcordAssertNE(nullptr, ed_pubKey);
 
-    std::unique_ptr<FILE, decltype(&fclose)> fp(tmpfile(), fclose);
-    ConcordAssertNE(nullptr, fp);
-    PEM_write_PUBKEY(fp.get(), ed_pubKey.get());
-    rewind(fp.get());
+    UniqueOpenSSLBIO bio(BIO_new(BIO_s_mem()));
+    ConcordAssertNE(nullptr, bio);
 
-    pubPemString = concord::io::readFile(fp.get(), maxBytesToRead);
+    ConcordAssertEQ(OPENSSL_SUCCESS, PEM_write_bio_PUBKEY(bio.get(), ed_pubKey.get()));
+
+    const auto lenToRead = BIO_pending(bio.get());
+    std::vector<uint8_t> output(lenToRead);
+    ConcordAssertGT(BIO_read(bio.get(), output.data(), lenToRead), 0);
+    pubPemString = string(output.begin(), output.end());
   }
   return make_pair(privPemString, pubPemString);
 }

@@ -88,8 +88,8 @@ TEST(SignerAndVerifierTest, LoadSignVerifyFromHexKeyPair) {
   const auto keyPair = OpenSSLCryptoImpl::instance().generateEdDSAKeyPair();
   generateRandomData(data, RANDOM_DATA_SIZE);
 
-  const auto signingKey = deserializeKey<PrivateKeyClassType>(keyPair.first, KeyFormat::HexaDecimalStrippedFormat);
-  const auto verificationKey = deserializeKey<PublicKeyClassType>(keyPair.second, KeyFormat::HexaDecimalStrippedFormat);
+  const auto signingKey = deserializeKey<PrivateKeyClassType>(keyPair.first);
+  const auto verificationKey = deserializeKey<PublicKeyClassType>(keyPair.second);
 
   const auto signer_ = unique_ptr<MainReplicaSigner>(new MainReplicaSigner(signingKey.getBytes()));
   auto verifier_ = unique_ptr<MainReplicaVerifier>(new MainReplicaVerifier(verificationKey.getBytes()));
