@@ -25,10 +25,8 @@
 
 using concord::crypto::ISigner;
 using concord::crypto::IVerifier;
-using concord::crypto::signature::PrivateKeyClassType;
-using concord::crypto::signature::PublicKeyClassType;
-using concord::crypto::signature::MainReplicaSigner;
-using concord::crypto::signature::MainReplicaVerifier;
+using concord::crypto::signature::SignerFactory;
+using concord::crypto::signature::VerifierFactory;
 using concord::util::crypto::KeyFormat;
 
 // How often to output status when testing cryptosystems, measured as an
@@ -147,8 +145,7 @@ static bool testReplicaKeyPair(const std::string& privateKey, const std::string&
 #ifdef USE_CRYPTOPP_RSA
     signer.reset(new MainReplicaSigner(privateKey, KeyFormat::HexaDecimalStrippedFormat));
 #elif USE_EDDSA_SINGLE_SIGN
-    const auto signingKey = deserializeKey<PrivateKeyClassType>(privateKey);
-    signer.reset(new MainReplicaSigner(signingKey.getBytes()));
+    signer = SignerFactory::getReplicaSigner(privateKey);
 #endif
   } catch (const std::exception& e) {
     std::cout << invalidPrivateKey;
@@ -158,8 +155,7 @@ static bool testReplicaKeyPair(const std::string& privateKey, const std::string&
 #ifdef USE_CRYPTOPP_RSA
     verifier.reset(new MainReplicaVerifier(publicKey, KeyFormat::HexaDecimalStrippedFormat));
 #elif USE_EDDSA_SINGLE_SIGN
-    const auto verificationKey = deserializeKey<PublicKeyClassType>(publicKey);
-    verifier.reset(new MainReplicaVerifier(verificationKey.getBytes()));
+    verifier = VerifierFactory::getReplicaVerifier(publicKey);
 #endif
   } catch (const std::exception& e) {
     std::cout << invalidPublicKey;

@@ -25,10 +25,9 @@ using namespace std;
 namespace bftEngine {
 namespace impl {
 
-using concord::crypto::signature::PrivateKeyClassType;
-using concord::crypto::signature::PublicKeyClassType;
-using concord::crypto::signature::MainReplicaSigner;
-using concord::crypto::signature::MainReplicaVerifier;
+using concord::crypto::IVerifier;
+using concord::crypto::signature::SignerFactory;
+using concord::crypto::signature::VerifierFactory;
 
 concord::messages::keys_and_signatures::ClientsPublicKeys clientsPublicKeys_;
 
@@ -138,13 +137,12 @@ SigManager::SigManager(PrincipalId myId,
           metrics_component_.RegisterAtomicCounter("peer_replicas_signature_verification_failed"),
           metrics_component_.RegisterAtomicCounter("peer_replicas_signatures_verified"),
           metrics_component_.RegisterAtomicCounter("signature_verification_failed_on_unrecognized_participant_id")} {
-  map<KeyIndex, std::shared_ptr<concord::crypto::IVerifier>> publicKeyIndexToVerifier;
+  map<KeyIndex, std::shared_ptr<IVerifier>> publicKeyIndexToVerifier;
   size_t numPublickeys = publickeys.size();
 
   ConcordAssert(publicKeysMapping.size() >= numPublickeys);
   if (!mySigPrivateKey.first.empty()) {
-    const auto signingKey = deserializeKey<PrivateKeyClassType>(mySigPrivateKey.first, mySigPrivateKey.second);
-    mySigner_.reset(new MainReplicaSigner(signingKey.getBytes()));
+    mySigner_ = SignerFactory::getReplicaSigner(mySigPrivateKey.first, mySigPrivateKey.second);
   }
   for (const auto& p : publicKeysMapping) {
     ConcordAssert(verifiers_.count(p.first) == 0);
@@ -153,8 +151,7 @@ SigManager::SigManager(PrincipalId myId,
     auto iter = publicKeyIndexToVerifier.find(p.second);
     const auto& [key, format] = publickeys[p.second];
     if (iter == publicKeyIndexToVerifier.end()) {
-      const auto verificationKey = deserializeKey<PublicKeyClassType>(key, format);
-      verifiers_[p.first] = std::make_shared<MainReplicaVerifier>(verificationKey.getBytes());
+      verifiers_[p.first] = std::shared_ptr<IVerifier>(VerifierFactory::getReplicaVerifier(key, format));
       publicKeyIndexToVerifier[p.second] = verifiers_[p.first];
     } else {
       verifiers_[p.first] = iter->second;
@@ -261,8 +258,7 @@ void SigManager::setClientPublicKey(const std::string& key, PrincipalId id, KeyF
   if (replicasInfo_.isIdOfExternalClient(id) || replicasInfo_.isIdOfClientService(id)) {
     try {
       std::unique_lock lock(mutex_);
-      const auto verificationKey = deserializeKey<PublicKeyClassType>(key, format);
-      verifiers_.insert_or_assign(id, std::make_shared<MainReplicaVerifier>(verificationKey.getBytes()));
+      verifiers_.insert_or_assign(id, std::shared_ptr<IVerifier>(VerifierFactory::getReplicaVerifier(key, format)));
     } catch (const std::exception& e) {
       LOG_ERROR(KEY_EX_LOG, "failed to add a key for client: " << id << " reason: " << e.what());
       throw;

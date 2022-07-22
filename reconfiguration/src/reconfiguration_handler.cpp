@@ -34,8 +34,7 @@ namespace concord::reconfiguration {
 
 using namespace concord::messages;
 using concord::util::crypto::KeyFormat;
-using concord::crypto::signature::PublicKeyClassType;
-using concord::crypto::signature::MainReplicaVerifier;
+using concord::crypto::signature::VerifierFactory;
 
 bool ReconfigurationHandler::handle(const WedgeCommand& cmd,
                                     uint64_t bft_seq_num,
@@ -342,8 +341,7 @@ BftReconfigurationHandler::BftReconfigurationHandler() {
 #ifdef USE_CRYPTOPP_RSA
   verifier_.reset(new ECDSAVerifier(key_str, KeyFormat::PemFormat));
 #else
-  const auto verificationKey = deserializeKey<PublicKeyClassType>(key_str, KeyFormat::PemFormat);
-  verifier_.reset(new MainReplicaVerifier(verificationKey.getBytes()));
+  verifier_ = VerifierFactory::getReplicaVerifier(key_str, KeyFormat::PemFormat);
 #endif
 }
 

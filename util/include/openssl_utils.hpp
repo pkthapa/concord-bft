@@ -89,6 +89,8 @@ class OpenSSLCryptoImpl {
    *
    * @param key
    * @return KeyFormat Returns the key's format.
+   * @todo The check to identify the format is not generic. Need to implement some generic way
+   * identifying the input format.
    */
   concord::util::crypto::KeyFormat getFormat(const std::string& key) const;
 };

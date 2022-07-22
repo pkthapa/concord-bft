@@ -43,8 +43,7 @@ using namespace bftEngine;
 using namespace placeholders;
 using namespace concord::secretsmanager;
 using concord::util::crypto::KeyFormat;
-using concord::crypto::signature::MainReplicaVerifier;
-using concord::crypto::signature::PublicKeyClassType;
+using concord::crypto::signature::VerifierFactory;
 using namespace CryptoPP;
 
 using ReplicaId_t = bft::client::ReplicaId;
@@ -188,8 +187,7 @@ TEST_P(ClientApiTestParametrizedFixture, print_received_messages_and_timeout) {
     stream << file.rdbuf();
     auto pub_key_str = stream.str();
 
-    const auto verificationKey = deserializeKey<PublicKeyClassType>(pub_key_str, KeyFormat::PemFormat);
-    transaction_verifier_.reset(new MainReplicaVerifier(verificationKey.getBytes()));
+    transaction_verifier_ = VerifierFactory::getReplicaVerifier(pub_key_str, KeyFormat::PemFormat);
   }
   unique_ptr<FakeCommunication> comm;
   if (sign_transaction) {

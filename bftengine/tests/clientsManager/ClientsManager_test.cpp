@@ -18,6 +18,7 @@
 #include "ReservedPagesMock.hpp"
 #include "sign_verify_utils.hpp"
 
+using concord::crypto::signature::SignerFactory;
 using bftEngine::impl::ClientsManager;
 using bftEngine::impl::NodeIdType;
 using bftEngine::impl::ReplicasInfo;
@@ -48,9 +49,6 @@ using concord::crypto::cryptopp::RSA_SIGNATURE_LENGTH;
 #elif USE_EDDSA_SINGLE_SIGN
 using concord::crypto::openssl::OpenSSLCryptoImpl;
 #endif
-
-using concord::crypto::signature::PrivateKeyClassType;
-using concord::crypto::signature::MainReplicaSigner;
 
 // Testing values to be used for certain Concord-BFT configuration that ClientsManager and/or its dependencies may
 // reference.
@@ -237,10 +235,8 @@ static bool verifyClientPublicKeyLoadedToKEM(NodeIdType client_id, const pair<st
   if (!(SigManager::instance()->hasVerifier(client_id))) {
     return false;
   }
-
-  const auto signingKey = deserializeKey<PrivateKeyClassType>(expected_key.first, kKeyFormatForTesting);
-  MainReplicaSigner signer(signingKey.getBytes());
-  string signature = signer.sign(kArbitraryMessageForTestingKeyAgreement);
+  const auto signer = SignerFactory::getReplicaSigner(expected_key.first, kKeyFormatForTesting);
+  string signature = signer->sign(kArbitraryMessageForTestingKeyAgreement);
   return SigManager::instance()->verifySig(client_id,
                                            kArbitraryMessageForTestingKeyAgreement.data(),
                                            kArbitraryMessageForTestingKeyAgreement.length(),

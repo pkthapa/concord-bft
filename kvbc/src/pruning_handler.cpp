@@ -20,11 +20,8 @@
 
 namespace concord::kvbc::pruning {
 
-using concord::util::crypto::KeyFormat;
-using concord::crypto::signature::PrivateKeyClassType;
-using concord::crypto::signature::PublicKeyClassType;
-using concord::crypto::signature::MainReplicaSigner;
-using concord::crypto::signature::MainReplicaVerifier;
+using concord::crypto::signature::SignerFactory;
+using concord::crypto::signature::VerifierFactory;
 
 void PruningSigner::sign(concord::messages::LatestPrunableBlock& block) {
   std::ostringstream oss;
@@ -35,16 +32,12 @@ void PruningSigner::sign(concord::messages::LatestPrunableBlock& block) {
   block.signature = std::vector<uint8_t>(signature.begin(), signature.end());
 }
 
-PruningSigner::PruningSigner(const std::string& key) {
-  const auto signingKey = deserializeKey<PrivateKeyClassType>(key);
-  signer_.reset(new MainReplicaSigner(signingKey.getBytes()));
-}
+PruningSigner::PruningSigner(const std::string& key) { signer_ = SignerFactory::getReplicaSigner(key); }
 
 PruningVerifier::PruningVerifier(const std::set<std::pair<uint16_t, const std::string>>& replicasPublicKeys) {
   auto i = 0u;
   for (auto& [idx, pkey] : replicasPublicKeys) {
-    const auto verificationKey = deserializeKey<PublicKeyClassType>(pkey);
-    replicas_.push_back(Replica{idx, std::make_unique<MainReplicaVerifier>(verificationKey.getBytes())});
+    replicas_.push_back(Replica{idx, VerifierFactory::getReplicaVerifier(pkey)});
     const auto ins_res = replica_ids_.insert(replicas_.back().principal_id);
     if (!ins_res.second) {
       throw std::runtime_error{"PruningVerifier found duplicate replica principal_id: " +

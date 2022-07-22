@@ -19,13 +19,44 @@
 #include "crypto/eddsa/EdDSAVerifier.hpp"
 
 namespace concord::crypto::signature {
-#ifdef USE_CRYPTOPP_RSA
-using MainReplicaSigner = concord::crypto::cryptopp::RSASigner;
-using MainReplicaVerifier = concord::crypto::cryptopp::RSAVerifier;
-#elif USE_EDDSA_SINGLE_SIGN
-using PrivateKeyClassType = EdDSAPrivateKey;
-using PublicKeyClassType = EdDSAPublicKey;
-using MainReplicaSigner = concord::crypto::openssl::EdDSASigner<PrivateKeyClassType>;
-using MainReplicaVerifier = concord::crypto::openssl::EdDSAVerifier<PublicKeyClassType>;
-#endif
+static bool isEdDSAAlgo{true};
+
+class SignerFactory {
+ public:
+  static std::unique_ptr<ISigner> getReplicaSigner(
+      const std::string& signingKey,
+      concord::util::crypto::KeyFormat fmt = concord::util::crypto::KeyFormat::HexaDecimalStrippedFormat) {
+    using PrivateKeyClassType = EdDSAPrivateKey;
+    using MainReplicaSigner = concord::crypto::openssl::EdDSASigner<PrivateKeyClassType>;
+
+    if (isEdDSAAlgo) {
+      const auto signingKeyObject = deserializeKey<PrivateKeyClassType>(signingKey, fmt);
+      return std::unique_ptr<MainReplicaSigner>(new MainReplicaSigner(signingKeyObject.getBytes()));
+    } else {
+      // @TODO- Change to RSA. For testing purpose only.
+      const auto signingKeyObject = deserializeKey<PrivateKeyClassType>(signingKey, fmt);
+      return std::unique_ptr<MainReplicaSigner>(new MainReplicaSigner(signingKeyObject.getBytes()));
+    }
+  }
+};
+
+class VerifierFactory {
+ public:
+  static std::unique_ptr<IVerifier> getReplicaVerifier(
+      const std::string& verificationKey,
+      concord::util::crypto::KeyFormat fmt = concord::util::crypto::KeyFormat::HexaDecimalStrippedFormat) {
+    using PublicKeyClassType = EdDSAPublicKey;
+    using MainReplicaVerifier = concord::crypto::openssl::EdDSAVerifier<PublicKeyClassType>;
+
+    if (isEdDSAAlgo) {
+      const auto verifyingKeyObject = deserializeKey<PublicKeyClassType>(verificationKey, fmt);
+      return std::unique_ptr<MainReplicaVerifier>(new MainReplicaVerifier(verifyingKeyObject.getBytes()));
+    } else {
+      // @TODO- Change to RSA. For testing purpose only.
+      const auto verifyingKeyObject = deserializeKey<PublicKeyClassType>(verificationKey, fmt);
+      return std::unique_ptr<MainReplicaVerifier>(new MainReplicaVerifier(verifyingKeyObject.getBytes()));
+    }
+  }
+};
+
 }  // namespace concord::crypto::signature

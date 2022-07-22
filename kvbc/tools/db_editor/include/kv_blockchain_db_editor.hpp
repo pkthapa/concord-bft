@@ -45,8 +45,6 @@
 namespace concord::kvbc::tools::db_editor {
 
 using namespace categorization;
-using concord::crypto::signature::MainReplicaVerifier;
-using concord::crypto::signature::PublicKeyClassType;
 
 inline const auto kToolName = "kv_blockchain_db_editor"s;
 
@@ -367,10 +365,9 @@ struct VerifyBlockRequests {
       out << "\t\t\"signature_digest\": \"" << hex_digest << "\",\n";
       out << "\t\t\"persistency_type\": \"" << persistencyType(req.requestPersistencyType) << "\",\n";
       std::string verification_result;
-      const auto verificationKey = deserializeKey<PublicKeyClassType>(
+      const auto verifier = concord::crypto::signature::VerifierFactory::getReplicaVerifier(
           client_keys.ids_to_keys[req.clientId].key,
           (concord::util::crypto::KeyFormat)client_keys.ids_to_keys[req.clientId].format);
-      auto verifier = std::make_unique<MainReplicaVerifier>(verificationKey.getBytes());
 
       if (req.requestPersistencyType == concord::messages::execution_data::EPersistecyType::RAW_ON_CHAIN) {
         auto result = verifier->verify(req.request, req.signature);
@@ -1109,8 +1106,8 @@ struct VerifyDbCheckpoint {
               transform(format.begin(), format.end(), format.begin(), ::tolower);
               auto key_format = ((format == "hex") ? KeyFormat::HexaDecimalStrippedFormat : KeyFormat::PemFormat);
 
-              const auto verificationKey = deserializeKey<PublicKeyClassType>(cmd.key, key_format);
-              replica_keys.emplace(repId, std::make_unique<MainReplicaVerifier>(verificationKey.getBytes()));
+              replica_keys.emplace(
+                  repId, concord::crypto::signature::VerifierFactory::getReplicaVerifier(cmd.key, key_format));
             },
             *val);
       }

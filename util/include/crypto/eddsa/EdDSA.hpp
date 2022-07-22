@@ -38,7 +38,7 @@ class EdDSAPublicKey : public SerializableByteArray<EdDSAPublicKeyByteSize> {
  * @return std::vector<uint8_t> Generated key.
  */
 template <typename ByteArrayKeyClass>
-static std::vector<uint8_t> extractHexKeyFromPem(const std::string& pemKey, size_t KeyLength) {
+static std::vector<uint8_t> extractHexKeyFromPem(const std::string_view pemKey, size_t KeyLength) {
   using concord::util::openssl_utils::UniquePKEY;
   using concord::util::openssl_utils::UniqueOpenSSLBIO;
   using concord::util::openssl_utils::OPENSSL_SUCCESS;
