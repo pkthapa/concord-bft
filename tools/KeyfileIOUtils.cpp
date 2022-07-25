@@ -24,10 +24,12 @@
 #include "crypto_utils.hpp"
 
 using concord::util::crypto::isValidKey;
+using bftEngine::ReplicaConfig;
+using concord::crypto::signature::SIGN_VERIFY_ALGO;
 
 void outputReplicaKeyfile(uint16_t numReplicas,
                           uint16_t numRoReplicas,
-                          bftEngine::ReplicaConfig& config,
+                          ReplicaConfig& config,
                           const std::string& outputFilename,
                           Cryptosystem* commonSys) {
   std::ofstream output(outputFilename);
@@ -52,11 +54,11 @@ void outputReplicaKeyfile(uint16_t numReplicas,
   output << "\n";
 
   output << "main_key_algorithm: ";
-#ifdef USE_CRYPTOPP_RSA
-  output << "rsa\n";
-#elif USE_EDDSA_SINGLE_SIGN
-  output << "eddsa\n";
-#endif
+  if (ReplicaConfig::instance().replicaMsgSigningAlgo == SIGN_VERIFY_ALGO::RSA) {
+    output << "rsa\n";
+  } else if (ReplicaConfig::instance().replicaMsgSigningAlgo == SIGN_VERIFY_ALGO::EDDSA) {
+    output << "eddsa\n";
+  }
   output << "replica_private_key: " << config.replicaPrivateKey << "\n";
 
   if (commonSys) commonSys->writeConfiguration(output, "common", config.replicaId);
@@ -76,7 +78,7 @@ static void validateRSAPrivateKey(const std::string& key) {
   if (!std::regex_match(key, std::regex("[0-9A-Fa-f]+"))) throw std::runtime_error("Invalid RSA private key: " + key);
 }
 
-Cryptosystem* inputReplicaKeyfileMultisig(const std::string& filename, bftEngine::ReplicaConfig& config) {
+Cryptosystem* inputReplicaKeyfileMultisig(const std::string& filename, ReplicaConfig& config) {
   using namespace concord::util;
 
   std::ifstream input(filename);

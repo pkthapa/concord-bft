@@ -17,6 +17,7 @@
 #include "secrets_manager_plain.h"
 #include "communication/StateControl.hpp"
 #include "sign_verify_utils.hpp"
+#include "ReplicaConfig.hpp"
 
 using namespace concord::diagnostics;
 using namespace concord::secretsmanager;
@@ -24,6 +25,7 @@ using namespace bftEngine;
 using namespace bftEngine::impl;
 using concord::util::crypto::KeyFormat;
 using concord::crypto::signature::SignerFactory;
+using bftEngine::ReplicaConfig;
 
 namespace bft::client {
 
@@ -61,7 +63,8 @@ Client::Client(SharedCommPtr comm, const ClientConfig& config, std::shared_ptr<c
     if (!key_plaintext) {
       throw InvalidPrivateKeyException(file_path, config.secrets_manager_config != std::nullopt);
     }
-    transaction_signer_ = SignerFactory::getReplicaSigner(key_plaintext.value(), KeyFormat::PemFormat);
+    transaction_signer_ = SignerFactory::getReplicaSigner(
+        key_plaintext.value(), ReplicaConfig::instance().replicaMsgSigningAlgo, KeyFormat::PemFormat);
   }
   communication_->setReceiver(config_.id.val, &receiver_);
   communication_->start();

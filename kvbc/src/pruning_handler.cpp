@@ -22,6 +22,7 @@ namespace concord::kvbc::pruning {
 
 using concord::crypto::signature::SignerFactory;
 using concord::crypto::signature::VerifierFactory;
+using bftEngine::ReplicaConfig;
 
 void PruningSigner::sign(concord::messages::LatestPrunableBlock& block) {
   std::ostringstream oss;
@@ -32,12 +33,15 @@ void PruningSigner::sign(concord::messages::LatestPrunableBlock& block) {
   block.signature = std::vector<uint8_t>(signature.begin(), signature.end());
 }
 
-PruningSigner::PruningSigner(const std::string& key) { signer_ = SignerFactory::getReplicaSigner(key); }
+PruningSigner::PruningSigner(const std::string& key) {
+  signer_ = SignerFactory::getReplicaSigner(key, ReplicaConfig::instance().replicaMsgSigningAlgo);
+}
 
 PruningVerifier::PruningVerifier(const std::set<std::pair<uint16_t, const std::string>>& replicasPublicKeys) {
   auto i = 0u;
   for (auto& [idx, pkey] : replicasPublicKeys) {
-    replicas_.push_back(Replica{idx, VerifierFactory::getReplicaVerifier(pkey)});
+    replicas_.push_back(
+        Replica{idx, VerifierFactory::getReplicaVerifier(pkey, ReplicaConfig::instance().replicaMsgSigningAlgo)});
     const auto ins_res = replica_ids_.insert(replicas_.back().principal_id);
     if (!ins_res.second) {
       throw std::runtime_error{"PruningVerifier found duplicate replica principal_id: " +

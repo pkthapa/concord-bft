@@ -26,10 +26,12 @@
 #include "openssl_utils.hpp"
 #include "cryptopp_utils.hpp"
 
-#ifdef USE_CRYPTOPP_RSA
+using bftEngine::ReplicaConfig;
+using concord::crypto::cryptopp::Crypto;
+using concord::crypto::signature::SIGN_VERIFY_ALGO;
 using concord::crypto::cryptopp::RSA_SIGNATURE_LENGTH;
-#endif
 using concord::crypto::openssl::OpenSSLCryptoImpl;
+
 // Helper functions and static state to this executable's main function.
 
 static bool containsHelpOption(int argc, char** argv) {
@@ -100,7 +102,7 @@ int main(int argc, char** argv) {
       std::cout << usageMessage;
       return 0;
     }
-    bftEngine::ReplicaConfig& config = bftEngine::ReplicaConfig::instance();
+    ReplicaConfig& config = ReplicaConfig::instance();
     uint16_t n = 0;
     uint16_t ro = 0;
     std::string outputPrefix;
@@ -190,11 +192,11 @@ int main(int argc, char** argv) {
     std::vector<std::pair<std::string, std::string>> replicaKeyPairs;
 
     for (uint16_t i = 0; i < n + ro; ++i) {
-#ifdef USE_CRYPTOPP_RSA
-      replicaKeyPairs.push_back(Crypto::instance().generateRsaKeyPair(RSA_SIGNATURE_LENGTH));
-#elif USE_EDDSA_SINGLE_SIGN
-      replicaKeyPairs.push_back(OpenSSLCryptoImpl::instance().generateEdDSAKeyPair());
-#endif
+      if (ReplicaConfig::instance().replicaMsgSigningAlgo == SIGN_VERIFY_ALGO::RSA) {
+        replicaKeyPairs.push_back(Crypto::instance().generateRsaKeyPair(RSA_SIGNATURE_LENGTH));
+      } else if (ReplicaConfig::instance().replicaMsgSigningAlgo == SIGN_VERIFY_ALGO::EDDSA) {
+        replicaKeyPairs.push_back(OpenSSLCryptoImpl::instance().generateEdDSAKeyPair());
+      }
       config.publicKeysOfReplicas.insert(std::pair<uint16_t, std::string>(i, replicaKeyPairs[i].second));
     }
 

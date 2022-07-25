@@ -23,12 +23,11 @@ namespace fs = std::experimental::filesystem;
 
 namespace concord::client::reconfiguration::handlers {
 
-#ifdef USE_CRYPTOPP_RSA
+using bftEngine::ReplicaConfig;
+using concord::crypto::signature::SIGN_VERIFY_ALGO;
 using concord::crypto::cryptopp::Crypto;
-#elif USE_EDDSA_SINGLE_SIGN
 using concord::crypto::openssl::OpenSSLCryptoImpl;
 using concord::crypto::openssl::CertificateUtils;
-#endif
 
 template <typename T>
 bool validateInputState(const State& state, std::optional<uint64_t> init_block = std::nullopt) {
@@ -157,14 +156,17 @@ bool ClientMasterKeyExchangeHandler::validate(const State& state) const {
 }
 bool ClientMasterKeyExchangeHandler::execute(const State& state, WriteState& out) {
   LOG_INFO(getLogger(), "execute transaction signing key exchange request");
-// Generate new key pair
-#ifdef USE_CRYPTOPP_RSA
-  auto hex_keys = Crypto::instance().generateRsaKeyPair(concord::crypto::cryptopp::RSA_SIGNATURE_LENGTH);
-  auto pem_keys = Crypto::instance().RsaHexToPem(hex_keys);
-#elif USE_EDDSA_SINGLE_SIGN
-  auto hex_keys = OpenSSLCryptoImpl::instance().generateEdDSAKeyPair();
-  auto pem_keys = OpenSSLCryptoImpl::instance().EdDSAHexToPem(hex_keys);
-#endif
+  // Generate new key pair
+  std::pair<std::string, std::string> hex_keys;
+  std::pair<std::string, std::string> pem_keys;
+  if (ReplicaConfig::instance().replicaMsgSigningAlgo == SIGN_VERIFY_ALGO::RSA) {
+    hex_keys = Crypto::instance().generateRsaKeyPair(concord::crypto::cryptopp::RSA_SIGNATURE_LENGTH);
+    pem_keys = Crypto::instance().RsaHexToPem(hex_keys);
+  }
+  if (ReplicaConfig::instance().replicaMsgSigningAlgo == SIGN_VERIFY_ALGO::EDDSA) {
+    hex_keys = OpenSSLCryptoImpl::instance().generateEdDSAKeyPair();
+    pem_keys = OpenSSLCryptoImpl::instance().EdDSAHexToPem(hex_keys);
+  }
 
   LOG_INFO(getLogger(), "Generated pem keys:" << KVLOG(pem_keys.first, pem_keys.second));
 

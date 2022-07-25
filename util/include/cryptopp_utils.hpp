@@ -24,7 +24,8 @@ constexpr static uint16_t RSA_SIGNATURE_LENGTH = 2048;
 
 class ECDSAVerifier : public IVerifier {
  public:
-  ECDSAVerifier(const std::string& str_pub_key, concord::util::crypto::KeyFormat fmt);
+  ECDSAVerifier(const std::string& str_pub_key,
+                concord::util::crypto::KeyFormat fmt = concord::util::crypto::KeyFormat::HexaDecimalStrippedFormat);
   bool verify(const std::string& data, const std::string& sig) const override;
   uint32_t signatureLength() const override;
   std::string getPubKey() const override { return key_str_; }
@@ -38,7 +39,8 @@ class ECDSAVerifier : public IVerifier {
 
 class ECDSASigner : public ISigner {
  public:
-  ECDSASigner(const std::string& str_priv_key, concord::util::crypto::KeyFormat fmt);
+  ECDSASigner(const std::string& str_priv_key,
+              concord::util::crypto::KeyFormat fmt = concord::util::crypto::KeyFormat::HexaDecimalStrippedFormat);
   std::string sign(const std::string& data) override;
   uint32_t signatureLength() const override;
   std::string getPrivKey() const override { return key_str_; }
@@ -52,7 +54,8 @@ class ECDSASigner : public ISigner {
 
 class RSAVerifier : public IVerifier {
  public:
-  RSAVerifier(const std::string& str_pub_key, concord::util::crypto::KeyFormat fmt);
+  RSAVerifier(const std::string& str_pub_key,
+              concord::util::crypto::KeyFormat fmt = concord::util::crypto::KeyFormat::HexaDecimalStrippedFormat);
   bool verify(const std::string& data, const std::string& sig) const override;
   uint32_t signatureLength() const override;
   std::string getPubKey() const override { return key_str_; }
@@ -66,7 +69,8 @@ class RSAVerifier : public IVerifier {
 
 class RSASigner : public ISigner {
  public:
-  RSASigner(const std::string& str_priv_key, concord::util::crypto::KeyFormat fmt);
+  RSASigner(const std::string& str_priv_key,
+            concord::util::crypto::KeyFormat fmt = concord::util::crypto::KeyFormat::HexaDecimalStrippedFormat);
   std::string sign(const std::string& data) override;
   uint32_t signatureLength() const override;
   std::string getPrivKey() const override { return key_str_; }

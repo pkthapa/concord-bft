@@ -30,13 +30,10 @@
 #include "hex_tools.h"
 
 namespace bft::communication::tls {
-
-#ifdef USE_CRYPTOPP_RSA
+using bftEngine::ReplicaConfig;
+using concord::crypto::signature::SIGN_VERIFY_ALGO;
 using concord::crypto::cryptopp::Crypto;
-#elif USE_EDDSA_SINGLE_SIGN
 using concord::crypto::openssl::OpenSSLCryptoImpl;
-#endif
-
 using concord::crypto::openssl::CertificateUtils;
 
 void AsyncTlsConnection::startReading() {
@@ -447,18 +444,18 @@ std::pair<bool, NodeNum> AsyncTlsConnection::checkCertificate(X509& received_cer
            "main key");
   std::string pem_pub_key = StateControl::instance().getPeerPubKey(peerId);
   if (pem_pub_key.empty()) return std::make_pair(false, peerId);
-#ifdef USE_CRYPTOPP_RSA
-  if (Crypto::instance().getFormat(pem_pub_key) != concord::util::crypto::KeyFormat::PemFormat) {
-    pem_pub_key =
-        Crypto::instance().RsaHexToPem(std::make_pair("", StateControl::instance().getPeerPubKey(peerId))).second;
+  if (ReplicaConfig::instance().replicaMsgSigningAlgo == SIGN_VERIFY_ALGO::RSA) {
+    if (Crypto::instance().getFormat(pem_pub_key) != concord::util::crypto::KeyFormat::PemFormat) {
+      pem_pub_key =
+          Crypto::instance().RsaHexToPem(std::make_pair("", StateControl::instance().getPeerPubKey(peerId))).second;
+    }
+  } else if (ReplicaConfig::instance().replicaMsgSigningAlgo == SIGN_VERIFY_ALGO::EDDSA) {
+    if (OpenSSLCryptoImpl::instance().getFormat(pem_pub_key) != concord::util::crypto::KeyFormat::PemFormat) {
+      pem_pub_key = OpenSSLCryptoImpl::instance()
+                        .EdDSAHexToPem(std::make_pair("", StateControl::instance().getPeerPubKey(peerId)))
+                        .second;
+    }
   }
-#elif USE_EDDSA_SINGLE_SIGN
-  if (OpenSSLCryptoImpl::instance().getFormat(pem_pub_key) != concord::util::crypto::KeyFormat::PemFormat) {
-    pem_pub_key = OpenSSLCryptoImpl::instance()
-                      .EdDSAHexToPem(std::make_pair("", StateControl::instance().getPeerPubKey(peerId)))
-                      .second;
-  }
-#endif
 
   // (2) Try to validate the certificate against the peer's public key
   res = CertificateUtils::verifyCertificate(received_cert, pem_pub_key);

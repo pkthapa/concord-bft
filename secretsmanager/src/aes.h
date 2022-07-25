@@ -18,28 +18,22 @@
 #include <vector>
 #include <string>
 
-#ifdef USE_CRYPTOPP_RSA
 #include <cryptopp/cryptlib.h>
 #include <cryptopp/modes.h>
 #include <cryptopp/aes.h>
-#elif USE_EDDSA_SINGLE_SIGN
 #include <openssl/aes.h>
-#endif
 
 #include "key_params.h"
 
 namespace concord::secretsmanager {
 
 class AES_CBC {
-#ifdef USE_CRYPTOPP_RSA
   CryptoPP::AES::Encryption aesEncryption;
   CryptoPP::AES::Decryption aesDecryption;
   CryptoPP::CBC_Mode_ExternalCipher::Encryption enc;
   CryptoPP::CBC_Mode_ExternalCipher::Decryption dec;
-#elif USE_EDDSA_SINGLE_SIGN
   std::vector<uint8_t> key;
   std::vector<uint8_t> iv;
-#endif
 
  public:
   AES_CBC(const KeyParams& params);

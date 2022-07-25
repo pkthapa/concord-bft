@@ -367,6 +367,7 @@ struct VerifyBlockRequests {
       std::string verification_result;
       const auto verifier = concord::crypto::signature::VerifierFactory::getReplicaVerifier(
           client_keys.ids_to_keys[req.clientId].key,
+          bftEngine::ReplicaConfig::instance().replicaMsgSigningAlgo,
           (concord::util::crypto::KeyFormat)client_keys.ids_to_keys[req.clientId].format);
 
       if (req.requestPersistencyType == concord::messages::execution_data::EPersistecyType::RAW_ON_CHAIN) {
@@ -1107,7 +1108,9 @@ struct VerifyDbCheckpoint {
               auto key_format = ((format == "hex") ? KeyFormat::HexaDecimalStrippedFormat : KeyFormat::PemFormat);
 
               replica_keys.emplace(
-                  repId, concord::crypto::signature::VerifierFactory::getReplicaVerifier(cmd.key, key_format));
+                  repId,
+                  concord::crypto::signature::VerifierFactory::getReplicaVerifier(
+                      cmd.key, bftEngine::ReplicaConfig::instance().replicaMsgSigningAlgo, key_format));
             },
             *val);
       }

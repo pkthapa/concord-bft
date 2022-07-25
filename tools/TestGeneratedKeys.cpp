@@ -28,6 +28,7 @@ using concord::crypto::IVerifier;
 using concord::crypto::signature::SignerFactory;
 using concord::crypto::signature::VerifierFactory;
 using concord::util::crypto::KeyFormat;
+using bftEngine::ReplicaConfig;
 
 // How often to output status when testing cryptosystems, measured as an
 // interval measured in tested signaturs.
@@ -142,21 +143,13 @@ static bool testReplicaKeyPair(const std::string& privateKey, const std::string&
   const std::string invalidPublicKey = "FAILURE: Invalid public key for replica " + std::to_string(replicaID) + ".\n";
 
   try {
-#ifdef USE_CRYPTOPP_RSA
-    signer.reset(new MainReplicaSigner(privateKey, KeyFormat::HexaDecimalStrippedFormat));
-#elif USE_EDDSA_SINGLE_SIGN
-    signer = SignerFactory::getReplicaSigner(privateKey);
-#endif
+    signer = SignerFactory::getReplicaSigner(privateKey, ReplicaConfig::instance().replicaMsgSigningAlgo);
   } catch (const std::exception& e) {
     std::cout << invalidPrivateKey;
     return false;
   }
   try {
-#ifdef USE_CRYPTOPP_RSA
-    verifier.reset(new MainReplicaVerifier(publicKey, KeyFormat::HexaDecimalStrippedFormat));
-#elif USE_EDDSA_SINGLE_SIGN
-    verifier = VerifierFactory::getReplicaVerifier(publicKey);
-#endif
+    verifier = VerifierFactory::getReplicaVerifier(publicKey, ReplicaConfig::instance().replicaMsgSigningAlgo);
   } catch (const std::exception& e) {
     std::cout << invalidPublicKey;
     return false;

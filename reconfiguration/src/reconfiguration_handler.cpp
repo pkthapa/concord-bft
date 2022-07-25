@@ -21,14 +21,10 @@
 #include "communication/StateControl.hpp"
 #include "secrets_manager_plain.h"
 #include "bftengine/DbCheckpointManager.hpp"
-
-#include <fstream>
+#include "ReplicaConfig.hpp"
 #include "sign_verify_utils.hpp"
 
-#if USE_CRYPTOPP_RSA
-using concord::crypto::cryptopp::ECDSAVerifier;
-#else
-#endif
+#include <fstream>
 
 namespace concord::reconfiguration {
 
@@ -338,11 +334,8 @@ BftReconfigurationHandler::BftReconfigurationHandler() {
     key_str.append(buf, 0, key_content.gcount());
   }
   key_str.append(buf, 0, key_content.gcount());
-#ifdef USE_CRYPTOPP_RSA
-  verifier_.reset(new ECDSAVerifier(key_str, KeyFormat::PemFormat));
-#else
-  verifier_ = VerifierFactory::getReplicaVerifier(key_str, KeyFormat::PemFormat);
-#endif
+  verifier_ = VerifierFactory::getReplicaVerifier(
+      key_str, bftEngine::ReplicaConfig::instance().operatorMsgSigningAlgo, KeyFormat::PemFormat);
 }
 
 bool BftReconfigurationHandler::verifySignature(uint32_t sender_id,
