@@ -423,7 +423,9 @@ void ConcordClientPool::AddSenderAndSignature(std::vector<uint8_t> &request, con
   rreq.sender = static_cast<decltype(rreq.sender)>(chosenClient->getClientId());
   request.clear();
   concord::messages::serialize(request, rreq);
+  std::cout << __LINE__ << " " << __func__ << " PKT: going to sign..." << std::endl;
   auto sig = chosenClient->messageSignature(request);
+  std::cout << __LINE__ << " " << __func__ << " PKT: sig=" << sig << ", sig.size=" << sig.size() << std::endl;
   rreq.signature = std::vector<uint8_t>(sig.begin(), sig.end());
   request.clear();
   concord::messages::serialize(request, rreq);

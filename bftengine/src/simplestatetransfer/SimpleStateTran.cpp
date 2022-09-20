@@ -25,7 +25,7 @@
 #include "Logger.hpp"
 #include "storage/direct_kv_key_manipulator.h"
 #include "Timers.hpp"
-
+#include <iostream>  // PKT
 namespace bftEngine {
 
 namespace SimpleInMemoryStateTransfer {
@@ -343,6 +343,7 @@ SimpleStateTran::SimpleStateTran(
   };
 
   auto comparator = concord::storage::memorydb::KeyComparator();
+  std::cout << __LINE__ << " " << __func__ << " PKT: Going to call Client ctor." << std::endl;
   concord::storage::IDBClient::ptr db(new concord::storage::memorydb::Client(comparator));
   internalST_ = bcst::create(
       config, &dummyBDState_, db, std::make_shared<concord::storage::v1DirectKeyValue::STKeyManipulator>());

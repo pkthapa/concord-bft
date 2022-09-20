@@ -153,6 +153,7 @@ std::shared_ptr<ClientReconfigurationEngine> CreFactory::create(std::shared_ptr<
   }
   bftClientConf.replicas_master_key_folder_path = std::nullopt;
   std::unique_ptr<ICommunication> comm = std::make_unique<Communication>(msgsCommunicator, msgHandlers);
+  std::cout << __LINE__ << " " << __func__ << " PKT: Going to call Client ctor." << std::endl;
   bft::client::Client* bftClient = new bft::client::Client(std::move(comm), bftClientConf);
   bftClient->setTransactionSigner(new InternalSigner());
   Config cre_config;

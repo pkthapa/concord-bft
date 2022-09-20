@@ -252,7 +252,7 @@ int main(int argc, char **argv) {
   try {
     setupDBEditorParams(argc, argv);
     verifyInputParams(argv);
-
+    std::cout << __LINE__ << " " << __func__ << " PKT: Going to call Client ctor." << std::endl;
     dbClient = new Client(dbPath.str(), std::make_unique<KeyComparator>(new DBKeyComparator{}));
     dbClient->init(dbOperation == DUMP_ALL_VALUES);
     if (dbOperation != DUMP_ALL_VALUES) setupMetadataStorage();

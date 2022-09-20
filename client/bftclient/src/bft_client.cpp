@@ -16,7 +16,7 @@
 #include "secrets_manager_enc.h"
 #include "secrets_manager_plain.h"
 #include "communication/StateControl.hpp"
-
+#include <iostream>  // PKT
 using namespace concord::diagnostics;
 using namespace concord::secretsmanager;
 using namespace bftEngine;
@@ -41,23 +41,43 @@ Client::Client(SharedCommPtr comm, const ClientConfig& config, std::shared_ptr<c
   setAggregator(aggregator);
   // secrets_manager_config can be set only if transaction_signing_private_key_file_path is set
   if (config.secrets_manager_config) ConcordAssert(config.transaction_signing_private_key_file_path != std::nullopt);
+
+  if (config.transaction_signing_private_key_file_path.has_value()) {
+    std::cout << __LINE__ << " " << __func__ << " PKT: config.transaction_signing_private_key_file_path="
+              << config.transaction_signing_private_key_file_path.value() << std::endl;
+  } else {
+    std::cout << __LINE__ << " " << __func__ << " PKT: config.transaction_signing_private_key_file_path is null."
+              << std::endl;
+  }
   if (config.transaction_signing_private_key_file_path) {
     // transaction signing is enabled
     auto file_path = config.transaction_signing_private_key_file_path.value();
     std::optional<std::string> key_plaintext;
     std::unique_ptr<ISecretsManagerImpl> secretsManager;
-
+    std::cout << __LINE__ << " " << __func__ << " PKT: file_path=" << file_path << std::endl;
     if (config.secrets_manager_config) {
+      std::cout << __LINE__ << " " << __func__ << " PKT: config.secrets_manager_config is present." << std::endl;
       secretsManager = std::make_unique<SecretsManagerEnc>(config.secrets_manager_config.value());
     } else {
       // private key file is in plain text, use secrets manager plain to read the file
+      std::cout << __LINE__ << " " << __func__ << " PKT: config.secrets_manager_config is null." << std::endl;
       secretsManager = std::make_unique<SecretsManagerPlain>();
     }
 
     key_plaintext = secretsManager->decryptFile(file_path);
+
+    if (key_plaintext.has_value()) {
+      std::cout << __LINE__ << " " << __func__ << " PKT: key_plaintext=" << key_plaintext.value() << std::endl;
+    } else {
+      std::cout << __LINE__ << " " << __func__
+                << " PKT: key_plaintext is null. going to throw InvalidPrivateKeyException exc." << std::endl;
+    }
     if (!key_plaintext) throw InvalidPrivateKeyException(file_path, config.secrets_manager_config != std::nullopt);
     transaction_signer_ = std::make_unique<concord::util::crypto::RSASigner>(
         key_plaintext.value().c_str(), concord::util::crypto::KeyFormat::PemFormat);
+    std::cout << __LINE__ << " " << __func__ << " PKT: transaction_signer_ init with rsa signer." << std::endl;
+  } else {
+    std::cout << __LINE__ << " " << __func__ << " PKT: transaction_signer_ no init." << std::endl;
   }
   communication_->setReceiver(config_.id.val, &receiver_);
   communication_->start();
@@ -90,6 +110,8 @@ Msg Client::createClientMsg(const RequestConfig& config, Msg&& request, bool rea
   if (transaction_signer_) {
     expected_sig_len = transaction_signer_->signatureLength();
     msg_size += expected_sig_len;
+  } else {
+    std::cout << __LINE__ << " " << __func__ << " PKT: transaction_signer_ is null" << std::endl;
   }
   Msg msg(msg_size);
   ClientRequestMsgHeader* header = reinterpret_cast<ClientRequestMsgHeader*>(msg.data());
@@ -127,9 +149,13 @@ Msg Client::createClientMsg(const RequestConfig& config, Msg&& request, bool rea
       std::string sig;
       std::string data(request.begin(), request.end());
       TimeRecorder scoped_timer(*histograms_->sign_duration);
+      std::cout << __LINE__ << " " << __func__ << " PKT: transaction_signer_ going to sign" << std::endl;
+      std::cout << __LINE__ << " " << __func__ << " PKT: data len to sign=" << data.size() << std::endl;
       sig = transaction_signer_->sign(data);
       actualSigSize = sig.size();
       std::memcpy(position, sig.data(), sig.size());
+      std::cout << __LINE__ << " " << __func__ << " PKT: expected_sig_len=" << expected_sig_len
+                << ", actualSigSize=" << actualSigSize << std::endl;
       ConcordAssert(expected_sig_len == actualSigSize);
       header->reqSignatureLength = actualSigSize;
       histograms_->transaction_size->record(request.size());
@@ -146,6 +172,7 @@ Msg Client::createClientMsg(const RequestConfig& config, Msg&& request, bool rea
       snapshot_index_++;
     }
   } else {
+    std::cout << __LINE__ << " " << __func__ << " PKT: transaction_signer_ is null so sign len is 0" << std::endl;
     header->reqSignatureLength = 0;
   }
 
@@ -373,10 +400,15 @@ bool Client::isServing(int num_replicas, int num_replicas_required) const {
 }
 std::string Client::signMessage(std::vector<uint8_t>& data) {
   std::string signature = std::string();
+  std::cout << __LINE__ << " " << __func__ << " PKT: transaction_signer_=" << std::boolalpha
+            << (transaction_signer_ != nullptr) << std::endl;
   if (transaction_signer_) {
+    std::cout << __LINE__ << " " << __func__ << " PKT: getting sign len" << std::endl;
     auto expected_sig_len = transaction_signer_->signatureLength();
+    std::cout << __LINE__ << " " << __func__ << " PKT: expected_sig_len=" << expected_sig_len << std::endl;
     signature.resize(expected_sig_len);
     signature = transaction_signer_->sign(std::string(data.begin(), data.end()));
+    std::cout << __LINE__ << " " << __func__ << " PKT: signature=" << signature << std::endl;
   }
   return signature;
 }

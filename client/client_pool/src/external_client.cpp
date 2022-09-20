@@ -327,19 +327,37 @@ void ConcordClient::CreateClientConfig(BaseCommConfig* comm_config, ClientConfig
                          client_params_.numberOfStandardDeviationsToTolerate,
                          client_params_.samplesPerEvaluation,
                          static_cast<int16_t>(client_params_.samplesUntilReset)};
+  if (client_config.replicas_master_key_folder_path.has_value()) {
+    std::cout << __LINE__ << " " << __func__ << " PKT: before setting client_config.replicas_master_key_folder_path="
+              << client_config.replicas_master_key_folder_path.value() << std::endl;
+  }
+
   if (!pool_config_.path_to_replicas_master_key.empty())
     client_config.replicas_master_key_folder_path = pool_config_.path_to_replicas_master_key;
   bool transaction_signing_enabled = pool_config_.transaction_signing_enabled;
+  std::cout << __LINE__ << " " << __func__ << " PKT: transaction_signing_enabled=" << std::boolalpha
+            << transaction_signing_enabled << std::endl;
+  if (client_config.replicas_master_key_folder_path.has_value()) {
+    std::cout << __LINE__ << " " << __func__ << " PKT: after setting client_config.replicas_master_key_folder_path="
+              << client_config.replicas_master_key_folder_path.value() << std::endl;
+  }
   auto tls_config = dynamic_cast<TlsTcpConfig*>(comm_config);
   if (transaction_signing_enabled) {
     std::string priv_key_path = pool_config_.signing_key_path;
+    std::cout << __LINE__ << " " << __func__ << " PKT: after priv_key_path=" << priv_key_path << std::endl;
     const char* transaction_signing_file_name = transaction_signing_plain_file_name;
     if (tls_config->secretData_) {
       transaction_signing_file_name = transaction_signing_enc_file_name;
+      std::cout << __LINE__ << " " << __func__
+                << " PKT: after transaction_signing_file_name=" << transaction_signing_file_name << std::endl;
       client_config.secrets_manager_config = tls_config->secretData_;
     }
     client_config.transaction_signing_private_key_file_path =
         priv_key_path + std::string("/") + transaction_signing_file_name;
+  }
+  if (client_config.transaction_signing_private_key_file_path.has_value()) {
+    std::cout << __LINE__ << " " << __func__ << " PKT: client_config.transaction_signing_private_key_file_path="
+              << client_config.transaction_signing_private_key_file_path.value() << std::endl;
   }
 }
 
@@ -348,6 +366,7 @@ void ConcordClient::CreateClient(std::shared_ptr<concordMetrics::Aggregator> agg
   auto [comm_config, comm_layer] = CreateCommConfigAndCommChannel();
   CreateClientConfig(comm_config, client_config);
   LOG_DEBUG(logger_, "Creating new bft-client instance" << KVLOG(client_id_));
+  std::cout << __LINE__ << " " << __func__ << " PKT: Going to call Client ctor." << std::endl;
   auto new_client =
       std::unique_ptr<bft::client::Client>{new bft::client::Client(comm_layer, client_config, aggregator)};
   new_client_ = std::move(new_client);
