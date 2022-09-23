@@ -316,7 +316,7 @@ bool ReconfigurationHandler::handle(const concord::messages::DbSizeReadRequest&,
 }
 
 BftReconfigurationHandler::BftReconfigurationHandler() {
-  auto operatorPubKeyPath = bftEngine::ReplicaConfig::instance().pathToOperatorPublicKey_;
+  /*auto operatorPubKeyPath = bftEngine::ReplicaConfig::instance().pathToOperatorPublicKey_;
   if (operatorPubKeyPath.empty()) {
     LOG_WARN(getLogger(),
              "The operator public key is missing, the reconfiguration handler won't be able to execute the requests");
@@ -333,9 +333,16 @@ BftReconfigurationHandler::BftReconfigurationHandler() {
   while (key_content.read(&buf[0], 4096)) {
     key_str.append(buf, 0, key_content.gcount());
   }
-  key_str.append(buf, 0, key_content.gcount());
-  verifier_ =
-      Factory::getVerifier(key_str, bftEngine::ReplicaConfig::instance().operatorMsgSigningAlgo, KeyFormat::PemFormat);
+  key_str.append(buf, 0, key_content.gcount());*/
+
+  //
+  const char* key_str =
+      "-----BEGIN PUBLIC KEY-----\n"
+      "MCowBQYDK2VwAyEATWZOjT/VeCT7Ot/okA3s9jv0cDsPJeplomJtzwYP2vk=\n"
+      "-----END PUBLIC KEY-----\n";
+  LOG_INFO(getLogger(), " PKT: reading hard-coded eddsa operator key=" << key_str);
+  verifier_ = Factory::getVerifier(
+      std::string(key_str), bftEngine::ReplicaConfig::instance().operatorMsgSigningAlgo, KeyFormat::PemFormat);
 }
 
 bool BftReconfigurationHandler::verifySignature(uint32_t sender_id,
