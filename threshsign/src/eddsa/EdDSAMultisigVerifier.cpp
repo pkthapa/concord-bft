@@ -22,7 +22,9 @@ int EdDSASignatureAccumulator::add(const char *sigShareWithId, int len) {
     return static_cast<int>(signatures_.size());
     ;
   }
-
+  LOG_INFO(EDDSA_MULTISIG_LOG,
+           "Tarun  EdDSASignatureAccumulator::add singleSignature.id "
+               << singleSignature.id << " verifier_.maxShareID() " << verifier_.maxShareID());
   if (hasShareVerificationEnabled()) {
     auto result = verifier_.verifySingleSignature(
         reinterpret_cast<const uint8_t *>(expectedMsgDigest_.data()), expectedMsgDigest_.size(), singleSignature);
@@ -105,6 +107,9 @@ bool EdDSAMultisigVerifier::verify(const char *msg, int msgLen, const char *sig,
 
   for (int i = 0; i < static_cast<int>(signatureCountInBuffer); i++) {
     auto &currentSignature = allSignatures[i];
+    LOG_INFO(EDDSA_MULTISIG_LOG,
+             "Tarun EdDSAMultisigVerifier::verify currentSignature.id  " << currentSignature.id << " verifiers_.size() "
+                                                                         << verifiers_.size());
     if (currentSignature.id == 0 || currentSignature.id >= verifiers_.size()) {
       LOG_ERROR(EDDSA_MULTISIG_LOG, "Invalid signer id" << KVLOG(currentSignature.id, verifiers_.size()));
       continue;
